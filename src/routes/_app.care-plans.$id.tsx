@@ -232,7 +232,7 @@ function CarePlanDetail() {
         resident={resident}
         open={open}
         onOpenChange={setOpen}
-        existing={editorExisting && editorExisting.id ? editorExisting : null}
+        existing={editorExisting}
         onSaved={() => setTick((t) => t + 1)}
       />
     </div>
