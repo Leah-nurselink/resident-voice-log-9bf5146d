@@ -42,7 +42,7 @@ const riskTones = {
 } as const;
 
 function ResidentDetail() {
-  const { resident } = Route.useLoaderData();
+  const { resident } = Route.useLoaderData() as { resident: Resident };
   const [open, setOpen] = useState(false);
   const [extraNotes, setExtraNotes] = useState<CareNote[]>([]);
 
