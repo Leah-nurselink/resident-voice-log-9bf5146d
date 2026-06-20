@@ -4,7 +4,7 @@ import { ArrowLeft, Mic, Phone, ShieldAlert, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Timeline } from "@/components/Timeline";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
-import { careNotes as seedNotes, residents, type CareNote } from "@/lib/mock-data";
+import { careNotes as seedNotes, residents, type CareNote, type Resident } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/residents/$id")({
   loader: ({ params }) => {
@@ -42,7 +42,7 @@ const riskTones = {
 } as const;
 
 function ResidentDetail() {
-  const { resident } = Route.useLoaderData();
+  const { resident } = Route.useLoaderData() as { resident: Resident };
   const [open, setOpen] = useState(false);
   const [extraNotes, setExtraNotes] = useState<CareNote[]>([]);
 
