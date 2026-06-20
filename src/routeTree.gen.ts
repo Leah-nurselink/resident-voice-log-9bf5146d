@@ -14,7 +14,9 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppFamilyRouteImport } from './routes/_app.family'
 import { Route as AppAlertsRouteImport } from './routes/_app.alerts'
 import { Route as AppResidentsIndexRouteImport } from './routes/_app.residents.index'
+import { Route as AppCarePlansIndexRouteImport } from './routes/_app.care-plans.index'
 import { Route as AppResidentsIdRouteImport } from './routes/_app.residents.$id'
+import { Route as AppCarePlansIdRouteImport } from './routes/_app.care-plans.$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -40,9 +42,19 @@ const AppResidentsIndexRoute = AppResidentsIndexRouteImport.update({
   path: '/residents/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCarePlansIndexRoute = AppCarePlansIndexRouteImport.update({
+  id: '/care-plans/',
+  path: '/care-plans/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppResidentsIdRoute = AppResidentsIdRouteImport.update({
   id: '/residents/$id',
   path: '/residents/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCarePlansIdRoute = AppCarePlansIdRouteImport.update({
+  id: '/care-plans/$id',
+  path: '/care-plans/$id',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -50,14 +62,18 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/alerts': typeof AppAlertsRoute
   '/family': typeof AppFamilyRoute
+  '/care-plans/$id': typeof AppCarePlansIdRoute
   '/residents/$id': typeof AppResidentsIdRoute
+  '/care-plans/': typeof AppCarePlansIndexRoute
   '/residents/': typeof AppResidentsIndexRoute
 }
 export interface FileRoutesByTo {
   '/alerts': typeof AppAlertsRoute
   '/family': typeof AppFamilyRoute
   '/': typeof AppIndexRoute
+  '/care-plans/$id': typeof AppCarePlansIdRoute
   '/residents/$id': typeof AppResidentsIdRoute
+  '/care-plans': typeof AppCarePlansIndexRoute
   '/residents': typeof AppResidentsIndexRoute
 }
 export interface FileRoutesById {
@@ -66,21 +82,39 @@ export interface FileRoutesById {
   '/_app/alerts': typeof AppAlertsRoute
   '/_app/family': typeof AppFamilyRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/care-plans/$id': typeof AppCarePlansIdRoute
   '/_app/residents/$id': typeof AppResidentsIdRoute
+  '/_app/care-plans/': typeof AppCarePlansIndexRoute
   '/_app/residents/': typeof AppResidentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/alerts' | '/family' | '/residents/$id' | '/residents/'
+  fullPaths:
+    | '/'
+    | '/alerts'
+    | '/family'
+    | '/care-plans/$id'
+    | '/residents/$id'
+    | '/care-plans/'
+    | '/residents/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/alerts' | '/family' | '/' | '/residents/$id' | '/residents'
+  to:
+    | '/alerts'
+    | '/family'
+    | '/'
+    | '/care-plans/$id'
+    | '/residents/$id'
+    | '/care-plans'
+    | '/residents'
   id:
     | '__root__'
     | '/_app'
     | '/_app/alerts'
     | '/_app/family'
     | '/_app/'
+    | '/_app/care-plans/$id'
     | '/_app/residents/$id'
+    | '/_app/care-plans/'
     | '/_app/residents/'
   fileRoutesById: FileRoutesById
 }
@@ -125,11 +159,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppResidentsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/care-plans/': {
+      id: '/_app/care-plans/'
+      path: '/care-plans'
+      fullPath: '/care-plans/'
+      preLoaderRoute: typeof AppCarePlansIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/residents/$id': {
       id: '/_app/residents/$id'
       path: '/residents/$id'
       fullPath: '/residents/$id'
       preLoaderRoute: typeof AppResidentsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/care-plans/$id': {
+      id: '/_app/care-plans/$id'
+      path: '/care-plans/$id'
+      fullPath: '/care-plans/$id'
+      preLoaderRoute: typeof AppCarePlansIdRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -139,7 +187,9 @@ interface AppRouteChildren {
   AppAlertsRoute: typeof AppAlertsRoute
   AppFamilyRoute: typeof AppFamilyRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppCarePlansIdRoute: typeof AppCarePlansIdRoute
   AppResidentsIdRoute: typeof AppResidentsIdRoute
+  AppCarePlansIndexRoute: typeof AppCarePlansIndexRoute
   AppResidentsIndexRoute: typeof AppResidentsIndexRoute
 }
 
@@ -147,7 +197,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppAlertsRoute: AppAlertsRoute,
   AppFamilyRoute: AppFamilyRoute,
   AppIndexRoute: AppIndexRoute,
+  AppCarePlansIdRoute: AppCarePlansIdRoute,
   AppResidentsIdRoute: AppResidentsIdRoute,
+  AppCarePlansIndexRoute: AppCarePlansIndexRoute,
   AppResidentsIndexRoute: AppResidentsIndexRoute,
 }
 
