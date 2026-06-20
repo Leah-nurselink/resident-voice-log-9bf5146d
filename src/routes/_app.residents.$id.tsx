@@ -95,10 +95,34 @@ function ResidentDetail() {
               </span>
             </div>
           </div>
-          <Button size="lg" onClick={() => setOpen(true)} className="gap-2">
-            <Mic className="h-5 w-5" />
-            Document care
-          </Button>
+          <div className="flex flex-col items-stretch gap-2">
+            <Button size="lg" onClick={() => setOpen(true)} className="gap-2">
+              <Mic className="h-5 w-5" />
+              Document care
+            </Button>
+            <Link
+              to="/care-plans/$id"
+              params={{ id: resident.id }}
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+            >
+              <ClipboardList className="h-3.5 w-3.5" /> Care plan
+            </Link>
+          </div>
+        </div>
+
+        {/* Risk summary banner */}
+        <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
+          {(RESIDENT_RISKS[resident.id] ?? []).map((r) => (
+            <div
+              key={r.key}
+              className={`rounded-lg px-3 py-1.5 text-xs ${RISK_TONE[r.level]}`}
+            >
+              <div className="font-semibold">{RISK_LABEL[r.key]}</div>
+              <div className="text-[11px] opacity-80">
+                {r.note ?? (r.level === "info" ? "—" : `${r.level} risk`)}
+              </div>
+            </div>
+          ))}
         </div>
       </header>
 
