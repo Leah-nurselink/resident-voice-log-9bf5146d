@@ -8,7 +8,8 @@ export type CareCategory =
   | "Medication"
   | "Continence"
   | "Sleep"
-  | "Safeguarding";
+  | "Safeguarding"
+  | "Social activities";
 
 export type IncidentFlag =
   | "fall"
@@ -174,7 +175,7 @@ export const careNotes: CareNote[] = [
     createdAt: hoursAgo(3),
     flags: [],
     status: "approved",
-  } as CareNote,
+  },
   {
     id: "n-7",
     residentId: "r-004",
