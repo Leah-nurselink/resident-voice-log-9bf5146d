@@ -1,10 +1,11 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Mic, Phone, ShieldAlert, Tag } from "lucide-react";
+import { ArrowLeft, Mic, Phone, ShieldAlert, Tag, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Timeline } from "@/components/Timeline";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { careNotes as seedNotes, residents, type CareNote, type Resident } from "@/lib/mock-data";
+import { RESIDENT_RISKS, RISK_LABEL, RISK_TONE } from "@/lib/care-links";
 
 export const Route = createFileRoute("/_app/residents/$id")({
   loader: ({ params }) => {
@@ -94,10 +95,34 @@ function ResidentDetail() {
               </span>
             </div>
           </div>
-          <Button size="lg" onClick={() => setOpen(true)} className="gap-2">
-            <Mic className="h-5 w-5" />
-            Document care
-          </Button>
+          <div className="flex flex-col items-stretch gap-2">
+            <Button size="lg" onClick={() => setOpen(true)} className="gap-2">
+              <Mic className="h-5 w-5" />
+              Document care
+            </Button>
+            <Link
+              to="/care-plans/$id"
+              params={{ id: resident.id }}
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-input px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+            >
+              <ClipboardList className="h-3.5 w-3.5" /> Care plan
+            </Link>
+          </div>
+        </div>
+
+        {/* Risk summary banner */}
+        <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
+          {(RESIDENT_RISKS[resident.id] ?? []).map((r) => (
+            <div
+              key={r.key}
+              className={`rounded-lg px-3 py-1.5 text-xs ${RISK_TONE[r.level]}`}
+            >
+              <div className="font-semibold">{RISK_LABEL[r.key]}</div>
+              <div className="text-[11px] opacity-80">
+                {r.note ?? (r.level === "info" ? "—" : `${r.level} risk`)}
+              </div>
+            </div>
+          ))}
         </div>
       </header>
 
@@ -127,10 +152,15 @@ function ResidentDetail() {
           <div className="rounded-xl border border-border bg-card p-4 shadow-card">
             <h3 className="text-sm font-semibold">Risk assessments</h3>
             <ul className="mt-3 space-y-2 text-sm">
-              {["Falls", "Skin integrity", "Nutrition (MUST)", "Moving & handling"].map((r) => (
-                <li key={r} className="flex items-center justify-between">
-                  <span>{r}</span>
-                  <span className="text-xs text-muted-foreground">Reviewed 12 Jun</span>
+              {(RESIDENT_RISKS[resident.id] ?? []).map((r) => (
+                <li key={r.key} className="flex items-center justify-between gap-2">
+                  <span>{RISK_LABEL[r.key]}</span>
+                  <span className="flex items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${RISK_TONE[r.level]}`}>
+                      {r.level === "info" ? r.note : r.level}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">{r.reviewedAt}</span>
+                  </span>
                 </li>
               ))}
             </ul>

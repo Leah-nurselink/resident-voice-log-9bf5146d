@@ -1,5 +1,6 @@
-import { AlertTriangle, Sparkles } from "lucide-react";
+import { AlertTriangle, ClipboardList, Link2, Sparkles, Clock } from "lucide-react";
 import type { CareNote } from "@/lib/mock-data";
+import { linksForNote, RISK_LABEL } from "@/lib/care-links";
 import { cn } from "@/lib/utils";
 
 function timeAgo(iso: string) {
@@ -36,46 +37,72 @@ export function Timeline({ notes }: { notes: CareNote[] }) {
 
   return (
     <ol className="relative space-y-4 border-l border-border pl-6">
-      {notes.map((n) => (
-        <li key={n.id} className="relative">
-          <span className="absolute -left-[29px] top-3 grid h-4 w-4 place-items-center rounded-full bg-primary ring-4 ring-background" />
-          <article className="rounded-xl border border-border bg-card p-4 shadow-card">
-            <header className="flex flex-wrap items-center gap-2">
-              <span
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
-                  categoryColors[n.category] ?? "bg-secondary text-secondary-foreground",
-                )}
-              >
-                {n.category}
-              </span>
-              {n.flags.map((f) => (
+      {notes.map((n) => {
+        const { domain, risks } = linksForNote(n);
+        return (
+          <li key={n.id} className="relative">
+            <span className="absolute -left-[29px] top-3 grid h-4 w-4 place-items-center rounded-full bg-primary ring-4 ring-background" />
+            <article className="rounded-xl border border-border bg-card p-4 shadow-card">
+              <header className="flex flex-wrap items-center gap-2">
                 <span
-                  key={f}
-                  className="flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive"
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                    categoryColors[n.category] ?? "bg-secondary text-secondary-foreground",
+                  )}
                 >
-                  <AlertTriangle className="h-3 w-3" />
-                  {f}
+                  {n.category}
                 </span>
-              ))}
-              <span className="ml-auto text-xs text-muted-foreground">{timeAgo(n.createdAt)}</span>
-            </header>
-            <p className="mt-2 text-sm leading-relaxed text-foreground">{n.note}</p>
-            <details className="mt-2 group">
-              <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-                <Sparkles className="mr-1 inline h-3 w-3" />
-                View original transcript
-              </summary>
-              <p className="mt-2 rounded-md bg-muted p-3 text-xs italic text-muted-foreground">
-                "{n.transcript}"
-              </p>
-            </details>
-            <footer className="mt-3 border-t border-border pt-2 text-xs text-muted-foreground">
-              {n.author}
-            </footer>
-          </article>
-        </li>
-      ))}
+                {n.status === "draft" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-warning/20 px-2 py-0.5 text-[11px] font-medium text-warning-foreground">
+                    <Clock className="h-3 w-3" /> Awaiting approval
+                  </span>
+                )}
+                {n.flags.map((f) => (
+                  <span
+                    key={f}
+                    className="flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive"
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    {f}
+                  </span>
+                ))}
+                <span className="ml-auto text-xs text-muted-foreground">{timeAgo(n.createdAt)}</span>
+              </header>
+              <p className="mt-2 text-sm leading-relaxed text-foreground">{n.note}</p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
+                <span className="inline-flex items-center gap-1 rounded-md bg-primary/5 px-1.5 py-0.5 text-primary">
+                  <ClipboardList className="h-3 w-3" /> {domain}
+                </span>
+                {risks.map((r) => (
+                  <span
+                    key={r}
+                    className="inline-flex items-center gap-1 rounded-md bg-destructive/5 px-1.5 py-0.5 text-destructive"
+                  >
+                    <Link2 className="h-3 w-3" /> {RISK_LABEL[r]} risk
+                  </span>
+                ))}
+                {risks.length === 0 && (
+                  <span className="text-muted-foreground">No risk links detected</span>
+                )}
+              </div>
+
+              <details className="mt-2 group">
+                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                  <Sparkles className="mr-1 inline h-3 w-3" />
+                  View original transcript
+                </summary>
+                <p className="mt-2 rounded-md bg-muted p-3 text-xs italic text-muted-foreground">
+                  "{n.transcript}"
+                </p>
+              </details>
+              <footer className="mt-3 border-t border-border pt-2 text-xs text-muted-foreground">
+                {n.author}
+              </footer>
+            </article>
+          </li>
+        );
+      })}
     </ol>
   );
 }
