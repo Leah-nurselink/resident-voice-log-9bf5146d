@@ -1,10 +1,11 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Heart, ShieldAlert, Mic } from "lucide-react";
+import { LayoutDashboard, Users, Heart, ShieldAlert, Mic, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/residents", label: "Residents", icon: Users },
+  { to: "/care-plans", label: "Care plans", icon: ClipboardList },
   { to: "/alerts", label: "Alerts", icon: ShieldAlert },
   { to: "/family", label: "Family", icon: Heart },
 ];
@@ -75,7 +76,7 @@ export function AppShell() {
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-4">
+        <div className="mx-auto grid max-w-md grid-cols-5">
           {nav.map((item) => {
             const active =
               item.to === "/"
