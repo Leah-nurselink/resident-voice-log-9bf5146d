@@ -152,10 +152,15 @@ function ResidentDetail() {
           <div className="rounded-xl border border-border bg-card p-4 shadow-card">
             <h3 className="text-sm font-semibold">Risk assessments</h3>
             <ul className="mt-3 space-y-2 text-sm">
-              {["Falls", "Skin integrity", "Nutrition (MUST)", "Moving & handling"].map((r) => (
-                <li key={r} className="flex items-center justify-between">
-                  <span>{r}</span>
-                  <span className="text-xs text-muted-foreground">Reviewed 12 Jun</span>
+              {(RESIDENT_RISKS[resident.id] ?? []).map((r) => (
+                <li key={r.key} className="flex items-center justify-between gap-2">
+                  <span>{RISK_LABEL[r.key]}</span>
+                  <span className="flex items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${RISK_TONE[r.level]}`}>
+                      {r.level === "info" ? r.note : r.level}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">{r.reviewedAt}</span>
+                  </span>
                 </li>
               ))}
             </ul>
