@@ -9,61 +9,153 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppFamilyRouteImport } from './routes/_app.family'
+import { Route as AppAlertsRouteImport } from './routes/_app.alerts'
+import { Route as AppResidentsIndexRouteImport } from './routes/_app.residents.index'
+import { Route as AppResidentsIdRouteImport } from './routes/_app.residents.$id'
 
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFamilyRoute = AppFamilyRouteImport.update({
+  id: '/family',
+  path: '/family',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAlertsRoute = AppAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppResidentsIndexRoute = AppResidentsIndexRouteImport.update({
+  id: '/residents/',
+  path: '/residents/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppResidentsIdRoute = AppResidentsIdRouteImport.update({
+  id: '/residents/$id',
+  path: '/residents/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
+  '/alerts': typeof AppAlertsRoute
+  '/family': typeof AppFamilyRoute
+  '/residents/$id': typeof AppResidentsIdRoute
+  '/residents/': typeof AppResidentsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/alerts': typeof AppAlertsRoute
+  '/family': typeof AppFamilyRoute
+  '/': typeof AppIndexRoute
+  '/residents/$id': typeof AppResidentsIdRoute
+  '/residents': typeof AppResidentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_app/alerts': typeof AppAlertsRoute
+  '/_app/family': typeof AppFamilyRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/residents/$id': typeof AppResidentsIdRoute
+  '/_app/residents/': typeof AppResidentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/alerts' | '/family' | '/residents/$id' | '/residents/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/alerts' | '/family' | '/' | '/residents/$id' | '/residents'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/_app/alerts'
+    | '/_app/family'
+    | '/_app/'
+    | '/_app/residents/$id'
+    | '/_app/residents/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/family': {
+      id: '/_app/family'
+      path: '/family'
+      fullPath: '/family'
+      preLoaderRoute: typeof AppFamilyRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/alerts': {
+      id: '/_app/alerts'
+      path: '/alerts'
+      fullPath: '/alerts'
+      preLoaderRoute: typeof AppAlertsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/residents/': {
+      id: '/_app/residents/'
+      path: '/residents'
+      fullPath: '/residents/'
+      preLoaderRoute: typeof AppResidentsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/residents/$id': {
+      id: '/_app/residents/$id'
+      path: '/residents/$id'
+      fullPath: '/residents/$id'
+      preLoaderRoute: typeof AppResidentsIdRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
 
+interface AppRouteChildren {
+  AppAlertsRoute: typeof AppAlertsRoute
+  AppFamilyRoute: typeof AppFamilyRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppResidentsIdRoute: typeof AppResidentsIdRoute
+  AppResidentsIndexRoute: typeof AppResidentsIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAlertsRoute: AppAlertsRoute,
+  AppFamilyRoute: AppFamilyRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppResidentsIdRoute: AppResidentsIdRoute,
+  AppResidentsIndexRoute: AppResidentsIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
