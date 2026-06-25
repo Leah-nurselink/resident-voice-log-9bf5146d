@@ -61,3 +61,24 @@ export const CONSENT_TYPES = [
   "Other",
 ] as const;
 
+// Which care plan domains a given risk assessment feeds into.
+export const RISK_TO_DOMAINS: Record<RiskType, CarePlanDomain[]> = {
+  falls:           ["mobility", "safety"],
+  pressure:        ["skin_integrity", "personal_care"],
+  nutrition:       ["nutrition"],
+  moving_handling: ["mobility", "personal_care"],
+  continence:      ["continence", "skin_integrity"],
+  medication:      ["medication"],
+  environmental:   ["safety"],
+  behavioural:     ["mental_health", "safety"],
+  mental_capacity: ["cognition", "mental_health"],
+  general:         [],
+};
+
+export const DOMAIN_TO_RISKS: Record<CarePlanDomain, RiskType[]> = Object.entries(RISK_TO_DOMAINS)
+  .reduce((acc, [risk, domains]) => {
+    for (const d of domains) (acc[d] ||= []).push(risk as RiskType);
+    return acc;
+  }, {} as Record<CarePlanDomain, RiskType[]>);
+
+
