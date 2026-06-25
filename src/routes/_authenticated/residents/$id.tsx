@@ -151,13 +151,15 @@ function ResidentDetail() {
       </div>
 
       <Tabs defaultValue="timeline" className="mt-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="timeline">Notes</TabsTrigger>
-          <TabsTrigger value="care">Care</TabsTrigger>
-          <TabsTrigger value="risk">Risk</TabsTrigger>
-          <TabsTrigger value="consent">Consent</TabsTrigger>
-          <TabsTrigger value="mca">MCA</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="timeline" className="text-xs px-1">Notes</TabsTrigger>
+          <TabsTrigger value="care" className="text-xs px-1">Care</TabsTrigger>
+          <TabsTrigger value="risk" className="text-xs px-1">Risk</TabsTrigger>
+          <TabsTrigger value="wounds" className="text-xs px-1">Wounds</TabsTrigger>
+          <TabsTrigger value="consent" className="text-xs px-1">Consent</TabsTrigger>
+          <TabsTrigger value="mca" className="text-xs px-1">MCA</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="timeline" className="mt-4 space-y-4">
           <VoiceRecorder residentName={r.full_name} onResult={(n) => { setPending(n); setEditing(n.content); }} />
