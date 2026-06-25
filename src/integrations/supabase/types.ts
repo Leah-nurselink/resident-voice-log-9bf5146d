@@ -560,6 +560,130 @@ export type Database = {
         }
         Relationships: []
       }
+      wound_assessments: {
+        Row: {
+          assessed_at: string
+          assessed_by: string | null
+          created_at: string
+          depth_cm: number | null
+          dressing: string | null
+          exudate_amount: string | null
+          exudate_type: string | null
+          id: string
+          length_cm: number | null
+          observations: string | null
+          odour: boolean | null
+          pain_score: number | null
+          surrounding_skin: string | null
+          tissue_type: string | null
+          treatment_plan: string | null
+          width_cm: number | null
+          wound_id: string
+        }
+        Insert: {
+          assessed_at?: string
+          assessed_by?: string | null
+          created_at?: string
+          depth_cm?: number | null
+          dressing?: string | null
+          exudate_amount?: string | null
+          exudate_type?: string | null
+          id?: string
+          length_cm?: number | null
+          observations?: string | null
+          odour?: boolean | null
+          pain_score?: number | null
+          surrounding_skin?: string | null
+          tissue_type?: string | null
+          treatment_plan?: string | null
+          width_cm?: number | null
+          wound_id: string
+        }
+        Update: {
+          assessed_at?: string
+          assessed_by?: string | null
+          created_at?: string
+          depth_cm?: number | null
+          dressing?: string | null
+          exudate_amount?: string | null
+          exudate_type?: string | null
+          id?: string
+          length_cm?: number | null
+          observations?: string | null
+          odour?: boolean | null
+          pain_score?: number | null
+          surrounding_skin?: string | null
+          tissue_type?: string | null
+          treatment_plan?: string | null
+          width_cm?: number | null
+          wound_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wound_assessments_wound_id_fkey"
+            columns: ["wound_id"]
+            isOneToOne: false
+            referencedRelation: "wounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wounds: {
+        Row: {
+          category: string | null
+          cause: string | null
+          created_at: string
+          created_by: string | null
+          date_healed: string | null
+          date_noticed: string
+          id: string
+          location: string
+          resident_id: string
+          side: string | null
+          status: string
+          updated_at: string
+          wound_type: string | null
+        }
+        Insert: {
+          category?: string | null
+          cause?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_healed?: string | null
+          date_noticed?: string
+          id?: string
+          location: string
+          resident_id: string
+          side?: string | null
+          status?: string
+          updated_at?: string
+          wound_type?: string | null
+        }
+        Update: {
+          category?: string | null
+          cause?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_healed?: string | null
+          date_noticed?: string
+          id?: string
+          location?: string
+          resident_id?: string
+          side?: string | null
+          status?: string
+          updated_at?: string
+          wound_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wounds_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
