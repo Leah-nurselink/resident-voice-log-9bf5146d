@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  CARE_PLAN_DOMAINS, RISK_TYPES, RISK_LEVEL_COLOR, CONSENT_TYPES,
+  CARE_PLAN_DOMAINS, RISK_TYPES, RISK_LEVEL_COLOR, CONSENT_TYPES, DOMAIN_TO_RISKS,
   domainLabel, riskLabel,
   type CarePlanDomain, type RiskType,
 } from "@/lib/care-domains";
@@ -321,6 +321,19 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
   const [content, setContent] = useState(existing?.content || "");
   const [reviewDate, setReviewDate] = useState(existing?.last_review || new Date().toISOString().slice(0, 10));
 
+  const linkedRiskTypes = DOMAIN_TO_RISKS[domain as CarePlanDomain] || [];
+
+  const linkedRisks = useQuery({
+    enabled: linkedRiskTypes.length > 0,
+    queryKey: ["linked-risks", residentId, domain],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("risk_assessments")
+        .select("*").eq("resident_id", residentId).in("type", linkedRiskTypes);
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const history = useQuery({
     enabled: !!existing?.id,
     queryKey: ["care-plan-history", existing?.id],
@@ -349,11 +362,56 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
     setContent((c: string) => (c ? c + "\n\n" : "") + n.content);
   }
 
+  function pullFromRisk(r: any) {
+    const header = `From ${riskLabel(r.type as RiskType)} (${r.level}) · ${r.updated_at ? format(new Date(r.updated_at), "d MMM yyyy") : ""}`;
+    if (r.factors) setRisksTxt((c: string) => (c ? c + "\n\n" : "") + `${header}\n${r.factors}`);
+    if (r.controls) setContent((c: string) => (c ? c + "\n\n" : "") + `Controls (${riskLabel(r.type as RiskType)}):\n${r.controls}`);
+    toast.success("Pulled into care plan");
+  }
+
+  function pullAll() {
+    const items = linkedRisks.data || [];
+    if (!items.length) return;
+    items.forEach(pullFromRisk);
+  }
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{label}</DialogTitle></DialogHeader>
         <VoiceRecorder onResult={applyVoice} />
+
+        {linkedRisks.data && linkedRisks.data.length > 0 && (
+          <div className="rounded-xl border bg-primary/5 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <AlertTriangle className="h-3.5 w-3.5 text-primary" />Linked risk assessments
+              </div>
+              <Button size="sm" variant="outline" onClick={pullAll} className="h-7 text-xs">Pull all into plan</Button>
+            </div>
+            <ul className="space-y-2">
+              {linkedRisks.data.map((r) => (
+                <li key={r.id} className="rounded-lg border bg-card p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium">{riskLabel(r.type as RiskType)}</span>
+                        <Badge className={RISK_LEVEL_COLOR[r.level as "low"|"medium"|"high"] + " text-[10px]"}>{r.level}</Badge>
+                      </div>
+                      {r.factors && <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{r.factors}</p>}
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        Updated {r.updated_at ? formatDistanceToNow(new Date(r.updated_at), { addSuffix: true }) : "—"}
+                        {r.review_date ? ` · review ${format(new Date(r.review_date), "d MMM yyyy")}` : ""}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => pullFromRisk(r)} className="h-7 shrink-0 text-xs">Pull in</Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="space-y-3">
           <Field label="Need" value={needs} onChange={setNeeds} placeholder="What support does the resident need?" />
           <Field label="Risk" value={risksTxt} onChange={setRisksTxt} placeholder="What could go wrong?" />
@@ -368,6 +426,7 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
         {history.data && history.data.length > 1 && (
           <HistoryPanel items={history.data.slice(1)} render={(h) => (
             <>
+
               <div className="text-[11px] text-muted-foreground">{format(new Date(h.changed_at), "d MMM yyyy HH:mm")}</div>
               <p className="mt-1 line-clamp-3 text-xs">{h.content || h.needs || "—"}</p>
             </>
