@@ -233,6 +233,11 @@ function ResidentDetail() {
           })}
         </TabsContent>
 
+        <TabsContent value="wounds">
+          <WoundsTab residentId={id} />
+        </TabsContent>
+
+
         <TabsContent value="consent" className="mt-4 space-y-2">
           <Button onClick={() => setNewConsent(true)} className="w-full"><Plus className="mr-1 h-4 w-4" />Record consent</Button>
           {consents.data?.length ? consents.data.map((c) => (
