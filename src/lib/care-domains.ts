@@ -47,3 +47,17 @@ export const domainLabel = (d: CarePlanDomain | null | undefined) =>
   CARE_PLAN_DOMAINS.find((x) => x.id === d)?.label ?? "General";
 export const riskLabel = (r: RiskType) =>
   RISK_TYPES.find((x) => x.id === r)?.label ?? r;
+
+export const CONSENT_TYPES = [
+  "Care & treatment",
+  "Personal care",
+  "Photography / images",
+  "Information sharing with family",
+  "Information sharing with professionals",
+  "Covert medication",
+  "DNACPR",
+  "End-of-life preferences",
+  "Use of bed rails / restrictive equipment",
+  "Other",
+] as const;
+
