@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  CARE_PLAN_DOMAINS, RISK_TYPES, RISK_LEVEL_COLOR, CONSENT_TYPES,
+  CARE_PLAN_DOMAINS, RISK_TYPES, RISK_LEVEL_COLOR, CONSENT_TYPES, DOMAIN_TO_RISKS,
   domainLabel, riskLabel,
   type CarePlanDomain, type RiskType,
 } from "@/lib/care-domains";
