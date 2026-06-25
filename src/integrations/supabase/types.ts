@@ -52,6 +52,56 @@ export type Database = {
           },
         ]
       }
+      care_plan_history: {
+        Row: {
+          care_plan_id: string
+          changed_at: string
+          changed_by: string | null
+          content: string | null
+          domain: string
+          id: string
+          last_review: string | null
+          needs: string | null
+          outcome: string | null
+          resident_id: string
+          risks: string | null
+        }
+        Insert: {
+          care_plan_id: string
+          changed_at?: string
+          changed_by?: string | null
+          content?: string | null
+          domain: string
+          id?: string
+          last_review?: string | null
+          needs?: string | null
+          outcome?: string | null
+          resident_id: string
+          risks?: string | null
+        }
+        Update: {
+          care_plan_id?: string
+          changed_at?: string
+          changed_by?: string | null
+          content?: string | null
+          domain?: string
+          id?: string
+          last_review?: string | null
+          needs?: string | null
+          outcome?: string | null
+          resident_id?: string
+          risks?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_plan_history_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       care_plans: {
         Row: {
           content: string | null
@@ -95,6 +145,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "care_plans_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consents: {
+        Row: {
+          consent_type: string
+          created_at: string
+          date_given: string | null
+          given_by: Database["public"]["Enums"]["consent_given_by"]
+          given_by_name: string | null
+          id: string
+          notes: string | null
+          resident_id: string
+          review_date: string | null
+          status: Database["public"]["Enums"]["consent_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          consent_type: string
+          created_at?: string
+          date_given?: string | null
+          given_by?: Database["public"]["Enums"]["consent_given_by"]
+          given_by_name?: string | null
+          id?: string
+          notes?: string | null
+          resident_id: string
+          review_date?: string | null
+          status?: Database["public"]["Enums"]["consent_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          consent_type?: string
+          created_at?: string
+          date_given?: string | null
+          given_by?: Database["public"]["Enums"]["consent_given_by"]
+          given_by_name?: string | null
+          id?: string
+          notes?: string | null
+          resident_id?: string
+          review_date?: string | null
+          status?: Database["public"]["Enums"]["consent_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consents_resident_id_fkey"
             columns: ["resident_id"]
             isOneToOne: false
             referencedRelation: "residents"
@@ -196,6 +299,77 @@ export type Database = {
           },
         ]
       }
+      mca_assessments: {
+        Row: {
+          assessment_date: string
+          best_interests_decision: string | null
+          can_communicate: boolean | null
+          can_retain: boolean | null
+          can_understand: boolean | null
+          can_weigh: boolean | null
+          created_at: string
+          decision: string
+          decision_maker: string | null
+          has_capacity: boolean | null
+          has_impairment: boolean | null
+          id: string
+          impairment_detail: string | null
+          notes: string | null
+          resident_id: string
+          review_date: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          assessment_date?: string
+          best_interests_decision?: string | null
+          can_communicate?: boolean | null
+          can_retain?: boolean | null
+          can_understand?: boolean | null
+          can_weigh?: boolean | null
+          created_at?: string
+          decision: string
+          decision_maker?: string | null
+          has_capacity?: boolean | null
+          has_impairment?: boolean | null
+          id?: string
+          impairment_detail?: string | null
+          notes?: string | null
+          resident_id: string
+          review_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          assessment_date?: string
+          best_interests_decision?: string | null
+          can_communicate?: boolean | null
+          can_retain?: boolean | null
+          can_understand?: boolean | null
+          can_weigh?: boolean | null
+          created_at?: string
+          decision?: string
+          decision_maker?: string | null
+          has_capacity?: boolean | null
+          has_impairment?: boolean | null
+          id?: string
+          impairment_detail?: string | null
+          notes?: string | null
+          resident_id?: string
+          review_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mca_assessments_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -270,6 +444,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      risk_assessment_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          controls: string | null
+          factors: string | null
+          id: string
+          level: string
+          resident_id: string
+          review_date: string | null
+          risk_assessment_id: string
+          type: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          controls?: string | null
+          factors?: string | null
+          id?: string
+          level: string
+          resident_id: string
+          review_date?: string | null
+          risk_assessment_id: string
+          type: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          controls?: string | null
+          factors?: string | null
+          id?: string
+          level?: string
+          resident_id?: string
+          review_date?: string | null
+          risk_assessment_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_assessment_history_risk_assessment_id_fkey"
+            columns: ["risk_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "risk_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       risk_assessments: {
         Row: {
@@ -370,6 +591,12 @@ export type Database = {
         | "safety"
         | "social"
         | "end_of_life"
+      consent_given_by:
+        | "resident"
+        | "power_of_attorney"
+        | "best_interests"
+        | "next_of_kin"
+      consent_status: "given" | "refused" | "withdrawn" | "pending"
       note_status: "draft" | "approved"
       risk_assessment_type:
         | "falls"
@@ -528,6 +755,13 @@ export const Constants = {
         "social",
         "end_of_life",
       ],
+      consent_given_by: [
+        "resident",
+        "power_of_attorney",
+        "best_interests",
+        "next_of_kin",
+      ],
+      consent_status: ["given", "refused", "withdrawn", "pending"],
       note_status: ["draft", "approved"],
       risk_assessment_type: [
         "falls",
