@@ -1,5 +1,5 @@
-import { useRouter } from "@tanstack/react-router";
-import { Bell, LogOut, User } from "lucide-react";
+import { Link, useRouter } from "@tanstack/react-router";
+import { Bell, FileWarning, LogOut, User } from "lucide-react";
 import { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
