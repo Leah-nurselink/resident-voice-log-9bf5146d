@@ -211,28 +211,29 @@ function StatBox({
 
 function NewResidentDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [room, setRoom] = useState("");
-  const [dob, setDob] = useState("");
-  const [nok, setNok] = useState("");
+  const [f, setF] = useState<Record<string, string>>({});
+  const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
 
   const create = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("residents").insert({
-        full_name: name,
-        room_number: room || null,
-        date_of_birth: dob || null,
-        next_of_kin: nok ? { name: nok } : {},
+        full_name: f.full_name,
+        preferred_name: f.preferred_name || null,
+        room_number: f.room_number || null,
+        date_of_birth: f.date_of_birth || null,
+        gender: f.gender || null,
+        marital_status: f.marital_status || null,
+        residency_status: f.residency_status || null,
+        admission_date: f.admission_date || null,
+        dnacpr_status: f.dnacpr_status || null,
+        next_of_kin: f.next_of_kin ? { name: f.next_of_kin } : {},
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Resident added");
       setOpen(false);
-      setName("");
-      setRoom("");
-      setDob("");
-      setNok("");
+      setF({});
       onCreated();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to add"),
@@ -242,40 +243,55 @@ function NewResidentDialog({ onCreated }: { onCreated: () => void }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm">
-          <Plus className="mr-1 h-4 w-4" />
-          Add resident
+          <Plus className="mr-1 h-4 w-4" /> Add resident
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New resident</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Full name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Mary Smith" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Room</Label>
-              <Input value={room} onChange={(e) => setRoom(e.target.value)} placeholder="12" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Date of birth</Label>
-              <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Next of kin</Label>
-            <Input value={nok} onChange={(e) => setNok(e.target.value)} placeholder="Daughter — Jane Smith" />
-          </div>
+          <Row>
+            <FieldBox label="Full name *"><Input value={f.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} placeholder="Mary Smith" /></FieldBox>
+            <FieldBox label="Preferred name"><Input value={f.preferred_name ?? ""} onChange={(e) => set("preferred_name", e.target.value)} /></FieldBox>
+          </Row>
+          <Row>
+            <FieldBox label="Room"><Input value={f.room_number ?? ""} onChange={(e) => set("room_number", e.target.value)} placeholder="12" /></FieldBox>
+            <FieldBox label="Date of birth"><Input type="date" value={f.date_of_birth ?? ""} onChange={(e) => set("date_of_birth", e.target.value)} /></FieldBox>
+          </Row>
+          <Row>
+            <FieldBox label="Gender"><SimpleSelect value={f.gender} onChange={(v) => set("gender", v)} options={["Female","Male","Non-binary","Prefer not to say","Other"]} /></FieldBox>
+            <FieldBox label="Marital status"><SimpleSelect value={f.marital_status} onChange={(v) => set("marital_status", v)} options={["Single","Married","Civil partnership","Cohabiting","Separated","Divorced","Widowed","Prefer not to say"]} /></FieldBox>
+          </Row>
+          <Row>
+            <FieldBox label="Residency status"><SimpleSelect value={f.residency_status} onChange={(v) => set("residency_status", v)} options={["Permanent","Respite","Day care","Trial stay","Hospital admission","Discharged","Deceased"]} /></FieldBox>
+            <FieldBox label="Admission date"><Input type="date" value={f.admission_date ?? ""} onChange={(e) => set("admission_date", e.target.value)} /></FieldBox>
+          </Row>
+          <FieldBox label="DNACPR status"><SimpleSelect value={f.dnacpr_status} onChange={(v) => set("dnacpr_status", v)} options={["Not recorded","For resuscitation","DNACPR in place","Under review"]} /></FieldBox>
+          <FieldBox label="Next of kin"><Input value={f.next_of_kin ?? ""} onChange={(e) => set("next_of_kin", e.target.value)} placeholder="Daughter — Jane Smith" /></FieldBox>
+          <p className="text-xs text-muted-foreground">More fields (DNACPR notes, GP, allergies, religion, funding…) are editable in the resident's Profile tab.</p>
         </div>
         <DialogFooter>
-          <Button onClick={() => create.mutate()} disabled={!name || create.isPending}>
+          <Button onClick={() => create.mutate()} disabled={!f.full_name || create.isPending}>
             Add resident
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Row({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-2 gap-3">{children}</div>;
+}
+function FieldBox({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="space-y-1.5"><Label className="text-xs">{label}</Label>{children}</div>;
+}
+function SimpleSelect({ value, onChange, options }: { value?: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+      <SelectContent>{options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+    </Select>
   );
 }
