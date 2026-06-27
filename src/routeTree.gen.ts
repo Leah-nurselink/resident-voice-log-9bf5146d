@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
+import { Route as AuthenticatedSafeguardingRouteImport } from './routes/_authenticated/safeguarding'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedRegulatoryRouteImport } from './routes/_authenticated/regulatory'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
@@ -46,6 +47,12 @@ const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSafeguardingRoute =
+  AuthenticatedSafeguardingRouteImport.update({
+    id: '/safeguarding',
+    path: '/safeguarding',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -129,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/notes': typeof AuthenticatedNotesRoute
   '/regulatory': typeof AuthenticatedRegulatoryRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/residents/': typeof AuthenticatedResidentsIndexRoute
@@ -147,6 +155,7 @@ export interface FileRoutesByTo {
   '/notes': typeof AuthenticatedNotesRoute
   '/regulatory': typeof AuthenticatedRegulatoryRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/residents': typeof AuthenticatedResidentsIndexRoute
@@ -167,6 +176,7 @@ export interface FileRoutesById {
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
   '/_authenticated/regulatory': typeof AuthenticatedRegulatoryRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/_authenticated/residents/': typeof AuthenticatedResidentsIndexRoute
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/regulatory'
     | '/reports'
+    | '/safeguarding'
     | '/tasks'
     | '/residents/$id'
     | '/residents/'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/regulatory'
     | '/reports'
+    | '/safeguarding'
     | '/tasks'
     | '/residents/$id'
     | '/residents'
@@ -224,6 +236,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notes'
     | '/_authenticated/regulatory'
     | '/_authenticated/reports'
+    | '/_authenticated/safeguarding'
     | '/_authenticated/tasks'
     | '/_authenticated/residents/$id'
     | '/_authenticated/residents/'
@@ -263,6 +276,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof AuthenticatedTasksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/safeguarding': {
+      id: '/_authenticated/safeguarding'
+      path: '/safeguarding'
+      fullPath: '/safeguarding'
+      preLoaderRoute: typeof AuthenticatedSafeguardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reports': {
@@ -371,6 +391,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
   AuthenticatedRegulatoryRoute: typeof AuthenticatedRegulatoryRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedSafeguardingRoute: typeof AuthenticatedSafeguardingRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedResidentsIdRoute: typeof AuthenticatedResidentsIdRoute
   AuthenticatedResidentsIndexRoute: typeof AuthenticatedResidentsIndexRoute
@@ -388,6 +409,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
   AuthenticatedRegulatoryRoute: AuthenticatedRegulatoryRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedSafeguardingRoute: AuthenticatedSafeguardingRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedResidentsIdRoute: AuthenticatedResidentsIdRoute,
   AuthenticatedResidentsIndexRoute: AuthenticatedResidentsIndexRoute,
