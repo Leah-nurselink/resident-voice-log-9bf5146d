@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Activity, LayoutDashboard, Mic, ShieldCheck, Sparkles } from "lucide-react";
+import { Activity, LayoutDashboard, Mic, PanelLeft, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -38,16 +39,47 @@ function Landing() {
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">AI clinical scribe</div>
           </div>
         </div>
-        {isSignedIn ? (
-          <Button asChild className="gap-2">
-            <Link to="/dashboard">
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </Link>
-          </Button>
-        ) : (
-          <Button asChild><Link to="/auth">Sign in</Link></Button>
-        )}
+        <div className="flex items-center gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Open menu to change pages">
+                <PanelLeft className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-primary" />
+                  ForgeAI
+                </SheetTitle>
+              </SheetHeader>
+              <nav className="mt-6 flex flex-col gap-2">
+                {[
+                  { title: "Dashboard", url: "/dashboard" },
+                  { title: "Residents", url: "/residents" },
+                  { title: "Care Plans", url: "/care-plans" },
+                  { title: "Tasks", url: "/tasks" },
+                  { title: "Daily Notes", url: "/notes" },
+                  { title: "Audits", url: "/audits" },
+                ].map((item) => (
+                  <Button key={item.title} variant="ghost" className="justify-start" asChild>
+                    <Link to={item.url}>{item.title}</Link>
+                  </Button>
+                ))}
+              </nav>
+            </SheetContent>
+          </Sheet>
+          {isSignedIn ? (
+            <Button asChild className="gap-2">
+              <Link to="/dashboard">
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild><Link to="/auth">Sign in</Link></Button>
+          )}
+        </div>
       </header>
 
       <main className="mx-auto max-w-3xl px-4 pb-20 pt-8 text-center">
