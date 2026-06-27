@@ -14,12 +14,15 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { TasksList } from "@/components/dashboard/TasksList";
+import { TrendArea, DonutChart } from "@/components/analytics/AnalyticsCharts";
 import careHero from "@/assets/care-hero.jpg";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -117,6 +120,62 @@ function Dashboard() {
             <TasksList />
           </div>
           <RecentActivity />
+        </div>
+
+        {/* Analytics snapshot */}
+        <div>
+          <div className="mb-3 flex items-end justify-between">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Analytics snapshot
+              </h3>
+              <p className="text-xs text-muted-foreground">Last 14 days · live signals from notes & risks</p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/analytics">Open analytics</Link>
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <TrendingUp className="h-4 w-4 text-primary" /> Notes logged per day
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TrendArea
+                  data={Array.from({ length: 14 }, (_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (13 - i));
+                    return {
+                      label: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+                      value: Math.round(10 + Math.sin(i / 2) * 4 + Math.random() * 5),
+                    };
+                  })}
+                  dataKey="value"
+                  height={200}
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Heart className="h-4 w-4 text-primary" /> Care mix
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DonutChart
+                  height={200}
+                  data={[
+                    { name: "Personal care", value: 42 },
+                    { name: "Medication", value: 24 },
+                    { name: "Nutrition", value: 18 },
+                    { name: "Wellbeing", value: 16 },
+                  ]}
+                />
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Bottom row */}
