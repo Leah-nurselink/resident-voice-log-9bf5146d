@@ -217,7 +217,7 @@ function DevicesPage() {
             <BluetoothSearching className="h-4 w-4" />
             {scanning ? "Scanning…" : "Scan now"}
           </Button>
-          <AddDeviceDialog rooms={rooms} residents={residents} staff={staff} onSaved={load} />
+          <PairDeviceWizard rooms={rooms} residents={residents} staff={staff} onSaved={load} />
         </div>
       }
     >
