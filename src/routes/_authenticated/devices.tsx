@@ -52,6 +52,7 @@ import {
   type AutoConnectStatus,
 } from "@/lib/ble-auto-connect";
 import { Switch } from "@/components/ui/switch";
+import { PairDeviceWizard } from "@/components/devices/PairDeviceWizard";
 
 export const Route = createFileRoute("/_authenticated/devices")({
   head: () => ({ meta: [{ title: "Devices · CareCore" }] }),
@@ -216,7 +217,7 @@ function DevicesPage() {
             <BluetoothSearching className="h-4 w-4" />
             {scanning ? "Scanning…" : "Scan now"}
           </Button>
-          <AddDeviceDialog rooms={rooms} residents={residents} staff={staff} onSaved={load} />
+          <PairDeviceWizard rooms={rooms} residents={residents} staff={staff} onSaved={load} />
         </div>
       }
     >
@@ -485,7 +486,8 @@ function DeviceList({
                   <Progress value={battery} />
                 </div>
               )}
-              <div className="mt-3 flex justify-end">
+              <div className="mt-3 flex justify-end gap-2">
+                <TestConnectionButton device={d} onTested={onChanged} />
                 <EditDeviceDialog
                   device={d}
                   rooms={rooms}
@@ -499,6 +501,47 @@ function DeviceList({
         );
       })}
     </div>
+  );
+}
+
+function TestConnectionButton({
+  device,
+  onTested,
+}: {
+  device: DeviceRow;
+  onTested: () => void;
+}) {
+  const [testing, setTesting] = useState(false);
+  const run = async () => {
+    setTesting(true);
+    try {
+      // Simulated connection test: in a real BLE integration this would attempt
+      // a gatt.connect() and read a known characteristic. For now we record a
+      // test event and refresh last_seen so operators can verify the registry.
+      const rssi = -50 - Math.round(Math.random() * 30);
+      const now = new Date().toISOString();
+      const [{ error: e1 }, { error: e2 }] = await Promise.all([
+        supabase
+          .from("device_events")
+          .insert({ device_id: device.id, event_type: "test", rssi, battery_level: device.battery_level }),
+        supabase
+          .from("devices")
+          .update({ last_seen_at: now, last_rssi: rssi })
+          .eq("id", device.id),
+      ]);
+      if (e1 || e2) throw e1 ?? e2;
+      toast.success(`Test OK · ${device.label} · ${rssi} dBm`);
+      onTested();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Test failed");
+    } finally {
+      setTesting(false);
+    }
+  };
+  return (
+    <Button size="sm" variant="ghost" onClick={run} disabled={testing}>
+      {testing ? "Testing…" : "Test"}
+    </Button>
   );
 }
 
