@@ -611,11 +611,39 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          created_at: string
+          granted: boolean
+          id: string
+          permission: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted?: boolean
+          id?: string
+          permission: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted?: boolean
+          id?: string
+          permission?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           approved: boolean
           created_at: string
           id: string
+          is_active: boolean
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
@@ -623,6 +651,7 @@ export type Database = {
           approved?: boolean
           created_at?: string
           id?: string
+          is_active?: boolean
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
@@ -630,6 +659,7 @@ export type Database = {
           approved?: boolean
           created_at?: string
           id?: string
+          is_active?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
@@ -764,6 +794,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_permission: {
+        Args: { _perm: string; _uid: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -775,7 +809,14 @@ export type Database = {
     }
     Enums: {
       alert_severity: "info" | "warning" | "critical"
-      app_role: "carer" | "senior_carer" | "nurse" | "manager" | "admin"
+      app_role:
+        | "carer"
+        | "senior_carer"
+        | "nurse"
+        | "manager"
+        | "admin"
+        | "md"
+        | "family"
       care_plan_domain:
         | "personal_care"
         | "mobility"
@@ -938,7 +979,15 @@ export const Constants = {
   public: {
     Enums: {
       alert_severity: ["info", "warning", "critical"],
-      app_role: ["carer", "senior_carer", "nurse", "manager", "admin"],
+      app_role: [
+        "carer",
+        "senior_carer",
+        "nurse",
+        "manager",
+        "admin",
+        "md",
+        "family",
+      ],
       care_plan_domain: [
         "personal_care",
         "mobility",

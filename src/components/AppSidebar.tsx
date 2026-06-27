@@ -13,6 +13,7 @@ import {
   Settings,
   Scale,
   Shield,
+  ShieldCheck,
   Users,
   AlertTriangle,
 } from "lucide-react";
@@ -44,6 +45,7 @@ const systemItems = [
   { title: "Family", url: "/family", icon: Heart },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Reports", url: "/reports", icon: FileText },
+  { title: "Admin", url: "/admin", icon: ShieldCheck },
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
 
