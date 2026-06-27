@@ -150,6 +150,13 @@
   --sidebar-accent-foreground: oklch(0.96 0.005 180);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.72 0.1 185);
+  --care-on-track: oklch(0.7 0.13 160);
+  --care-attention: oklch(0.8 0.14 75);
+  --care-urgent: oklch(0.7 0.2 25);
+  --care-completed: oklch(0.7 0.06 220);
+  --nav-navy: oklch(0.55 0.13 255);
+  --nav-navy-foreground: oklch(0.99 0.005 180);
+  --nav-navy-hover: oklch(0.65 0.13 255);
 }
 
 @layer base {
