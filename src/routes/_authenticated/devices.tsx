@@ -45,6 +45,13 @@ import {
   type ScanHit,
 } from "@/lib/ble-scanner";
 import { inferInteraction, startCareSessionIfConfident } from "@/lib/confidence-engine";
+import {
+  startAutoConnect,
+  stopAutoConnect,
+  subscribeAutoConnect,
+  type AutoConnectStatus,
+} from "@/lib/ble-auto-connect";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/devices")({
   head: () => ({ meta: [{ title: "Devices · CareCore" }] }),
@@ -107,6 +114,19 @@ function DevicesPage() {
     { id: string; device_id: string; event_type: string; rssi: number | null; created_at: string }[]
   >([]);
   const [guessResult, setGuessResult] = useState<string | null>(null);
+  const [autoStatus, setAutoStatus] = useState<AutoConnectStatus | null>(null);
+
+  useEffect(() => subscribeAutoConnect(setAutoStatus), []);
+
+  const toggleAutoConnect = async (on: boolean) => {
+    if (on) {
+      await startAutoConnect();
+      toast.success("Auto-connect on — paired devices will reconnect automatically");
+    } else {
+      stopAutoConnect();
+      toast.message("Auto-connect off");
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -215,6 +235,29 @@ function DevicesPage() {
           </CardContent>
         </Card>
       )}
+
+      <Card className="mt-4">
+        <CardContent className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3">
+            <Bluetooth className="mt-0.5 h-5 w-5 text-primary" />
+            <div>
+              <div className="font-medium">Auto-connect</div>
+              <div className="text-sm text-muted-foreground">
+                {autoStatus?.enabled
+                  ? `On · ${autoStatus.mode === "native" ? "live BLE" : autoStatus.mode === "simulator" ? "simulator" : "unavailable"} · ${autoStatus.pairedCount} paired · ${autoStatus.connectedCount} connected${autoStatus.lastTickAt ? ` · last check ${new Date(autoStatus.lastTickAt).toLocaleTimeString()}` : ""}`
+                  : "Reconnect paired beacons, wearables and badges automatically whenever they're in range."}
+              </div>
+              {autoStatus?.lastError && (
+                <div className="mt-1 text-xs text-amber-700">{autoStatus.lastError}</div>
+              )}
+            </div>
+          </div>
+          <Switch
+            checked={!!autoStatus?.enabled}
+            onCheckedChange={(v) => void toggleAutoConnect(v)}
+          />
+        </CardContent>
+      </Card>
 
       {guessResult && (
         <Card className="mt-4 border-primary/30">
