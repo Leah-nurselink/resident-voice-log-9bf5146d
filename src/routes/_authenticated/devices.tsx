@@ -52,6 +52,7 @@ import {
   type AutoConnectStatus,
 } from "@/lib/ble-auto-connect";
 import { Switch } from "@/components/ui/switch";
+import { PairDeviceWizard } from "@/components/devices/PairDeviceWizard";
 
 export const Route = createFileRoute("/_authenticated/devices")({
   head: () => ({ meta: [{ title: "Devices · CareCore" }] }),
