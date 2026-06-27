@@ -486,7 +486,8 @@ function DeviceList({
                   <Progress value={battery} />
                 </div>
               )}
-              <div className="mt-3 flex justify-end">
+              <div className="mt-3 flex justify-end gap-2">
+                <TestConnectionButton device={d} onTested={onChanged} />
                 <EditDeviceDialog
                   device={d}
                   rooms={rooms}
