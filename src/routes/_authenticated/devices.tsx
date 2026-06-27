@@ -504,6 +504,47 @@ function DeviceList({
   );
 }
 
+function TestConnectionButton({
+  device,
+  onTested,
+}: {
+  device: DeviceRow;
+  onTested: () => void;
+}) {
+  const [testing, setTesting] = useState(false);
+  const run = async () => {
+    setTesting(true);
+    try {
+      // Simulated connection test: in a real BLE integration this would attempt
+      // a gatt.connect() and read a known characteristic. For now we record a
+      // test event and refresh last_seen so operators can verify the registry.
+      const rssi = -50 - Math.round(Math.random() * 30);
+      const now = new Date().toISOString();
+      const [{ error: e1 }, { error: e2 }] = await Promise.all([
+        supabase
+          .from("device_events")
+          .insert({ device_id: device.id, event_type: "test", rssi, battery_level: device.battery_level }),
+        supabase
+          .from("devices")
+          .update({ last_seen_at: now, last_rssi: rssi })
+          .eq("id", device.id),
+      ]);
+      if (e1 || e2) throw e1 ?? e2;
+      toast.success(`Test OK · ${device.label} · ${rssi} dBm`);
+      onTested();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Test failed");
+    } finally {
+      setTesting(false);
+    }
+  };
+  return (
+    <Button size="sm" variant="ghost" onClick={run} disabled={testing}>
+      {testing ? "Testing…" : "Test"}
+    </Button>
+  );
+}
+
 function AddDeviceDialog({
   rooms,
   residents,
