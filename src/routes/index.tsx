@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Activity, LayoutDashboard, Mic, ShieldCheck, Sparkles } from "lucide-react";
+import { Activity, LayoutDashboard, Mic, PanelLeft, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/")({
   ssr: false,
