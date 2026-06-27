@@ -3,11 +3,15 @@ import {
   BarChart3,
   Calendar,
   ClipboardList,
+  ClipboardCheck,
   FileText,
+  FileSearch,
   Heart,
   Home,
   MessageSquare,
+  MessageCircle,
   Settings,
+  Scale,
   Users,
   AlertTriangle,
 } from "lucide-react";
@@ -39,6 +43,13 @@ const systemItems = [
   { title: "Family", url: "/family", icon: Heart },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: Settings },
+] as const;
+
+const governanceItems = [
+  { title: "Audits", url: "/audits", icon: ClipboardCheck },
+  { title: "Feedback", url: "/feedback", icon: MessageCircle },
+  { title: "Regulatory", url: "/regulatory", icon: Scale },
+  { title: "Incident Review", url: "/incident-review", icon: FileSearch },
 ] as const;
 
 export function AppSidebar() {
@@ -94,6 +105,15 @@ export function AppSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu>{careItems.map(renderItem)}</SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          {!collapsed && (
+            <SidebarGroupLabel className="text-nav-navy font-semibold">Governance</SidebarGroupLabel>
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu>{governanceItems.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
