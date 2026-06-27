@@ -114,6 +114,19 @@ function DevicesPage() {
     { id: string; device_id: string; event_type: string; rssi: number | null; created_at: string }[]
   >([]);
   const [guessResult, setGuessResult] = useState<string | null>(null);
+  const [autoStatus, setAutoStatus] = useState<AutoConnectStatus | null>(null);
+
+  useEffect(() => subscribeAutoConnect(setAutoStatus), []);
+
+  const toggleAutoConnect = async (on: boolean) => {
+    if (on) {
+      await startAutoConnect();
+      toast.success("Auto-connect on — paired devices will reconnect automatically");
+    } else {
+      stopAutoConnect();
+      toast.message("Auto-connect off");
+    }
+  };
 
   const load = async () => {
     setLoading(true);
