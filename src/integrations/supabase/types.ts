@@ -152,6 +152,73 @@ export type Database = {
           },
         ]
       }
+      care_sessions: {
+        Row: {
+          auto_initiated: boolean
+          confidence: number
+          created_at: string
+          ended_at: string | null
+          id: string
+          note_id: string | null
+          resident_id: string | null
+          room_id: string | null
+          signals: Json
+          staff_user_id: string | null
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          auto_initiated?: boolean
+          confidence: number
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          note_id?: string | null
+          resident_id?: string | null
+          room_id?: string | null
+          signals?: Json
+          staff_user_id?: string | null
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_initiated?: boolean
+          confidence?: number
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          note_id?: string | null
+          resident_id?: string | null
+          room_id?: string | null
+          signals?: Json
+          staff_user_id?: string | null
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_sessions_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "daily_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_sessions_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consents: {
         Row: {
           consent_type: string
@@ -254,6 +321,131 @@ export type Database = {
             columns: ["resident_id"]
             isOneToOne: false
             referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_events: {
+        Row: {
+          actor_id: string | null
+          battery_level: number | null
+          created_at: string
+          device_id: string
+          event_type: string
+          id: string
+          payload: Json | null
+          rssi: number | null
+        }
+        Insert: {
+          actor_id?: string | null
+          battery_level?: number | null
+          created_at?: string
+          device_id: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+          rssi?: number | null
+        }
+        Update: {
+          actor_id?: string | null
+          battery_level?: number | null
+          created_at?: string
+          device_id?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          rssi?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devices: {
+        Row: {
+          battery_level: number | null
+          ble_identifier: string
+          created_at: string
+          device_type: Database["public"]["Enums"]["device_type"]
+          firmware: string | null
+          id: string
+          label: string
+          last_rssi: number | null
+          last_seen_at: string | null
+          mac_address: string | null
+          manufacturer: string | null
+          model: string | null
+          notes: string | null
+          paired_at: string | null
+          paired_by: string | null
+          resident_id: string | null
+          room_id: string | null
+          staff_user_id: string | null
+          status: Database["public"]["Enums"]["device_status"]
+          updated_at: string
+        }
+        Insert: {
+          battery_level?: number | null
+          ble_identifier: string
+          created_at?: string
+          device_type: Database["public"]["Enums"]["device_type"]
+          firmware?: string | null
+          id?: string
+          label: string
+          last_rssi?: number | null
+          last_seen_at?: string | null
+          mac_address?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          notes?: string | null
+          paired_at?: string | null
+          paired_by?: string | null
+          resident_id?: string | null
+          room_id?: string | null
+          staff_user_id?: string | null
+          status?: Database["public"]["Enums"]["device_status"]
+          updated_at?: string
+        }
+        Update: {
+          battery_level?: number | null
+          ble_identifier?: string
+          created_at?: string
+          device_type?: Database["public"]["Enums"]["device_type"]
+          firmware?: string | null
+          id?: string
+          label?: string
+          last_rssi?: number | null
+          last_seen_at?: string | null
+          mac_address?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          notes?: string | null
+          paired_at?: string | null
+          paired_by?: string | null
+          resident_id?: string | null
+          room_id?: string | null
+          staff_user_id?: string | null
+          status?: Database["public"]["Enums"]["device_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devices_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -611,6 +803,33 @@ export type Database = {
           },
         ]
       }
+      rooms: {
+        Row: {
+          created_at: string
+          floor: string | null
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          floor?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          floor?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           created_at: string
@@ -838,6 +1057,8 @@ export type Database = {
         | "best_interests"
         | "next_of_kin"
       consent_status: "given" | "refused" | "withdrawn" | "pending"
+      device_status: "active" | "inactive" | "lost" | "maintenance"
+      device_type: "room_beacon" | "wearable_tag" | "staff_badge"
       note_status: "draft" | "approved"
       risk_assessment_type:
         | "falls"
@@ -1011,6 +1232,8 @@ export const Constants = {
         "next_of_kin",
       ],
       consent_status: ["given", "refused", "withdrawn", "pending"],
+      device_status: ["active", "inactive", "lost", "maintenance"],
+      device_type: ["room_beacon", "wearable_tag", "staff_badge"],
       note_status: ["draft", "approved"],
       risk_assessment_type: [
         "falls",
