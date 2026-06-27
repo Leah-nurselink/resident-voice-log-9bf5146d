@@ -557,7 +557,9 @@ function DeviceForm({
   const [manufacturer, setManufacturer] = useState(device?.manufacturer ?? "");
   const [model, setModel] = useState(device?.model ?? "");
   const [battery, setBattery] = useState<string>(device?.battery_level?.toString() ?? "100");
-  const [status, setStatus] = useState(device?.status ?? "active");
+  const [status, setStatus] = useState<"active" | "inactive" | "lost" | "maintenance">(
+    (device?.status as "active" | "inactive" | "lost" | "maintenance") ?? "active",
+  );
   const [roomId, setRoomId] = useState<string>(device?.room_id ?? "");
   const [residentId, setResidentId] = useState<string>(device?.resident_id ?? "");
   const [staffId, setStaffId] = useState<string>(device?.staff_user_id ?? "");
