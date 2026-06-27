@@ -397,48 +397,120 @@ export type Database = {
       residents: {
         Row: {
           admission_date: string | null
+          admission_type: string | null
+          advance_decisions: string | null
+          allergies: string | null
+          communication_needs: string | null
           created_at: string
           date_of_birth: string | null
+          dietary_requirements: string | null
+          discharge_date: string | null
+          dnacpr_date: string | null
+          dnacpr_notes: string | null
+          dnacpr_status: string | null
+          ethnicity: string | null
+          first_language: string | null
           full_name: string
+          funding_source: string | null
+          gender: string | null
           gp: Json | null
+          gp_phone: string | null
+          gp_practice: string | null
           id: string
           key_risks: Json | null
+          local_authority: string | null
+          marital_status: string | null
+          nationality: string | null
           next_of_kin: Json | null
           nhs_number: string | null
           notes: string | null
+          occupation_history: string | null
           photo_url: string | null
+          power_of_attorney: string | null
+          preferred_name: string | null
+          pronouns: string | null
+          religion: string | null
+          residency_status: string | null
           room_number: string | null
           tag_id: string | null
           updated_at: string
         }
         Insert: {
           admission_date?: string | null
+          admission_type?: string | null
+          advance_decisions?: string | null
+          allergies?: string | null
+          communication_needs?: string | null
           created_at?: string
           date_of_birth?: string | null
+          dietary_requirements?: string | null
+          discharge_date?: string | null
+          dnacpr_date?: string | null
+          dnacpr_notes?: string | null
+          dnacpr_status?: string | null
+          ethnicity?: string | null
+          first_language?: string | null
           full_name: string
+          funding_source?: string | null
+          gender?: string | null
           gp?: Json | null
+          gp_phone?: string | null
+          gp_practice?: string | null
           id?: string
           key_risks?: Json | null
+          local_authority?: string | null
+          marital_status?: string | null
+          nationality?: string | null
           next_of_kin?: Json | null
           nhs_number?: string | null
           notes?: string | null
+          occupation_history?: string | null
           photo_url?: string | null
+          power_of_attorney?: string | null
+          preferred_name?: string | null
+          pronouns?: string | null
+          religion?: string | null
+          residency_status?: string | null
           room_number?: string | null
           tag_id?: string | null
           updated_at?: string
         }
         Update: {
           admission_date?: string | null
+          admission_type?: string | null
+          advance_decisions?: string | null
+          allergies?: string | null
+          communication_needs?: string | null
           created_at?: string
           date_of_birth?: string | null
+          dietary_requirements?: string | null
+          discharge_date?: string | null
+          dnacpr_date?: string | null
+          dnacpr_notes?: string | null
+          dnacpr_status?: string | null
+          ethnicity?: string | null
+          first_language?: string | null
           full_name?: string
+          funding_source?: string | null
+          gender?: string | null
           gp?: Json | null
+          gp_phone?: string | null
+          gp_practice?: string | null
           id?: string
           key_risks?: Json | null
+          local_authority?: string | null
+          marital_status?: string | null
+          nationality?: string | null
           next_of_kin?: Json | null
           nhs_number?: string | null
           notes?: string | null
+          occupation_history?: string | null
           photo_url?: string | null
+          power_of_attorney?: string | null
+          preferred_name?: string | null
+          pronouns?: string | null
+          religion?: string | null
+          residency_status?: string | null
           room_number?: string | null
           tag_id?: string | null
           updated_at?: string
