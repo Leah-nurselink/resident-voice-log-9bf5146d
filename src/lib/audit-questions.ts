@@ -334,3 +334,8 @@ export function saveSubmission(sub: AuditSubmission) {
   all.unshift(sub);
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all.slice(0, 200)));
 }
+
+export function saveAllSubmissions(all: AuditSubmission[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all.slice(0, 200)));
+}

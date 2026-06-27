@@ -25,6 +25,7 @@ import { Route as AuthenticatedCarePlansRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedAuditsRouteImport } from './routes/_authenticated/audits'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
+import { Route as AuthenticatedActionPlanRouteImport } from './routes/_authenticated/action-plan'
 import { Route as AuthenticatedResidentsIndexRouteImport } from './routes/_authenticated/residents/index'
 import { Route as AuthenticatedResidentsIdRouteImport } from './routes/_authenticated/residents/$id'
 
@@ -109,6 +110,11 @@ const AuthenticatedAlertsRoute = AuthenticatedAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedActionPlanRoute = AuthenticatedActionPlanRouteImport.update({
+  id: '/action-plan',
+  path: '/action-plan',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedResidentsIndexRoute =
   AuthenticatedResidentsIndexRouteImport.update({
     id: '/residents/',
@@ -125,6 +131,7 @@ const AuthenticatedResidentsIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/action-plan': typeof AuthenticatedActionPlanRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/audits': typeof AuthenticatedAuditsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/action-plan': typeof AuthenticatedActionPlanRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/audits': typeof AuthenticatedAuditsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/action-plan': typeof AuthenticatedActionPlanRoute
   '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
   '/_authenticated/audits': typeof AuthenticatedAuditsRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/action-plan'
     | '/alerts'
     | '/audits'
     | '/calendar'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/action-plan'
     | '/alerts'
     | '/audits'
     | '/calendar'
@@ -225,6 +236,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/action-plan'
     | '/_authenticated/alerts'
     | '/_authenticated/audits'
     | '/_authenticated/calendar'
@@ -362,6 +374,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlertsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/action-plan': {
+      id: '/_authenticated/action-plan'
+      path: '/action-plan'
+      fullPath: '/action-plan'
+      preLoaderRoute: typeof AuthenticatedActionPlanRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/residents/': {
       id: '/_authenticated/residents/'
       path: '/residents'
@@ -380,6 +399,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedActionPlanRoute: typeof AuthenticatedActionPlanRoute
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedAuditsRoute: typeof AuthenticatedAuditsRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
@@ -398,6 +418,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedActionPlanRoute: AuthenticatedActionPlanRoute,
   AuthenticatedAlertsRoute: AuthenticatedAlertsRoute,
   AuthenticatedAuditsRoute: AuthenticatedAuditsRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
