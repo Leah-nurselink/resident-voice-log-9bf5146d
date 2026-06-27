@@ -48,6 +48,7 @@ const systemItems = [
 
 const governanceItems = [
   { title: "Audits", url: "/audits", icon: ClipboardCheck },
+  { title: "Action Plan", url: "/action-plan", icon: ClipboardList },
   { title: "Feedback", url: "/feedback", icon: MessageCircle },
   { title: "Regulatory", url: "/regulatory", icon: Scale },
   { title: "Incident Review", url: "/incident-review", icon: FileSearch },
