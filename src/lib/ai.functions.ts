@@ -3,9 +3,21 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 const StructureInput = z.object({
-  transcript: z.string().min(1),
-  residentName: z.string().optional(),
+  transcript: z.string().min(1).max(5000),
+  residentName: z.string().max(120).optional(),
 });
+
+// Strip control chars and neutralise prompt-delimiter sequences so user input
+// cannot break out of the quoted user block in the AI prompt.
+function sanitiseForPrompt(input: string): string {
+  return input
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, " ")
+    .replace(/`{3,}/g, "'''")
+    .replace(/"{3,}/g, "'''")
+    .replace(/<\s*\/?\s*(system|assistant|user|tool)\b[^>]*>/gi, "")
+    .trim();
+}
 
 const TranscribeInput = z.object({
   audioBase64: z.string().min(1),
