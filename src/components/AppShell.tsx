@@ -46,16 +46,30 @@ export function AppShell({
 
             <div className="flex items-center gap-1">
               {action}
-              <Button variant="ghost" size="icon" aria-label="Send a CQC notification" asChild>
-                <a
-                  href="https://www.cqc.org.uk/guidance-providers/notifications"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Send a CQC notification"
-                >
-                  <Bell className="h-4 w-4" />
-                </a>
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Clinical alerts" asChild>
+                    <Link to="/alerts">
+                      <Bell className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Clinical alerts</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Send a CQC notification" asChild>
+                    <a
+                      href="https://www.cqc.org.uk/guidance-providers/notifications"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <FileWarning className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Send a CQC notification</TooltipContent>
+              </Tooltip>
               <Button variant="ghost" size="icon" aria-label="Profile">
                 <User className="h-4 w-4" />
               </Button>
