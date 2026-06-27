@@ -110,19 +110,19 @@ export function AppSidebar() {
 
         <SidebarGroup>
           {!collapsed && (
-            <SidebarGroupLabel className="text-nav-navy font-semibold">System</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-nav-navy font-semibold">Governance</SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <SidebarMenu>{systemItems.map(renderItem)}</SidebarMenu>
+            <SidebarMenu>{governanceItems.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup>
           {!collapsed && (
-            <SidebarGroupLabel className="text-nav-navy font-semibold">Governance</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-nav-navy font-semibold">System</SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <SidebarMenu>{governanceItems.map(renderItem)}</SidebarMenu>
+            <SidebarMenu>{systemItems.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
