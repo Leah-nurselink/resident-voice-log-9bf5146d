@@ -13,6 +13,7 @@ import {
   Settings,
   Scale,
   Shield,
+  ShieldCheck,
   Users,
   AlertTriangle,
 } from "lucide-react";
