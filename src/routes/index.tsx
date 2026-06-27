@@ -1,14 +1,11 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Activity, Mic, ShieldCheck, Sparkles } from "lucide-react";
+import { Activity, LayoutDashboard, Mic, ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/")({
   ssr: false,
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (data.user) throw redirect({ to: "/dashboard" });
-  },
   head: () => ({
     meta: [
       { title: "ForgeAI — AI clinical scribe for social care" },
