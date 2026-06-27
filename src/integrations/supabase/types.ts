@@ -768,6 +768,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
       alert_severity: "info" | "warning" | "critical"
