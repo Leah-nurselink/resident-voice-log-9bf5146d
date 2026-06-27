@@ -14,11 +14,15 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedRegulatoryRouteImport } from './routes/_authenticated/regulatory'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
+import { Route as AuthenticatedIncidentReviewRouteImport } from './routes/_authenticated/incident-review'
+import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCarePlansRouteImport } from './routes/_authenticated/care-plans'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
+import { Route as AuthenticatedAuditsRouteImport } from './routes/_authenticated/audits'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedResidentsIndexRouteImport } from './routes/_authenticated/residents/index'
 import { Route as AuthenticatedResidentsIdRouteImport } from './routes/_authenticated/residents/$id'
@@ -47,9 +51,25 @@ const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRegulatoryRoute = AuthenticatedRegulatoryRouteImport.update({
+  id: '/regulatory',
+  path: '/regulatory',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedNotesRoute = AuthenticatedNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedIncidentReviewRoute =
+  AuthenticatedIncidentReviewRouteImport.update({
+    id: '/incident-review',
+    path: '/incident-review',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFeedbackRoute = AuthenticatedFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFamilyRoute = AuthenticatedFamilyRouteImport.update({
@@ -70,6 +90,11 @@ const AuthenticatedCarePlansRoute = AuthenticatedCarePlansRouteImport.update({
 const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAuditsRoute = AuthenticatedAuditsRouteImport.update({
+  id: '/audits',
+  path: '/audits',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAlertsRoute = AuthenticatedAlertsRouteImport.update({
@@ -94,11 +119,15 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/alerts': typeof AuthenticatedAlertsRoute
+  '/audits': typeof AuthenticatedAuditsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/care-plans': typeof AuthenticatedCarePlansRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
+  '/feedback': typeof AuthenticatedFeedbackRoute
+  '/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/notes': typeof AuthenticatedNotesRoute
+  '/regulatory': typeof AuthenticatedRegulatoryRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
@@ -108,11 +137,15 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/alerts': typeof AuthenticatedAlertsRoute
+  '/audits': typeof AuthenticatedAuditsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/care-plans': typeof AuthenticatedCarePlansRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/family': typeof AuthenticatedFamilyRoute
+  '/feedback': typeof AuthenticatedFeedbackRoute
+  '/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/notes': typeof AuthenticatedNotesRoute
+  '/regulatory': typeof AuthenticatedRegulatoryRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
@@ -124,11 +157,15 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
+  '/_authenticated/audits': typeof AuthenticatedAuditsRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/care-plans': typeof AuthenticatedCarePlansRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
+  '/_authenticated/feedback': typeof AuthenticatedFeedbackRoute
+  '/_authenticated/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
+  '/_authenticated/regulatory': typeof AuthenticatedRegulatoryRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/residents/$id': typeof AuthenticatedResidentsIdRoute
@@ -140,11 +177,15 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/alerts'
+    | '/audits'
     | '/calendar'
     | '/care-plans'
     | '/dashboard'
     | '/family'
+    | '/feedback'
+    | '/incident-review'
     | '/notes'
+    | '/regulatory'
     | '/reports'
     | '/tasks'
     | '/residents/$id'
@@ -154,11 +195,15 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/alerts'
+    | '/audits'
     | '/calendar'
     | '/care-plans'
     | '/dashboard'
     | '/family'
+    | '/feedback'
+    | '/incident-review'
     | '/notes'
+    | '/regulatory'
     | '/reports'
     | '/tasks'
     | '/residents/$id'
@@ -169,11 +214,15 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/alerts'
+    | '/_authenticated/audits'
     | '/_authenticated/calendar'
     | '/_authenticated/care-plans'
     | '/_authenticated/dashboard'
     | '/_authenticated/family'
+    | '/_authenticated/feedback'
+    | '/_authenticated/incident-review'
     | '/_authenticated/notes'
+    | '/_authenticated/regulatory'
     | '/_authenticated/reports'
     | '/_authenticated/tasks'
     | '/_authenticated/residents/$id'
@@ -223,11 +272,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/regulatory': {
+      id: '/_authenticated/regulatory'
+      path: '/regulatory'
+      fullPath: '/regulatory'
+      preLoaderRoute: typeof AuthenticatedRegulatoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/notes': {
       id: '/_authenticated/notes'
       path: '/notes'
       fullPath: '/notes'
       preLoaderRoute: typeof AuthenticatedNotesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/incident-review': {
+      id: '/_authenticated/incident-review'
+      path: '/incident-review'
+      fullPath: '/incident-review'
+      preLoaderRoute: typeof AuthenticatedIncidentReviewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/feedback': {
+      id: '/_authenticated/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof AuthenticatedFeedbackRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/family': {
@@ -258,6 +328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCalendarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/audits': {
+      id: '/_authenticated/audits'
+      path: '/audits'
+      fullPath: '/audits'
+      preLoaderRoute: typeof AuthenticatedAuditsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/alerts': {
       id: '/_authenticated/alerts'
       path: '/alerts'
@@ -284,11 +361,15 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
+  AuthenticatedAuditsRoute: typeof AuthenticatedAuditsRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedCarePlansRoute: typeof AuthenticatedCarePlansRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
+  AuthenticatedFeedbackRoute: typeof AuthenticatedFeedbackRoute
+  AuthenticatedIncidentReviewRoute: typeof AuthenticatedIncidentReviewRoute
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
+  AuthenticatedRegulatoryRoute: typeof AuthenticatedRegulatoryRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedResidentsIdRoute: typeof AuthenticatedResidentsIdRoute
@@ -297,11 +378,15 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlertsRoute: AuthenticatedAlertsRoute,
+  AuthenticatedAuditsRoute: AuthenticatedAuditsRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedCarePlansRoute: AuthenticatedCarePlansRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
+  AuthenticatedFeedbackRoute: AuthenticatedFeedbackRoute,
+  AuthenticatedIncidentReviewRoute: AuthenticatedIncidentReviewRoute,
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
+  AuthenticatedRegulatoryRoute: AuthenticatedRegulatoryRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedResidentsIdRoute: AuthenticatedResidentsIdRoute,
