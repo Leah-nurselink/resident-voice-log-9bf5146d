@@ -42,7 +42,8 @@ const careItems = [
 const systemItems = [
   { title: "Alerts", url: "/alerts", icon: AlertTriangle },
   { title: "Family", url: "/family", icon: Heart },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Reports", url: "/reports", icon: FileText },
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
 
