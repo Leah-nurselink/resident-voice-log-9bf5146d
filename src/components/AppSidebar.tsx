@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Settings,
   Scale,
+  Shield,
   Users,
   AlertTriangle,
 } from "lucide-react";
