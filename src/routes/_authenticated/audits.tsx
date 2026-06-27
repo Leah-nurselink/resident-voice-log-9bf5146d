@@ -55,11 +55,18 @@ function AuditsPage() {
   };
   const refresh = () => setSubmissions(loadSubmissions());
 
-  const completedItems = submissions.map((s) => ({
-    title: `${s.auditTitle}${s.unit ? ` — ${s.unit}` : ""}`,
-    meta: `Completed ${new Date(s.completedAt).toLocaleString()} by ${s.completedBy}${s.summary ? ` · ${s.summary}` : ""}`,
-    status: `${s.compliance}% · ${s.compliance >= 90 ? "Pass" : s.compliance >= 70 ? "Action required" : "Fail"}`,
-  }));
+  const completedItems = submissions.map((s) => {
+    const openActions = s.actionPlan?.filter((a) => a.status !== "done").length ?? 0;
+    const totalActions = s.actionPlan?.length ?? 0;
+    const actionSummary = totalActions
+      ? ` · ${openActions}/${totalActions} action${totalActions === 1 ? "" : "s"} open`
+      : "";
+    return {
+      title: `${s.auditTitle}${s.unit ? ` — ${s.unit}` : ""}`,
+      meta: `Completed ${new Date(s.completedAt).toLocaleString()} by ${s.completedBy}${actionSummary}${s.summary ? ` · ${s.summary}` : ""}`,
+      status: `${s.compliance}% · ${s.compliance >= 90 ? "Pass" : s.compliance >= 70 ? "Action required" : "Fail"}`,
+    };
+  });
 
   return (
     <AppShell title="Audits" subtitle="Quality, safety and compliance audits across the service">
