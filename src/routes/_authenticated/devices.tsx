@@ -630,7 +630,7 @@ function DeviceForm({
         </div>
         <div>
           <Label>Status</Label>
-          <Select value={status} onValueChange={setStatus}>
+          <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
