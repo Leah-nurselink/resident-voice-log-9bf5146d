@@ -20,6 +20,7 @@ import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIncidentReviewRouteImport } from './routes/_authenticated/incident-review'
 import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
+import { Route as AuthenticatedDevicesRouteImport } from './routes/_authenticated/devices'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCarePlansRouteImport } from './routes/_authenticated/care-plans'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
@@ -87,6 +88,11 @@ const AuthenticatedFamilyRoute = AuthenticatedFamilyRouteImport.update({
   path: '/family',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDevicesRoute = AuthenticatedDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AuthenticatedCalendarRoute
   '/care-plans': typeof AuthenticatedCarePlansRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/devices': typeof AuthenticatedDevicesRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/feedback': typeof AuthenticatedFeedbackRoute
   '/incident-review': typeof AuthenticatedIncidentReviewRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof AuthenticatedCalendarRoute
   '/care-plans': typeof AuthenticatedCarePlansRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/devices': typeof AuthenticatedDevicesRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/feedback': typeof AuthenticatedFeedbackRoute
   '/incident-review': typeof AuthenticatedIncidentReviewRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/care-plans': typeof AuthenticatedCarePlansRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/devices': typeof AuthenticatedDevicesRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/feedback': typeof AuthenticatedFeedbackRoute
   '/_authenticated/incident-review': typeof AuthenticatedIncidentReviewRoute
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/care-plans'
     | '/dashboard'
+    | '/devices'
     | '/family'
     | '/feedback'
     | '/incident-review'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/care-plans'
     | '/dashboard'
+    | '/devices'
     | '/family'
     | '/feedback'
     | '/incident-review'
@@ -266,6 +277,7 @@ export interface FileRouteTypes {
     | '/_authenticated/calendar'
     | '/_authenticated/care-plans'
     | '/_authenticated/dashboard'
+    | '/_authenticated/devices'
     | '/_authenticated/family'
     | '/_authenticated/feedback'
     | '/_authenticated/incident-review'
@@ -363,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFamilyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/devices': {
+      id: '/_authenticated/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof AuthenticatedDevicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -445,6 +464,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedCarePlansRoute: typeof AuthenticatedCarePlansRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDevicesRoute: typeof AuthenticatedDevicesRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedFeedbackRoute: typeof AuthenticatedFeedbackRoute
   AuthenticatedIncidentReviewRoute: typeof AuthenticatedIncidentReviewRoute
@@ -466,6 +486,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedCarePlansRoute: AuthenticatedCarePlansRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDevicesRoute: AuthenticatedDevicesRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedFeedbackRoute: AuthenticatedFeedbackRoute,
   AuthenticatedIncidentReviewRoute: AuthenticatedIncidentReviewRoute,
