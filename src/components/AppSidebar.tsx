@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
+  Bluetooth,
   Calendar,
   ClipboardList,
   ClipboardCheck,
@@ -45,6 +46,7 @@ const systemItems = [
   { title: "Family", url: "/family", icon: Heart },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Reports", url: "/reports", icon: FileText },
+  { title: "Devices", url: "/devices", icon: Bluetooth },
   { title: "Admin", url: "/admin", icon: ShieldCheck },
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
