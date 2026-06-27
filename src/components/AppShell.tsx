@@ -1,74 +1,60 @@
-import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Activity, AlertTriangle, Home, LogOut, Users, Heart } from "lucide-react";
+import { useRouter } from "@tanstack/react-router";
+import { Bell, LogOut, User } from "lucide-react";
+import { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 
-const NAV = [
-  { to: "/", label: "Dashboard", icon: Home },
-  { to: "/residents", label: "Residents", icon: Users },
-  { to: "/alerts", label: "Alerts", icon: AlertTriangle },
-  { to: "/family", label: "Family", icon: Heart },
-];
-
-export function AppShell({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
+export function AppShell({
+  title,
+  subtitle,
+  children,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  action?: ReactNode;
+}) {
   const router = useRouter();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-
   const signOut = async () => {
     await supabase.auth.signOut();
     router.navigate({ to: "/auth", replace: true });
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 border-b bg-card/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Activity className="h-4 w-4" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold tracking-tight">ForgeAI</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">AI clinical scribe</div>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
-      </header>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar />
 
-      <main className="mx-auto max-w-6xl px-4 pb-28 pt-4">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          {action}
-        </div>
-        {children}
-      </main>
+        <div className="flex flex-1 flex-col">
+          <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-4 md:px-6">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger />
+              <div>
+                <h1 className="text-base font-semibold leading-tight md:text-lg">{title}</h1>
+                <p className="text-xs text-muted-foreground">{subtitle ?? "Meadowbrook Care Home"}</p>
+              </div>
+            </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 backdrop-blur">
-        <div className="mx-auto grid max-w-6xl grid-cols-4">
-          {NAV.map((item) => {
-            const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex flex-col items-center gap-1 py-2 text-xs font-medium",
-                  active ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            );
-          })}
+            <div className="flex items-center gap-1">
+              {action}
+              <Button variant="ghost" size="icon" aria-label="Notifications">
+                <Bell className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" aria-label="Profile">
+                <User className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          </header>
+
+          <main className="flex-1 bg-background p-4 md:p-6">{children}</main>
         </div>
-      </nav>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }
