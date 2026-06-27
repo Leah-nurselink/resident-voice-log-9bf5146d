@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { VoiceRecorder, type StructuredNote } from "@/components/VoiceRecorder";
 import { WoundsTab } from "@/components/WoundsTab";
+import { PersonalInfoTab } from "@/components/PersonalInfoTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
