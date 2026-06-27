@@ -51,6 +51,7 @@ const governanceItems = [
   { title: "Feedback", url: "/feedback", icon: MessageCircle },
   { title: "Regulatory", url: "/regulatory", icon: Scale },
   { title: "Incident Review", url: "/incident-review", icon: FileSearch },
+  { title: "Safeguarding", url: "/safeguarding", icon: Shield },
 ] as const;
 
 export function AppSidebar() {
