@@ -40,8 +40,15 @@ export function AppShell({
 
             <div className="flex items-center gap-1">
               {action}
-              <Button variant="ghost" size="icon" aria-label="Notifications">
-                <Bell className="h-4 w-4" />
+              <Button variant="ghost" size="icon" aria-label="Send a CQC notification" asChild>
+                <a
+                  href="https://www.cqc.org.uk/guidance-providers/notifications"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Send a CQC notification"
+                >
+                  <Bell className="h-4 w-4" />
+                </a>
               </Button>
               <Button variant="ghost" size="icon" aria-label="Profile">
                 <User className="h-4 w-4" />
