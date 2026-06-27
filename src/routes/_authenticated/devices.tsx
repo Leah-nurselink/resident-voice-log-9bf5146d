@@ -71,7 +71,7 @@ type DeviceRow = {
 };
 
 type Room = { id: string; name: string; floor: string | null };
-type Resident = { id: string; first_name: string; last_name: string };
+type Resident = { id: string; full_name: string };
 type StaffProfile = { id: string; full_name: string | null };
 
 function typeIcon(t: DeviceRow["device_type"]) {
@@ -118,7 +118,7 @@ function DevicesPage() {
         )
         .order("device_type"),
       supabase.from("rooms").select("id, name, floor").order("name"),
-      supabase.from("residents").select("id, first_name, last_name").order("last_name"),
+      supabase.from("residents").select("id, full_name").order("full_name"),
       supabase.from("profiles").select("id, full_name").order("full_name"),
       supabase
         .from("device_events")
@@ -150,7 +150,7 @@ function DevicesPage() {
   const residentName = (id: string | null) => {
     if (!id) return "—";
     const r = residents.find((x) => x.id === id);
-    return r ? `${r.first_name} ${r.last_name}` : "—";
+    return r ? r.full_name : "—";
   };
   const roomName = (id: string | null) => rooms.find((x) => x.id === id)?.name ?? "—";
   const staffName = (id: string | null) =>
@@ -700,7 +700,7 @@ function DeviceForm({
             <SelectContent>
               {residents.map((r) => (
                 <SelectItem key={r.id} value={r.id}>
-                  {r.first_name} {r.last_name}
+                  {r.full_name}
                 </SelectItem>
               ))}
             </SelectContent>
