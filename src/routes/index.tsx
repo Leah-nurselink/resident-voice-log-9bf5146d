@@ -1,14 +1,11 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Activity, Mic, ShieldCheck, Sparkles } from "lucide-react";
+import { Activity, LayoutDashboard, Mic, ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/")({
   ssr: false,
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (data.user) throw redirect({ to: "/dashboard" });
-  },
   head: () => ({
     meta: [
       { title: "ForgeAI — AI clinical scribe for social care" },
@@ -19,6 +16,16 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setIsSignedIn(!!data.user));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsSignedIn(!!session?.user);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
@@ -31,7 +38,16 @@ function Landing() {
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">AI clinical scribe</div>
           </div>
         </div>
-        <Button asChild><Link to="/auth">Sign in</Link></Button>
+        {isSignedIn ? (
+          <Button asChild className="gap-2">
+            <Link to="/dashboard">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild><Link to="/auth">Sign in</Link></Button>
+        )}
       </header>
 
       <main className="mx-auto max-w-3xl px-4 pb-20 pt-8 text-center">
