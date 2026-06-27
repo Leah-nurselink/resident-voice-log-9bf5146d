@@ -45,6 +45,13 @@ import {
   type ScanHit,
 } from "@/lib/ble-scanner";
 import { inferInteraction, startCareSessionIfConfident } from "@/lib/confidence-engine";
+import {
+  startAutoConnect,
+  stopAutoConnect,
+  subscribeAutoConnect,
+  type AutoConnectStatus,
+} from "@/lib/ble-auto-connect";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/devices")({
   head: () => ({ meta: [{ title: "Devices · CareCore" }] }),
