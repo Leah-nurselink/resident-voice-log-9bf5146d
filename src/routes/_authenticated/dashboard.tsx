@@ -4,8 +4,12 @@ import {
   AlertTriangle,
   Calendar,
   ClipboardCheck,
+  ClipboardList,
+  FileSearch,
   Heart,
+  MessageCircle,
   MessageSquare,
+  Scale,
   Shield,
   TrendingUp,
   Users,
@@ -184,6 +188,114 @@ function Dashboard() {
               ))}
             </CardContent>
           </Card>
+        </div>
+
+        {/* Governance row */}
+        <div>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Governance & Quality
+          </h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ClipboardList className="h-4 w-4 text-primary" /> Audits
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Completed this month</span>
+                  <span className="font-semibold">12</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Due this week</span>
+                  <span className="font-semibold text-care-attention">3</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Overdue</span>
+                  <span className="font-semibold text-care-urgent">1</span>
+                </div>
+                <p className="pt-1 text-xs text-muted-foreground">
+                  Medication, infection control & care plan audits.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MessageCircle className="h-4 w-4 text-primary" /> Feedback
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Family responses</span>
+                  <span className="font-semibold">18</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Avg satisfaction</span>
+                  <span className="font-semibold text-care-on-track">4.7 / 5</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Open complaints</span>
+                  <span className="font-semibold text-care-attention">2</span>
+                </div>
+                <p className="pt-1 text-xs text-muted-foreground">
+                  Residents, families and staff voices.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Scale className="h-4 w-4 text-primary" /> Regulatory
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">CQC rating</span>
+                  <span className="font-semibold text-care-on-track">Good</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Notifications submitted</span>
+                  <span className="font-semibold">4</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Actions outstanding</span>
+                  <span className="font-semibold text-care-attention">2</span>
+                </div>
+                <p className="pt-1 text-xs text-muted-foreground">
+                  CQC, safeguarding & DoLS tracking.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileSearch className="h-4 w-4 text-primary" /> Incident Review
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Open incidents</span>
+                  <span className="font-semibold text-care-urgent">5</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Awaiting review</span>
+                  <span className="font-semibold text-care-attention">3</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Closed (30d)</span>
+                  <span className="font-semibold">14</span>
+                </div>
+                <p className="pt-1 text-xs text-muted-foreground">
+                  Falls, medication errors & safeguarding.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </AppShell>
