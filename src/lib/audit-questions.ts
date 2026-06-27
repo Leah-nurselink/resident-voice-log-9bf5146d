@@ -293,6 +293,18 @@ export const getAuditByTitle = (title: string) =>
   AUDIT_DEFINITIONS.find((a) => title.toLowerCase().includes(a.title.toLowerCase().split(" ")[0]));
 
 export type AuditAnswer = "yes" | "no" | "na";
+export type ActionPriority = "low" | "medium" | "high";
+export type ActionStatus = "open" | "in_progress" | "done";
+export type AuditActionItem = {
+  id: string;
+  questionId?: string;
+  questionText?: string;
+  action: string;
+  owner: string;
+  dueDate: string;
+  priority: ActionPriority;
+  status: ActionStatus;
+};
 export type AuditSubmission = {
   id: string;
   auditKey: string;
@@ -303,6 +315,7 @@ export type AuditSubmission = {
   answers: Record<string, { answer: AuditAnswer; note?: string }>;
   summary: string;
   compliance: number;
+  actionPlan: AuditActionItem[];
 };
 
 const STORAGE_KEY = "carecore.audit_submissions";
