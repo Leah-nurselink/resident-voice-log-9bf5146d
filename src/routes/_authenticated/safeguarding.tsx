@@ -144,8 +144,23 @@ function CouncilCard({ council }: { council: Council }) {
           variant="secondary"
           className="w-full justify-between"
         >
+          <a
+            href={`https://www.google.com/search?q=${encodeURIComponent(`${council.name} council adult safeguarding referral`)}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Find referral page
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </Button>
+        <Button
+          asChild
+          size="sm"
+          variant="ghost"
+          className="w-full justify-between text-xs"
+        >
           <a href={council.safeguardingUrl} target="_blank" rel="noreferrer">
-            Open referral page
+            Try direct link
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </Button>
