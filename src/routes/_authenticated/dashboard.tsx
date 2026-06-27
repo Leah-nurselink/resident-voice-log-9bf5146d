@@ -11,7 +11,6 @@ import {
   MessageSquare,
   Scale,
   Shield,
-  ShieldAlert,
   TrendingUp,
   Users,
 } from "lucide-react";
