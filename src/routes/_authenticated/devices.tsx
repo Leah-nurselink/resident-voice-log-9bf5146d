@@ -236,6 +236,29 @@ function DevicesPage() {
         </Card>
       )}
 
+      <Card className="mt-4">
+        <CardContent className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3">
+            <Bluetooth className="mt-0.5 h-5 w-5 text-primary" />
+            <div>
+              <div className="font-medium">Auto-connect</div>
+              <div className="text-sm text-muted-foreground">
+                {autoStatus?.enabled
+                  ? `On · ${autoStatus.mode === "native" ? "live BLE" : autoStatus.mode === "simulator" ? "simulator" : "unavailable"} · ${autoStatus.pairedCount} paired · ${autoStatus.connectedCount} connected${autoStatus.lastTickAt ? ` · last check ${new Date(autoStatus.lastTickAt).toLocaleTimeString()}` : ""}`
+                  : "Reconnect paired beacons, wearables and badges automatically whenever they're in range."}
+              </div>
+              {autoStatus?.lastError && (
+                <div className="mt-1 text-xs text-amber-700">{autoStatus.lastError}</div>
+              )}
+            </div>
+          </div>
+          <Switch
+            checked={!!autoStatus?.enabled}
+            onCheckedChange={(v) => void toggleAutoConnect(v)}
+          />
+        </CardContent>
+      </Card>
+
       {guessResult && (
         <Card className="mt-4 border-primary/30">
           <CardContent className="py-3 text-sm">{guessResult}</CardContent>
