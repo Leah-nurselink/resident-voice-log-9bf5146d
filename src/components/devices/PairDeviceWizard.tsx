@@ -123,7 +123,7 @@ export function PairDeviceWizard({
       manufacturer: manufacturer || null,
       model: model || null,
       battery_level: battery ? Math.min(100, Math.max(0, parseInt(battery, 10))) : null,
-      status: "active",
+      status: "active" as const,
       room_id: type === "room_beacon" ? assignmentId : null,
       resident_id: type === "wearable_tag" ? assignmentId : null,
       staff_user_id: type === "staff_badge" ? assignmentId : null,
