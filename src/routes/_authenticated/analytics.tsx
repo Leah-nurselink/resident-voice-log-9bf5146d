@@ -356,7 +356,13 @@ function AnalyticsPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <MetricCard title="Direct care" value="6.1 hrs" description="Per resident / day" icon={Heart} trend={{ value: 8, isPositive: true }} />
               <MetricCard title="Documentation" value="1.4 hrs" description="Per carer / shift" icon={ClipboardCheck} trend={{ value: 22, isPositive: false }} />
-              <MetricCard title="Time saved by voice" value="38 min" description="Per carer / shift avg" icon={Sparkles} trend={{ value: 15, isPositive: true }} />
+              <MetricCard
+                title="Time saved by voice"
+                value={totalSavedHrs >= 1 ? `${totalSavedHrs.toFixed(1)} hrs` : `${Math.round(totalSavedSec / 60)} min`}
+                description={savedSecondsArr.length ? `${Math.round(avgSavedPerNote)}s avg per note · last ${days}d` : "No voice notes yet"}
+                icon={Sparkles}
+                trend={savedSecondsArr.length ? { value: 15, isPositive: true } : undefined}
+              />
             </div>
             <Card>
               <CardHeader><CardTitle className="text-base">Direct care vs documentation</CardTitle><CardDescription>Hours per carer per day</CardDescription></CardHeader>
