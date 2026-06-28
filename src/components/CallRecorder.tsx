@@ -496,11 +496,29 @@ export function CallRecorder({
                 </SelectContent>
               </Select>
               {contact?.phone && (
-                <p className="text-xs text-muted-foreground">Phone on file: {contact.phone}</p>
+                <div className="flex items-center justify-between gap-2 rounded-lg border bg-muted/40 p-2.5">
+                  <div className="text-xs">
+                    <p className="text-muted-foreground">Phone on file</p>
+                    <p className="font-medium tabular-nums">{contact.phone}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    asChild
+                  >
+                    <a href={`tel:${contact.phone.replace(/[^+\d]/g, "")}`}>
+                      <Phone className="h-3.5 w-3.5 mr-1.5" /> Dial
+                    </a>
+                  </Button>
+                </div>
               )}
               {contact && !contact.phone && (
                 <p className="text-xs text-amber-600">No phone number on file for this contact — add one on the Profile tab.</p>
               )}
+              <p className="text-[11px] text-muted-foreground">
+                ForgeAI does not place the call itself. Tap <strong>Dial</strong> to call from this device, put the call on speaker, then tap <strong>Start call</strong> below so the microphone can capture the conversation for transcription.
+              </p>
             </div>
 
 
