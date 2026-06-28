@@ -1,16 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ExplainPopover } from "@/components/ExplainPopover";
-import { reviewRecommendation, applyCareGapToCarePlan } from "@/lib/approvals";
+import {
+  reviewRecommendation, applyCareGapToCarePlan,
+  bulkReviewRecommendations, bulkApplyCareGaps,
+} from "@/lib/approvals";
 import { toast } from "sonner";
 import { Check, X, FileText, Sparkles, ChevronRight, Telescope, Stethoscope, ShieldAlert, ClipboardCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+
 
 export const Route = createFileRoute("/_authenticated/approvals")({
   head: () => ({ meta: [{ title: "Approvals · ForgeAI" }] }),
