@@ -243,6 +243,26 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
       <div className="flex items-center gap-1.5 px-1 pt-2 text-[11px] text-muted-foreground">
         <Sparkles className="h-3 w-3" /> Auto-compiled from notes, sessions, plans, risks, consents & alerts.
       </div>
+
+      <Dialog open={!!openEvent} onOpenChange={(o) => !o && setOpenEvent(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{openEvent?.title}</DialogTitle>
+            {openEvent && (
+              <DialogDescription>
+                {format(new Date(openEvent.ts), "EEEE d MMM yyyy 'at' HH:mm")}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          {openEvent?.meta && <div>{openEvent.meta}</div>}
+          <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">
+            {openEvent?.full ?? openEvent?.detail ?? "No additional detail recorded."}
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setOpenEvent(null)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
