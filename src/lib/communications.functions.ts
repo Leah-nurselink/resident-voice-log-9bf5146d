@@ -201,9 +201,10 @@ export const sendCommunication = createServerFn({ method: "POST" })
 
     const out = await res.json().catch(() => ({}));
     if (!res.ok) {
+      const prev = (comm.metadata && typeof comm.metadata === "object") ? comm.metadata as Record<string, unknown> : {};
       await context.supabase.from("communications").update({
         status: "failed",
-        metadata: { ...(comm.metadata ?? {}), send_error: out, http_status: res.status },
+        metadata: { ...prev, send_error: out, http_status: res.status },
       } as never).eq("id", comm.id);
       throw new Error(`Send failed: ${res.status} ${JSON.stringify(out)}`);
     }
