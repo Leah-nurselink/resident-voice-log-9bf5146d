@@ -282,6 +282,11 @@ function ResidentDetail() {
           })}
         </TabsContent>
 
+        <TabsContent value="schedule" className="mt-4">
+          <ScheduleTab residentId={id} />
+        </TabsContent>
+
+
         <TabsContent value="risk" className="mt-4 space-y-2">
           {RISK_TYPES.map((t) => {
             const existing = risks.data?.find((r) => r.type === t.id);
