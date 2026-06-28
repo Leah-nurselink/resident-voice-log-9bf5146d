@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { NotificationBell } from "@/components/NotificationBell";
+
 
 export function AppShell({
   title,
@@ -46,6 +48,7 @@ export function AppShell({
 
             <div className="flex items-center gap-1">
               {action}
+              <NotificationBell />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" aria-label="Clinical alerts" asChild>
