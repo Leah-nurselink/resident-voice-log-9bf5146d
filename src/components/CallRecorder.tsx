@@ -193,6 +193,8 @@ export function CallRecorder({
     setTranscript("");
     setSummary(null);
     setEditedSummary("");
+    setEditedOutcome("");
+    setCallStatus("answered");
     setSaving(false);
   }
 
