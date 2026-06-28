@@ -88,8 +88,30 @@ export function CallRecorder({
   const transcribe = useServerFn(transcribeAudio);
   const summarise = useServerFn(summariseCall);
 
-  const contacts = useQuery({
+  const residentSettings = useQuery({
     enabled: open,
+    queryKey: ["resident-consent", residentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("residents")
+        .select("transcription_enabled, recording_consent, recording_consent_date, recording_consent_notes")
+        .eq("id", residentId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? { transcription_enabled: true, recording_consent: false }) as {
+        transcription_enabled: boolean;
+        recording_consent: boolean;
+        recording_consent_date: string | null;
+        recording_consent_notes: string | null;
+      };
+    },
+  });
+
+  const transcriptionDisabled = residentSettings.data?.transcription_enabled === false;
+  const hasStandingConsent = !!residentSettings.data?.recording_consent;
+
+  const contacts = useQuery({
+    enabled: open && !transcriptionDisabled,
     queryKey: ["call-contacts", residentId],
     queryFn: async (): Promise<Contact[]> => {
       const [fam, pro] = await Promise.all([
@@ -126,6 +148,7 @@ export function CallRecorder({
       return list;
     },
   });
+
 
   const [contactId, setContactId] = useState<string>("");
   const [reason, setReason] = useState("");
