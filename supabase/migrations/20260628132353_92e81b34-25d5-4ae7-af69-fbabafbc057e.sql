@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.log_communication_audit() FROM PUBLIC, anon, authenticated;
