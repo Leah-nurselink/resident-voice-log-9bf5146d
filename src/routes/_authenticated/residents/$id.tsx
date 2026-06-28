@@ -170,13 +170,14 @@ function ResidentDetail() {
       </div>
 
       <Tabs defaultValue="intel" className="mt-4">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="intel" className="text-xs px-1">AI</TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs px-1">Story</TabsTrigger>
           <TabsTrigger value="notes" className="text-xs px-1">Notes</TabsTrigger>
           <TabsTrigger value="profile" className="text-xs px-1">Profile</TabsTrigger>
           <TabsTrigger value="care" className="text-xs px-1">Care</TabsTrigger>
           <TabsTrigger value="risk" className="text-xs px-1">Risk</TabsTrigger>
+          <TabsTrigger value="pain" className="text-xs px-1">Pain</TabsTrigger>
           <TabsTrigger value="wounds" className="text-xs px-1">Wounds</TabsTrigger>
           <TabsTrigger value="consent" className="text-xs px-1">Consent</TabsTrigger>
           <TabsTrigger value="mca" className="text-xs px-1">MCA</TabsTrigger>
