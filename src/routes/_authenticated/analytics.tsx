@@ -68,11 +68,14 @@ function AnalyticsPage() {
   });
 
   const notes = useQuery({
-    queryKey: ["analytics-notes"],
+    queryKey: ["analytics-notes", days],
     queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - days);
       const { data, error } = await supabase
         .from("daily_notes")
-        .select("id, status, created_at, category");
+        .select("id, status, created_at, source, audio_quality, transcript_confidence, signal_level, noise_level, duration_sec, time_saved_seconds")
+        .gte("created_at", since.toISOString());
       if (error) throw error;
       return data ?? [];
     },
