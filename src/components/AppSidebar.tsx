@@ -39,6 +39,8 @@ const careItems = [
   { title: "Care Plans", url: "/care-plans", icon: FileText },
   { title: "Tasks", url: "/tasks", icon: ClipboardList },
   { title: "Daily Notes", url: "/notes", icon: MessageSquare },
+  { title: "Communications", url: "/communications", icon: MessageCircle },
+  { title: "Professionals", url: "/professionals", icon: Stethoscope },
   { title: "Calendar", url: "/calendar", icon: Calendar },
 ] as const;
 
