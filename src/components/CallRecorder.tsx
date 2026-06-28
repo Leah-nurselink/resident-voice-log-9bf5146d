@@ -114,7 +114,7 @@ export function CallRecorder({
     enabled: open && !transcriptionDisabled,
     queryKey: ["call-contacts", residentId],
     queryFn: async (): Promise<Contact[]> => {
-      const [fam, pro] = await Promise.all([
+      const [fam, pro, res] = await Promise.all([
         supabase
           .from("family_members")
           .select("id, full_name, relationship, phone, email")
@@ -123,9 +123,29 @@ export function CallRecorder({
           .from("professionals")
           .select("id, name, role, organisation, phone, email")
           .order("name"),
+        supabase
+          .from("residents")
+          .select("next_of_kin_name, next_of_kin_relationship, next_of_kin_phone")
+          .eq("id", residentId)
+          .maybeSingle(),
       ]);
       const list: Contact[] = [];
-      (fam.data ?? []).forEach((f) =>
+      const nok = res.data as { next_of_kin_name: string | null; next_of_kin_relationship: string | null; next_of_kin_phone: string | null } | null;
+      const famRows = (fam.data ?? []) as Array<{ id: string; full_name: string; relationship: string | null; phone: string | null; email: string | null }>;
+      const nokAlreadyInFamily =
+        nok?.next_of_kin_name &&
+        famRows.some((f) => f.full_name?.trim().toLowerCase() === nok.next_of_kin_name!.trim().toLowerCase());
+      if (nok?.next_of_kin_name && !nokAlreadyInFamily) {
+        list.push({
+          id: `nok:${residentId}`,
+          kind: "family",
+          name: nok.next_of_kin_name,
+          role: `Next of kin${nok.next_of_kin_relationship ? " · " + nok.next_of_kin_relationship : ""}`,
+          phone: nok.next_of_kin_phone,
+          email: null,
+        });
+      }
+      famRows.forEach((f) =>
         list.push({
           id: `family:${f.id}`,
           kind: "family",
@@ -148,6 +168,7 @@ export function CallRecorder({
       return list;
     },
   });
+
 
 
   const [contactId, setContactId] = useState<string>("");
@@ -431,18 +452,29 @@ export function CallRecorder({
             )}
 
             <div className="space-y-1.5">
-              <Label>Contact</Label>
+              <Label>Who are you calling?</Label>
               <Select value={contactId} onValueChange={setContactId}>
                 <SelectTrigger><SelectValue placeholder="Pick a family member or professional" /></SelectTrigger>
                 <SelectContent>
                   {(contacts.data ?? []).length === 0 && (
                     <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                      No contacts yet — add a family member or professional first.
+                      No contacts yet — add a family member, next of kin, or professional first.
                     </div>
                   )}
-                  {(contacts.data ?? []).map((c) => (
+                  {(contacts.data ?? []).filter((c) => c.kind === "family").length > 0 && (
+                    <div className="px-2 pt-1.5 pb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">Family / Next of kin</div>
+                  )}
+                  {(contacts.data ?? []).filter((c) => c.kind === "family").map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.name} <span className="text-muted-foreground">· {c.role}</span>
+                      {c.name} <span className="text-muted-foreground">· {c.role}{c.phone ? " · " + c.phone : ""}</span>
+                    </SelectItem>
+                  ))}
+                  {(contacts.data ?? []).filter((c) => c.kind === "professional").length > 0 && (
+                    <div className="px-2 pt-2 pb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">Professionals</div>
+                  )}
+                  {(contacts.data ?? []).filter((c) => c.kind === "professional").map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} <span className="text-muted-foreground">· {c.role}{c.phone ? " · " + c.phone : ""}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -450,7 +482,11 @@ export function CallRecorder({
               {contact?.phone && (
                 <p className="text-xs text-muted-foreground">Phone on file: {contact.phone}</p>
               )}
+              {contact && !contact.phone && (
+                <p className="text-xs text-amber-600">No phone number on file for this contact — add one on the Profile tab.</p>
+              )}
             </div>
+
 
             <div className="space-y-1.5">
               <Label>Reason for call (optional)</Label>
