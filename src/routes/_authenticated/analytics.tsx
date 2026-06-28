@@ -216,6 +216,85 @@ function AnalyticsPage() {
   const drafts = (notes.data ?? []).filter((n: any) => n.status === "draft").length;
   const highRisks = (risks.data ?? []).filter((r: any) => r.level === "high").length;
 
+  // ---------- Audio Quality & Time Saved ----------
+  const voiceNotes = (notes.data ?? []).filter((n: any) => n.source === "voice");
+  const typedNotes = (notes.data ?? []).filter((n: any) => n.source !== "voice");
+  const captureMixLive = useMemo(() => {
+    if ((notes.data ?? []).length === 0) return captureMix;
+    return [
+      { name: "Voice", value: voiceNotes.length },
+      { name: "Typed", value: typedNotes.length },
+    ];
+  }, [notes.data, voiceNotes.length, typedNotes.length]);
+
+  const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
+  const qualityVals = voiceNotes.map((n: any) => Number(n.audio_quality)).filter((v) => Number.isFinite(v));
+  const confVals = voiceNotes.map((n: any) => Number(n.transcript_confidence)).filter((v) => Number.isFinite(v));
+  const signalVals = voiceNotes.map((n: any) => Number(n.signal_level)).filter((v) => Number.isFinite(v));
+  const noiseVals = voiceNotes.map((n: any) => Number(n.noise_level)).filter((v) => Number.isFinite(v));
+  const savedSecondsArr = (notes.data ?? []).map((n: any) => Number(n.time_saved_seconds)).filter((v) => Number.isFinite(v));
+  const totalSavedSec = savedSecondsArr.reduce((a, b) => a + b, 0);
+  const totalSavedHrs = totalSavedSec / 3600;
+  const avgSavedPerNote = savedSecondsArr.length ? totalSavedSec / savedSecondsArr.length : 0;
+
+  const qualityByDay = useMemo(() => {
+    const buckets = new Map<string, { q: number[]; c: number[] }>();
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      buckets.set(d.toISOString().slice(0, 10), { q: [], c: [] });
+    }
+    voiceNotes.forEach((n: any) => {
+      const k = (n.created_at ?? "").slice(0, 10);
+      const b = buckets.get(k);
+      if (!b) return;
+      if (Number.isFinite(Number(n.audio_quality))) b.q.push(Number(n.audio_quality));
+      if (Number.isFinite(Number(n.transcript_confidence))) b.c.push(Number(n.transcript_confidence));
+    });
+    return Array.from(buckets.entries()).map(([k, v]) => ({
+      label: new Date(k).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      "Audio quality": Math.round(avg(v.q) * 100),
+      "Transcript confidence": Math.round(avg(v.c) * 100),
+    }));
+  }, [voiceNotes, days]);
+
+  const savedByDay = useMemo(() => {
+    const buckets = new Map<string, number>();
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      buckets.set(d.toISOString().slice(0, 10), 0);
+    }
+    (notes.data ?? []).forEach((n: any) => {
+      const k = (n.created_at ?? "").slice(0, 10);
+      if (!buckets.has(k)) return;
+      const s = Number(n.time_saved_seconds);
+      if (Number.isFinite(s)) buckets.set(k, (buckets.get(k) ?? 0) + s);
+    });
+    return Array.from(buckets.entries()).map(([k, v]) => ({
+      label: new Date(k).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      value: Math.round((v / 60) * 10) / 10, // minutes saved
+    }));
+  }, [notes.data, days]);
+
+  const qualityDistribution = useMemo(() => {
+    const buckets = { Excellent: 0, Good: 0, Fair: 0, Poor: 0 };
+    qualityVals.forEach((q) => {
+      if (q >= 0.75) buckets.Excellent++;
+      else if (q >= 0.55) buckets.Good++;
+      else if (q >= 0.35) buckets.Fair++;
+      else buckets.Poor++;
+    });
+    return Object.entries(buckets).map(([name, value]) => ({ name, value }));
+  }, [qualityVals]);
+
+  const avgQualityPct = Math.round(avg(qualityVals) * 100);
+  const avgConfPct = Math.round(avg(confVals) * 100);
+  const avgSignalPct = Math.round(avg(signalVals) * 100);
+  const avgNoisePct = Math.round(avg(noiseVals) * 100);
+
   return (
     <AppShell title="Analytics" subtitle="Care operations, compliance and time-on-care insight">
       <div className="space-y-6">
