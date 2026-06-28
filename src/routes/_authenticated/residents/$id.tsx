@@ -176,10 +176,11 @@ function ResidentDetail() {
       </div>
 
       <Tabs defaultValue="intel" className="mt-4">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="intel" className="text-xs px-1">AI</TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs px-1">Story</TabsTrigger>
           <TabsTrigger value="notes" className="text-xs px-1">Notes</TabsTrigger>
+          <TabsTrigger value="comms" className="text-xs px-1">Comms</TabsTrigger>
           <TabsTrigger value="profile" className="text-xs px-1">Profile</TabsTrigger>
           <TabsTrigger value="care" className="text-xs px-1">Care</TabsTrigger>
           <TabsTrigger value="risk" className="text-xs px-1">Risk</TabsTrigger>
@@ -195,6 +196,10 @@ function ResidentDetail() {
 
         <TabsContent value="timeline" className="mt-4">
           <ResidentTimeline residentId={id} />
+        </TabsContent>
+
+        <TabsContent value="comms" className="mt-4">
+          <CommunicationsTab residentId={id} />
         </TabsContent>
 
         <TabsContent value="profile" className="mt-4">
