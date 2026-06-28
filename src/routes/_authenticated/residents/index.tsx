@@ -17,9 +17,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AlertTriangle, Calendar, FileText, Heart, MapPin, Plus, Search, User } from "lucide-react";
+import { AlertTriangle, Archive, Calendar, FileText, Heart, MapPin, Plus, Search, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const ARCHIVED_STATUSES = ["Discharged", "Deceased"];
 
 export const Route = createFileRoute("/_authenticated/residents/")({
   head: () => ({ meta: [{ title: "Residents · CareCore" }] }),
@@ -28,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/residents/")({
 
 function ResidentsList() {
   const [q, setQ] = useState("");
+  const [view, setView] = useState<"active" | "archived">("active");
   const qc = useQueryClient();
 
   const { data = [] } = useQuery({
@@ -42,11 +46,16 @@ function ResidentsList() {
     },
   });
 
-  const filtered = data.filter((r) =>
+  const isArchived = (r: any) => ARCHIVED_STATUSES.includes(r.residency_status ?? "");
+  const activeResidents = data.filter((r) => !isArchived(r));
+  const archivedResidents = data.filter((r) => isArchived(r));
+  const pool = view === "active" ? activeResidents : archivedResidents;
+
+  const filtered = pool.filter((r) =>
     `${r.full_name} ${r.room_number ?? ""}`.toLowerCase().includes(q.toLowerCase()),
   );
 
-  const highRiskCount = data.filter((r) =>
+  const highRiskCount = activeResidents.filter((r) =>
     (r.risk_assessments as { level: string }[] | null)?.some((x) => x.level === "high"),
   ).length;
 
@@ -59,16 +68,21 @@ function ResidentsList() {
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <StatBox icon={User} value={data.length} label="Total Residents" tone="primary" />
-          <StatBox icon={Heart} value={data.filter((r) => r.room_number).length} label="In Rooms" tone="urgent" />
+          <StatBox icon={User} value={activeResidents.length} label="Active Residents" tone="primary" />
+          <StatBox icon={Heart} value={activeResidents.filter((r) => r.room_number).length} label="In Rooms" tone="urgent" />
           <StatBox icon={AlertTriangle} value={highRiskCount} label="High Risk" tone="warning" />
-          <StatBox
-            icon={Calendar}
-            value={data.filter((r) => r.admission_date && new Date(r.admission_date) > new Date(Date.now() - 30 * 86400000)).length}
-            label="New This Month"
-            tone="ontrack"
-          />
+          <StatBox icon={Archive} value={archivedResidents.length} label="Archived" tone="ontrack" />
         </div>
+
+        {/* View tabs */}
+        <Tabs value={view} onValueChange={(v) => setView(v as "active" | "archived")}>
+          <TabsList>
+            <TabsTrigger value="active">Active ({activeResidents.length})</TabsTrigger>
+            <TabsTrigger value="archived">
+              <Archive className="mr-1 h-3 w-3" /> Archived ({archivedResidents.length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Search */}
         <div className="relative">
@@ -76,10 +90,11 @@ function ResidentsList() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search residents by name or room…"
+            placeholder={`Search ${view} residents by name or room…`}
             className="pl-10"
           />
         </div>
+
 
         {/* Grid */}
         {filtered.length ? (
@@ -127,18 +142,24 @@ function ResidentsList() {
                             </div>
                           </div>
                         </div>
-                        <Badge
-                          variant="outline"
-                          className={
-                            hasHigh
-                              ? "border-care-urgent/40 bg-care-urgent/10 text-care-urgent"
-                              : hasMed
-                                ? "border-care-attention/40 bg-care-attention/20 text-care-attention"
-                                : "border-care-on-track/40 bg-care-on-track/10 text-care-on-track"
-                          }
-                        >
-                          {hasHigh ? "High risk" : hasMed ? "Medium" : "Low"}
-                        </Badge>
+                        {isArchived(r) ? (
+                          <Badge variant="outline" className="border-muted-foreground/30 bg-muted text-muted-foreground">
+                            <Archive className="mr-1 h-3 w-3" /> {r.residency_status}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className={
+                              hasHigh
+                                ? "border-care-urgent/40 bg-care-urgent/10 text-care-urgent"
+                                : hasMed
+                                  ? "border-care-attention/40 bg-care-attention/20 text-care-attention"
+                                  : "border-care-on-track/40 bg-care-on-track/10 text-care-on-track"
+                            }
+                          >
+                            {hasHigh ? "High risk" : hasMed ? "Medium" : "Low"}
+                          </Badge>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -166,8 +187,14 @@ function ResidentsList() {
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed bg-card/50 p-10 text-center">
-            <p className="text-sm text-muted-foreground">No residents yet.</p>
-            <p className="mt-1 text-xs text-muted-foreground">Add a resident to start documenting care.</p>
+            <p className="text-sm text-muted-foreground">
+              {view === "archived" ? "No archived residents." : "No residents yet."}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {view === "archived"
+                ? "Discharged or deceased residents will appear here."
+                : "Add a resident to start documenting care."}
+            </p>
           </div>
         )}
       </div>
