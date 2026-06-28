@@ -17,10 +17,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AlertTriangle, Archive, Calendar, FileText, Heart, MapPin, Plus, Search, User } from "lucide-react";
+import { AlertTriangle, Archive, Calendar, FileSpreadsheet, FileText, Heart, MapPin, Plus, Printer, Search, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { exportResidentsExcel, exportResidentsPDF } from "@/lib/resident-export";
 
 const ARCHIVED_STATUSES = ["Discharged", "Deceased"];
 
@@ -63,7 +64,17 @@ function ResidentsList() {
     <AppShell
       title="Residents"
       subtitle="Manage resident profiles and care information"
-      action={<NewResidentDialog onCreated={() => qc.invalidateQueries({ queryKey: ["residents"] })} />}
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => exportResidentsExcel(filtered)} disabled={!filtered.length}>
+            <FileSpreadsheet className="mr-1 h-4 w-4" /> Excel
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => exportResidentsPDF(filtered)} disabled={!filtered.length}>
+            <Printer className="mr-1 h-4 w-4" /> PDF
+          </Button>
+          <NewResidentDialog onCreated={() => qc.invalidateQueries({ queryKey: ["residents"] })} />
+        </div>
+      }
     >
       <div className="space-y-6">
         {/* Stats */}

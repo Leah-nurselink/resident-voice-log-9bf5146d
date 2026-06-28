@@ -26,9 +26,11 @@ import {
 import { useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
-import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone } from "lucide-react";
+import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone, Printer, CalendarClock } from "lucide-react";
 import { CallRecorder } from "@/components/CallRecorder";
 import { CommunicationsTab } from "@/components/CommunicationsTab";
+import { ScheduleTab } from "@/components/ScheduleTab";
+import { exportSingleResidentPDF } from "@/lib/resident-export";
 
 export const Route = createFileRoute("/_authenticated/residents/$id")({
   head: () => ({ meta: [{ title: "Resident · ForgeAI" }] }),
@@ -160,6 +162,12 @@ function ResidentDetail() {
               {r.room_number ? `Room ${r.room_number} · ` : ""}{r.date_of_birth ? `DOB ${format(new Date(r.date_of_birth), "d MMM yyyy")}` : "DOB not set"}
             </div>
           </div>
+          <Button size="sm" variant="outline" onClick={async () => {
+            const { data: sch } = await supabase.from("care_schedules" as never).select("*").eq("resident_id", id);
+            exportSingleResidentPDF(r, (sch as unknown as Record<string, unknown>[]) ?? []);
+          }} className="gap-1.5">
+            <Printer className="h-3.5 w-3.5" /> PDF
+          </Button>
           <Button size="sm" onClick={() => setCallOpen(true)} className="gap-1.5">
             <Phone className="h-3.5 w-3.5" /> Call
           </Button>
@@ -177,13 +185,14 @@ function ResidentDetail() {
       </div>
 
       <Tabs defaultValue="intel" className="mt-4">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-6 md:grid-cols-12">
           <TabsTrigger value="intel" className="text-xs px-1">AI</TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs px-1">Story</TabsTrigger>
           <TabsTrigger value="notes" className="text-xs px-1">Notes</TabsTrigger>
           <TabsTrigger value="comms" className="text-xs px-1">Comms</TabsTrigger>
           <TabsTrigger value="profile" className="text-xs px-1">Profile</TabsTrigger>
           <TabsTrigger value="care" className="text-xs px-1">Care</TabsTrigger>
+          <TabsTrigger value="schedule" className="text-xs px-1"><CalendarClock className="h-3 w-3" /></TabsTrigger>
           <TabsTrigger value="risk" className="text-xs px-1">Risk</TabsTrigger>
           <TabsTrigger value="pain" className="text-xs px-1">Pain</TabsTrigger>
           <TabsTrigger value="wounds" className="text-xs px-1">Wounds</TabsTrigger>
@@ -272,6 +281,11 @@ function ResidentDetail() {
             return <CarePlanRow key={d.id} residentId={id} domain={d.id} label={d.label} hint={d.hint} existing={existing} />;
           })}
         </TabsContent>
+
+        <TabsContent value="schedule" className="mt-4">
+          <ScheduleTab residentId={id} />
+        </TabsContent>
+
 
         <TabsContent value="risk" className="mt-4 space-y-2">
           {RISK_TYPES.map((t) => {

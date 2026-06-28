@@ -257,6 +257,62 @@ export type Database = {
           },
         ]
       }
+      care_schedules: {
+        Row: {
+          activity: string
+          created_at: string
+          created_by: string | null
+          days_of_week: number[]
+          domain: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          resident_id: string
+          specific_time: string | null
+          updated_at: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          activity: string
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[]
+          domain: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          resident_id: string
+          specific_time?: string | null
+          updated_at?: string
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          activity?: string
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[]
+          domain?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          resident_id?: string
+          specific_time?: string | null
+          updated_at?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_schedules_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       care_sessions: {
         Row: {
           auto_initiated: boolean
