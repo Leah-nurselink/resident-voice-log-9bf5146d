@@ -514,7 +514,7 @@ function AnalyticsPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <Card>
                 <CardHeader><CardTitle className="text-base">Voice vs typed</CardTitle><CardDescription>How notes are captured</CardDescription></CardHeader>
-                <CardContent><DonutChart data={captureMix} /></CardContent>
+                <CardContent><DonutChart data={captureMixLive} /></CardContent>
               </Card>
               <MetricCard title="Avg time to approve" value="42 min" description="From draft to signed" icon={Clock} trend={{ value: 18, isPositive: true }} />
               <MetricCard title="Notes per carer / shift" value="14.6" description="Across all staff" icon={TrendingUp} trend={{ value: 6, isPositive: true }} />
