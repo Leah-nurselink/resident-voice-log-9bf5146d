@@ -382,12 +382,69 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
             <Label>Observations</Label>
             <Textarea rows={2} value={observations} onChange={(e) => setObservations(e.target.value)} className="resize-none" />
           </div>
+          <div className="space-y-1.5">
+            <Label>Photos</Label>
+            <input ref={fileRef} type="file" accept="image/*" capture="environment" multiple className="hidden"
+              onChange={(e) => handleFiles(e.target.files)} />
+            <div className="flex flex-wrap gap-2">
+              {photos.map((p) => (
+                <div key={p.path} className="relative h-20 w-20 overflow-hidden rounded-lg border">
+                  <img src={p.previewUrl} alt="wound" className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => removePhoto(p.path)}
+                    className="absolute right-0.5 top-0.5 rounded-full bg-background/90 p-0.5 shadow">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-xs text-muted-foreground hover:bg-accent/30 disabled:opacity-50">
+                <Camera className="h-5 w-5" />
+                {uploading ? "Uploading…" : "Add photo"}
+              </button>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>Save assessment</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || uploading}>Save assessment</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PhotoGallery({ paths }: { paths: string[] }) {
+  const [urls, setUrls] = useState<string[]>([]);
+  const [viewing, setViewing] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.storage.from("wound-photos").createSignedUrls(paths, 3600);
+      if (!cancelled && data) setUrls(data.map((d) => d.signedUrl).filter(Boolean));
+    })();
+    return () => { cancelled = true; };
+  }, [paths.join("|")]);
+
+  if (urls.length === 0) {
+    return <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground"><ImageIcon className="h-3 w-3" /> Loading {paths.length} photo{paths.length > 1 ? "s" : ""}…</div>;
+  }
+  return (
+    <>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {urls.map((u, i) => (
+          <button key={i} type="button" onClick={() => setViewing(u)} className="h-16 w-16 overflow-hidden rounded-md border">
+            <img src={u} alt={`wound ${i + 1}`} className="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+      {viewing && (
+        <Dialog open onOpenChange={() => setViewing(null)}>
+          <DialogContent className="max-w-2xl p-2">
+            <img src={viewing} alt="wound" className="max-h-[80vh] w-full rounded object-contain" />
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
