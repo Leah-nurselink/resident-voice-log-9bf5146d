@@ -44,6 +44,7 @@ const careItems = [
 
 const systemItems = [
   { title: "Intelligence", url: "/intelligence", icon: Brain },
+  { title: "Approvals", url: "/approvals", icon: ClipboardCheck },
   { title: "Alerts", url: "/alerts", icon: AlertTriangle },
   { title: "Family", url: "/family", icon: Heart },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
@@ -52,6 +53,7 @@ const systemItems = [
   { title: "Admin", url: "/admin", icon: ShieldCheck },
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
+
 
 const governanceItems = [
   { title: "Audits", url: "/audits", icon: ClipboardCheck },
