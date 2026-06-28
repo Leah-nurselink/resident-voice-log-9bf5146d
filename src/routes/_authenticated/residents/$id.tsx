@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { SessionRecorder, type StructuredNote } from "@/components/SessionRecorder";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { ResidentTimeline } from "@/components/ResidentTimeline";
 import { WoundsTab } from "@/components/WoundsTab";
 import { PersonalInfoTab } from "@/components/PersonalInfoTab";
