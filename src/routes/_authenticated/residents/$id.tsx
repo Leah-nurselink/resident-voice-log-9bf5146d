@@ -28,6 +28,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
 import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone } from "lucide-react";
 import { CallRecorder } from "@/components/CallRecorder";
+import { CommunicationsTab } from "@/components/CommunicationsTab";
 
 export const Route = createFileRoute("/_authenticated/residents/$id")({
   head: () => ({ meta: [{ title: "Resident · ForgeAI" }] }),
