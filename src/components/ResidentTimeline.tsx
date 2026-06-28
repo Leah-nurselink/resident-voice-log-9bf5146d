@@ -118,12 +118,18 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
       }));
 
       events.sort((a, b) => +new Date(b.ts) - +new Date(a.ts));
-      return events;
+      const ai = analyseResident(
+        (notesAll.data ?? []) as never,
+        (plansAll.data ?? []) as never,
+        [],
+      );
+      return { events, predictions: ai.predictions };
     },
   });
 
   if (!data) return <p className="px-1 text-sm text-muted-foreground">Loading timeline…</p>;
-  if (data.length === 0) return <p className="px-1 text-sm text-muted-foreground">No events yet.</p>;
+  if (data.events.length === 0 && data.predictions.length === 0)
+    return <p className="px-1 text-sm text-muted-foreground">No events yet.</p>;
 
   // Group by day for the "daily story" feel.
   const groups = new Map<string, Event[]>();
