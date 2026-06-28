@@ -16,6 +16,7 @@ import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSafeguardingRouteImport } from './routes/_authenticated/safeguarding'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedRegulatoryRouteImport } from './routes/_authenticated/regulatory'
+import { Route as AuthenticatedProfessionalsRouteImport } from './routes/_authenticated/professionals'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
 import { Route as AuthenticatedIntelligenceRouteImport } from './routes/_authenticated/intelligence'
 import { Route as AuthenticatedIncidentReviewRouteImport } from './routes/_authenticated/incident-review'
@@ -70,6 +71,12 @@ const AuthenticatedRegulatoryRoute = AuthenticatedRegulatoryRouteImport.update({
   path: '/regulatory',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProfessionalsRoute =
+  AuthenticatedProfessionalsRouteImport.update({
+    id: '/professionals',
+    path: '/professionals',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNotesRoute = AuthenticatedNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -183,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/notes': typeof AuthenticatedNotesRoute
+  '/professionals': typeof AuthenticatedProfessionalsRoute
   '/regulatory': typeof AuthenticatedRegulatoryRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/safeguarding': typeof AuthenticatedSafeguardingRoute
@@ -209,6 +217,7 @@ export interface FileRoutesByTo {
   '/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/notes': typeof AuthenticatedNotesRoute
+  '/professionals': typeof AuthenticatedProfessionalsRoute
   '/regulatory': typeof AuthenticatedRegulatoryRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/safeguarding': typeof AuthenticatedSafeguardingRoute
@@ -237,6 +246,7 @@ export interface FileRoutesById {
   '/_authenticated/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/_authenticated/intelligence': typeof AuthenticatedIntelligenceRoute
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
+  '/_authenticated/professionals': typeof AuthenticatedProfessionalsRoute
   '/_authenticated/regulatory': typeof AuthenticatedRegulatoryRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/safeguarding': typeof AuthenticatedSafeguardingRoute
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/incident-review'
     | '/intelligence'
     | '/notes'
+    | '/professionals'
     | '/regulatory'
     | '/reports'
     | '/safeguarding'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/incident-review'
     | '/intelligence'
     | '/notes'
+    | '/professionals'
     | '/regulatory'
     | '/reports'
     | '/safeguarding'
@@ -318,6 +330,7 @@ export interface FileRouteTypes {
     | '/_authenticated/incident-review'
     | '/_authenticated/intelligence'
     | '/_authenticated/notes'
+    | '/_authenticated/professionals'
     | '/_authenticated/regulatory'
     | '/_authenticated/reports'
     | '/_authenticated/safeguarding'
@@ -383,6 +396,13 @@ declare module '@tanstack/react-router' {
       path: '/regulatory'
       fullPath: '/regulatory'
       preLoaderRoute: typeof AuthenticatedRegulatoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/professionals': {
+      id: '/_authenticated/professionals'
+      path: '/professionals'
+      fullPath: '/professionals'
+      preLoaderRoute: typeof AuthenticatedProfessionalsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/notes': {
@@ -530,6 +550,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIncidentReviewRoute: typeof AuthenticatedIncidentReviewRoute
   AuthenticatedIntelligenceRoute: typeof AuthenticatedIntelligenceRoute
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
+  AuthenticatedProfessionalsRoute: typeof AuthenticatedProfessionalsRoute
   AuthenticatedRegulatoryRoute: typeof AuthenticatedRegulatoryRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSafeguardingRoute: typeof AuthenticatedSafeguardingRoute
@@ -554,6 +575,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIncidentReviewRoute: AuthenticatedIncidentReviewRoute,
   AuthenticatedIntelligenceRoute: AuthenticatedIntelligenceRoute,
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
+  AuthenticatedProfessionalsRoute: AuthenticatedProfessionalsRoute,
   AuthenticatedRegulatoryRoute: AuthenticatedRegulatoryRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSafeguardingRoute: AuthenticatedSafeguardingRoute,
