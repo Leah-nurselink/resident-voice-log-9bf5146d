@@ -175,7 +175,7 @@ function ResidentDetail() {
         </TabsContent>
 
 
-        <TabsContent value="timeline" className="mt-4 space-y-4">
+        <TabsContent value="notes" className="mt-4 space-y-4">
           <SessionRecorder residentName={r.full_name} onResult={(n) => { setPending(n); setEditing(n.content); }} />
 
           {pending && (
