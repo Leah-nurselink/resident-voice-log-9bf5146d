@@ -392,6 +392,66 @@ function AnalyticsPage() {
             </div>
           </TabsContent>
 
+          <TabsContent value="audio" className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                title="Audio quality"
+                value={voiceNotes.length ? `${avgQualityPct}%` : "—"}
+                description={voiceNotes.length ? `Across ${voiceNotes.length} voice notes` : "No voice notes yet"}
+                icon={AudioLines}
+              />
+              <MetricCard
+                title="Transcript confidence"
+                value={voiceNotes.length ? `${avgConfPct}%` : "—"}
+                description="AI-estimated accuracy"
+                icon={Sparkles}
+              />
+              <MetricCard
+                title="Signal level"
+                value={voiceNotes.length ? `${avgSignalPct}%` : "—"}
+                description={`Noise floor ${voiceNotes.length ? avgNoisePct + "%" : "—"}`}
+                icon={Activity}
+              />
+              <MetricCard
+                title="Documentation time saved"
+                value={totalSavedHrs >= 1 ? `${totalSavedHrs.toFixed(1)} hrs` : `${Math.round(totalSavedSec / 60)} min`}
+                description={`Last ${days} days`}
+                icon={Clock}
+              />
+            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Audio quality & transcript confidence</CardTitle>
+                <CardDescription>Daily average (%) across voice care notes</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MultiLine data={qualityByDay} keys={["Audio quality", "Transcript confidence"]} height={280} />
+              </CardContent>
+            </Card>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Minutes saved per day</CardTitle>
+                  <CardDescription>Typing baseline vs voice + review</CardDescription>
+                </CardHeader>
+                <CardContent><TrendArea data={savedByDay} dataKey="value" color="#8b5cf6" /></CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Quality distribution</CardTitle>
+                  <CardDescription>How recordings score across the home</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {qualityVals.length ? <DonutChart data={qualityDistribution} /> : (
+                    <p className="px-2 py-8 text-center text-sm text-muted-foreground">
+                      Capture a voice care note to populate quality scores.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           <TabsContent value="compliance" className="space-y-4">
             <Card>
               <CardHeader><CardTitle className="text-base">Audit compliance</CardTitle><CardDescription>Latest score per programme (%)</CardDescription></CardHeader>
