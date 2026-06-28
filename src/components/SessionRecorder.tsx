@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Loader2, Activity, Volume2, AudioLines, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
