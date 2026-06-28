@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { analyseResident, type ResidentIntelligence } from "@/lib/care-intelligence";
-import { Brain, TrendingDown, AlertTriangle, ShieldAlert, FileText, ChevronRight, Sparkles } from "lucide-react";
+import { TrendingDown, AlertTriangle, ShieldAlert, FileText, ChevronRight, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/intelligence")({
