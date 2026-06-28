@@ -71,6 +71,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
           id: `n-${n.id}`, ts: n.created_at, kind: "note",
           title: n.source === "voice" ? "AI care note" : "Care note",
           detail: n.content,
+          full: n.content,
           meta: (
             <div className="flex flex-wrap gap-1">
               {n.domain && <Badge variant="secondary" className="text-[10px]">{domainLabel(n.domain)}</Badge>}
