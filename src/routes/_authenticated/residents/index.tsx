@@ -52,7 +52,7 @@ function ResidentsList() {
   const pool = view === "active" ? activeResidents : archivedResidents;
 
   const filtered = pool.filter((r) =>
-    `${r.full_name} ${r.room_number ?? ""}`.toLowerCase().includes(q.toLowerCase()),
+    `${r.full_name ?? ""} ${r.room_number ?? ""}`.toLowerCase().includes(q.toLowerCase()),
   );
 
   const highRiskCount = activeResidents.filter((r) =>
