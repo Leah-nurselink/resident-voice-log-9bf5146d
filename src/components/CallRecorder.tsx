@@ -379,7 +379,7 @@ export function CallRecorder({
           kind: "communication_escalation",
           severity: "high",
           title: `Escalation from call with ${contact.name}`,
-          message: summary.outcome || summary.summary.slice(0, 280),
+          message: editedOutcome || summary.summary.slice(0, 280),
           status: "open",
         } as never);
       }
