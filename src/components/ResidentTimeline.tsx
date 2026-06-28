@@ -119,6 +119,22 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         title: a.kind ?? "Alert",
         detail: a.message ?? undefined,
       }));
+      (comms.data ?? []).forEach((c) => {
+        const meta = (c.metadata && typeof c.metadata === "object") ? c.metadata as Record<string, unknown> : {};
+        const role = (meta.contact_role as string | undefined) ?? "";
+        const partner = c.direction === "outbound"
+          ? (c.recipient_name ?? "contact")
+          : (c.sender_name ?? "contact");
+        const chLabel = c.channel === "phone" ? "Telephone call" : c.channel === "email" ? "Email" : c.channel;
+        events.push({
+          id: `cm-${c.id}`, ts: c.created_at, kind: "comm",
+          title: `${chLabel} · ${partner}${role ? " (" + role + ")" : ""}`,
+          detail: c.ai_summary ?? c.subject ?? undefined,
+          meta: (
+            <Badge variant="outline" className="text-[10px] capitalize">{c.direction}</Badge>
+          ),
+        });
+      });
 
       events.sort((a, b) => +new Date(b.ts) - +new Date(a.ts));
       const ai = analyseResident(
