@@ -268,9 +268,14 @@ function ResidentDetail() {
           })}
         </TabsContent>
 
+        <TabsContent value="pain" className="mt-4">
+          <PainTab residentId={id} residentName={r.full_name} />
+        </TabsContent>
+
         <TabsContent value="wounds">
           <WoundsTab residentId={id} />
         </TabsContent>
+
 
 
         <TabsContent value="consent" className="mt-4 space-y-2">
