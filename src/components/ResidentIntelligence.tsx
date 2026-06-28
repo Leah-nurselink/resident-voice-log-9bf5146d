@@ -157,6 +157,14 @@ export function ResidentIntelligence({ residentId }: { residentId: string }) {
       {/* Recommendations */}
       {intel.recommendations.length > 0 && (
         <Section icon={<Sparkles className="h-4 w-4" />} title="AI Recommendations" subtitle="Advisory — clinician must review">
+          <div className="mb-2 flex items-center justify-between rounded-xl border border-dashed bg-card/40 p-2 text-xs">
+            <span className="text-muted-foreground">Approve, reject or action each item.</span>
+            <Button asChild size="sm" variant="outline" className="h-7">
+              <Link to="/approvals">
+                <ClipboardCheck className="mr-1 h-3.5 w-3.5" />Review queue
+              </Link>
+            </Button>
+          </div>
           <ul className="space-y-2">
             {intel.recommendations.map((r) => (
               <li key={r.id} className={`rounded-xl border p-3 ${SEV[r.severity]}`}>
@@ -172,6 +180,7 @@ export function ResidentIntelligence({ residentId }: { residentId: string }) {
           </ul>
         </Section>
       )}
+
 
       {/* Care plan gaps */}
       {intel.careGaps.length > 0 && (
