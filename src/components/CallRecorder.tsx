@@ -114,7 +114,7 @@ export function CallRecorder({
     enabled: open && !transcriptionDisabled,
     queryKey: ["call-contacts", residentId],
     queryFn: async (): Promise<Contact[]> => {
-      const [fam, pro] = await Promise.all([
+      const [fam, pro, res] = await Promise.all([
         supabase
           .from("family_members")
           .select("id, full_name, relationship, phone, email")
@@ -123,9 +123,29 @@ export function CallRecorder({
           .from("professionals")
           .select("id, name, role, organisation, phone, email")
           .order("name"),
+        supabase
+          .from("residents")
+          .select("next_of_kin_name, next_of_kin_relationship, next_of_kin_phone")
+          .eq("id", residentId)
+          .maybeSingle(),
       ]);
       const list: Contact[] = [];
-      (fam.data ?? []).forEach((f) =>
+      const nok = res.data as { next_of_kin_name: string | null; next_of_kin_relationship: string | null; next_of_kin_phone: string | null } | null;
+      const famRows = (fam.data ?? []) as Array<{ id: string; full_name: string; relationship: string | null; phone: string | null; email: string | null }>;
+      const nokAlreadyInFamily =
+        nok?.next_of_kin_name &&
+        famRows.some((f) => f.full_name?.trim().toLowerCase() === nok.next_of_kin_name!.trim().toLowerCase());
+      if (nok?.next_of_kin_name && !nokAlreadyInFamily) {
+        list.push({
+          id: `nok:${residentId}`,
+          kind: "family",
+          name: nok.next_of_kin_name,
+          role: `Next of kin${nok.next_of_kin_relationship ? " · " + nok.next_of_kin_relationship : ""}`,
+          phone: nok.next_of_kin_phone,
+          email: null,
+        });
+      }
+      famRows.forEach((f) =>
         list.push({
           id: `family:${f.id}`,
           kind: "family",
@@ -148,6 +168,7 @@ export function CallRecorder({
       return list;
     },
   });
+
 
 
   const [contactId, setContactId] = useState<string>("");
