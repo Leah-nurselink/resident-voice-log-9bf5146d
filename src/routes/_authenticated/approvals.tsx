@@ -56,6 +56,7 @@ function ApprovalsPage() {
     setSelected({});
   };
 
+  const { data, isLoading } = useQuery({
     queryKey: ["ai-recs", tab],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -71,19 +72,41 @@ function ApprovalsPage() {
 
   const approve = useMutation({
     mutationFn: (id: string) => reviewRecommendation(id, "approve"),
-    onSuccess: () => { toast.success("Approved"); qc.invalidateQueries({ queryKey: ["ai-recs"] }); },
+    onSuccess: () => { toast.success("Approved"); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
   const reject = useMutation({
     mutationFn: (id: string) => reviewRecommendation(id, "reject"),
-    onSuccess: () => { toast.success("Rejected"); qc.invalidateQueries({ queryKey: ["ai-recs"] }); },
+    onSuccess: () => { toast.success("Rejected"); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
   const apply = useMutation({
     mutationFn: (rec: Parameters<typeof applyCareGapToCarePlan>[0]) => applyCareGapToCarePlan(rec),
-    onSuccess: () => { toast.success("Applied to care plan"); qc.invalidateQueries({ queryKey: ["ai-recs"] }); },
+    onSuccess: () => { toast.success("Applied to care plan"); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+  const bulkReview = useMutation({
+    mutationFn: (p: { ids: string[]; action: "approve" | "reject" }) =>
+      bulkReviewRecommendations(p.ids, p.action),
+    onSuccess: (_d, v) => { toast.success(`${v.ids.length} ${v.action}d`); invalidate(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+  const bulkApply = useMutation({
+    mutationFn: (recs: Parameters<typeof bulkApplyCareGaps>[0]) => bulkApplyCareGaps(recs),
+    onSuccess: (n) => { toast.success(`Applied ${n} care gap${n === 1 ? "" : "s"}`); invalidate(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const selectedIds = useMemo(
+    () => Object.entries(selected).filter(([, v]) => v).map(([k]) => k),
+    [selected],
+  );
+  const selectedCareGaps = useMemo(
+    () => (data ?? []).filter((r) => selected[r.id] && r.kind === "care_gap" && r.domain && r.resident_id)
+      .map((r) => ({ id: r.id, resident_id: r.resident_id, domain: r.domain, title: r.title, detail: r.detail })),
+    [data, selected],
+  );
+
 
   return (
     <AppShell title="Clinical Approvals">
