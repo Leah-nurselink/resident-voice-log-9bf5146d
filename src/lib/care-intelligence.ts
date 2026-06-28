@@ -19,6 +19,8 @@ export type IntelRisk = { id: string; type: string; level: string | null; update
 export type Trend = "improving" | "stable" | "declining";
 export type Confidence = "Low" | "Medium" | "High";
 
+export type Evidence = { date: string; kind: string; snippet: string };
+
 export type DomainTrend = {
   key: string;
   label: string;
@@ -27,6 +29,7 @@ export type DomainTrend = {
   concern: number;
   trend: Trend;
   message: string;
+  evidence: Evidence[];
 };
 
 export type RiskPrediction = {
@@ -36,6 +39,7 @@ export type RiskPrediction = {
   confidence: Confidence;
   signals: string[];
   recommendation: string;
+  evidence: Evidence[];
 };
 
 export type Recommendation = {
@@ -43,15 +47,44 @@ export type Recommendation = {
   severity: "info" | "warning" | "critical";
   title: string;
   detail: string;
+  evidence: Evidence[];
+};
+
+export type DeteriorationSignal = {
+  key: "appetite" | "confusion" | "falls" | "withdrawal" | "sleep" | "mobility" | "personal_care";
+  label: string;
+  recent: number;
+  prior: number;
+  trend: Trend;
+  message: string;
+  evidence: Evidence[];
+};
+
+export type CareGap = {
+  domain: string;
+  kind: "missing_plan" | "stale_plan";
+  message: string;
+  evidence: Evidence[];
+};
+
+export type TimelinePrediction = {
+  horizon: "Next 7 days" | "Next 30 days";
+  title: string;
+  likelihood: Confidence;
+  rationale: string;
+  evidence: Evidence[];
 };
 
 export type ResidentIntelligence = {
-  wellbeing: { score: number; trend: Trend; label: string };
+  wellbeing: { score: number; trend: Trend; label: string; evidence: Evidence[] };
   domains: DomainTrend[];
   risks: RiskPrediction[];
-  planReviews: { domain: string; reason: string }[];
-  safeguarding: { signal: string; count: number }[];
+  planReviews: { domain: string; reason: string; evidence: Evidence[] }[];
+  safeguarding: { signal: string; count: number; evidence: Evidence[] }[];
   recommendations: Recommendation[];
+  deterioration: DeteriorationSignal[];
+  careGaps: CareGap[];
+  predictions: TimelinePrediction[];
   noteCount: number;
 };
 
@@ -79,6 +112,16 @@ const RISK_LEX = {
   pressure: /\b(red(ness)? on (heel|sacrum|hip|back)|pressure|sore|skin break|bedridden|reposition|immobile)\b/i,
   nutrition: /\b(refused (meal|food)|poor intake|weight loss|didn'?t eat|dehydrat)\b/i,
   behaviour: /\b(aggressi|shout(ed|ing)|hit|kick|distressed|agitat|verbal abuse)\b/i,
+};
+
+const DETERIORATION_LEX: Record<DeteriorationSignal["key"], { label: string; rx: RegExp }> = {
+  appetite:      { label: "Reduced appetite",       rx: /\b(refused (meal|food|drink)|poor (intake|appetite)|didn'?t eat|left (most|half)|skipped (meal|lunch|breakfast|dinner))\b/i },
+  confusion:     { label: "Increasing confusion",   rx: /\b(confused|disorient|repeat(ing)? questions|forgot|did not recognis|memory)\b/i },
+  falls:         { label: "Increased falls observations", rx: /\b(fell|fall|stumbl|unsteady|near miss|trip(ped)?|slipp(ed)?)\b/i },
+  withdrawal:    { label: "Social withdrawal",      rx: /\b(withdrawn|isolated|declined activity|stayed in (room|bed)|no engagement|kept to (self|themselves))\b/i },
+  sleep:         { label: "Sleep disturbance",      rx: /\b(awake (at night|all night)|restless|did not sleep|poor sleep|wander(ed|ing) at night|sleeping (more|all day))\b/i },
+  mobility:      { label: "Reduced mobility",       rx: /\b(needed assist|hoist|wheelchair|could not walk|reduced mobility|2 staff|two staff)\b/i },
+  personal_care: { label: "Reduced personal-care participation", rx: /\b(refused (wash|shower|bath|personal care)|declined (wash|shower|bath|personal care)|not (washed|changed))\b/i },
 };
 
 const SAFEGUARDING_LEX: { key: string; rx: RegExp }[] = [
@@ -112,6 +155,41 @@ function withinDays(d: string, days: number, from = new Date()) {
 function countMatches(text: string, rx: RegExp) {
   const m = text.match(new RegExp(rx.source, rx.flags.includes("g") ? rx.flags : rx.flags + "g"));
   return m ? m.length : 0;
+}
+
+function snippetAround(text: string, rx: RegExp, span = 60) {
+  const m = text.match(rx);
+  if (!m || m.index === undefined) return text.slice(0, span * 2);
+  const start = Math.max(0, m.index - span);
+  const end = Math.min(text.length, m.index + m[0].length + span);
+  return (start > 0 ? "…" : "") + text.slice(start, end).trim() + (end < text.length ? "…" : "");
+}
+
+function collectEvidence(notes: IntelNote[], rx: RegExp, kind: string, max = 4): Evidence[] {
+  const out: Evidence[] = [];
+  for (const n of notes) {
+    if (!n.content) continue;
+    if (rx.test(n.content)) {
+      out.push({ date: n.created_at, kind, snippet: snippetAround(n.content, rx) });
+      if (out.length >= max) break;
+    }
+  }
+  return out;
+}
+
+function flagEvidence(notes: IntelNote[], match: (f: string) => boolean, kind: string, max = 4): Evidence[] {
+  const out: Evidence[] = [];
+  for (const n of notes) {
+    const matched = (n.flags ?? []).filter(match);
+    if (matched.length === 0) continue;
+    out.push({
+      date: n.created_at,
+      kind,
+      snippet: `Flag: ${matched.join(", ")}${n.content ? ` — ${n.content.slice(0, 120)}` : ""}`,
+    });
+    if (out.length >= max) break;
+  }
+  return out;
 }
 
 // -----------------------------------------------------------------------------
@@ -153,6 +231,10 @@ export function analyseResident(
     recentFlagPenalty > prevFlagPenalty * 1.4 + 2 ? "declining" :
     prevFlagPenalty > recentFlagPenalty * 1.4 + 2 ? "improving" : "stable";
   const wbLabel = score >= 80 ? "Stable" : score >= 65 ? "Watch" : score >= 50 ? "Declining" : "Concerning";
+  const wbEvidence: Evidence[] = [
+    ...collectEvidence(recent, NEG, "Negative tone", 3),
+    ...flagEvidence(recent, () => true, "Flagged incident", 2),
+  ].slice(0, 4);
 
   // -- Domain trends --------------------------------------------------------
   const domains: DomainTrend[] = Object.entries(DOMAIN_LEX).map(([key, rx]) => {
@@ -167,7 +249,10 @@ export function analyseResident(
         : t === "improving"
         ? `${label[0].toUpperCase() + label.slice(1)} has improved compared with the prior period.`
         : `${label[0].toUpperCase() + label.slice(1)} appears stable.`;
-    return { key, label, recent: r, prior: p, concern, trend: t, message: msg };
+    return {
+      key, label, recent: r, prior: p, concern, trend: t, message: msg,
+      evidence: collectEvidence(recent, rx, "Recent observation", 4),
+    };
   }).filter((d) => d.recent + d.prior > 0);
 
   // -- Risk predictions -----------------------------------------------------
@@ -175,9 +260,8 @@ export function analyseResident(
     const rx = RISK_LEX[k];
     const r = recent.filter((n) => rx.test(n.content)).length;
     const p = prior.filter((n) => rx.test(n.content)).length;
-    const flagged = recent.filter((n) =>
-      (n.risks ?? []).includes(k === "behaviour" ? "behavioural" : (k as string)),
-    ).length;
+    const tagKey = k === "behaviour" ? "behavioural" : (k as string);
+    const flagged = recent.filter((n) => (n.risks ?? []).includes(tagKey)).length;
     const raw = r * 0.25 + flagged * 0.15 + Math.max(0, r - p) * 0.15;
     const score = Math.max(0, Math.min(1, raw));
     const confidence: Confidence = score >= 0.7 ? "High" : score >= 0.4 ? "Medium" : "Low";
@@ -196,41 +280,116 @@ export function analyseResident(
       key: k, label: labels[k], score, confidence,
       signals: [`${r} recent mentions`, `${flagged} risk-tagged notes`, `${p} prior period`],
       recommendation: recs[k],
+      evidence: [
+        ...collectEvidence(recent, rx, "Recent observation", 3),
+        ...flagEvidence(recent, (f) => f.includes(k) || (k === "falls" && f === "fall"), "Risk-tagged note", 2),
+      ].slice(0, 5),
     };
   }).filter((r) => r.score > 0.05).sort((a, b) => b.score - a.score);
 
-  // -- Care plan review suggestions ----------------------------------------
-  const planReviews: { domain: string; reason: string }[] = [];
+  // -- Deterioration signals -----------------------------------------------
+  const deterioration: DeteriorationSignal[] = (Object.keys(DETERIORATION_LEX) as DeteriorationSignal["key"][])
+    .map((k) => {
+      const { label, rx } = DETERIORATION_LEX[k];
+      const r = recent.filter((n) => rx.test(n.content)).length;
+      const p = prior.filter((n) => rx.test(n.content)).length;
+      const t = trendFrom(r, p);
+      const message =
+        t === "declining"
+          ? `${label} has increased (${r} in last ${win}d vs ${p} prior). Consider clinical review.`
+          : t === "improving"
+          ? `${label} appears to be reducing compared with prior period.`
+          : `${label} appears stable.`;
+      return {
+        key: k, label, recent: r, prior: p, trend: t, message,
+        evidence: collectEvidence(recent, rx, "Recent observation", 4),
+      };
+    })
+    .filter((d) => d.recent >= 2 && d.trend === "declining");
+
+  // -- Care plan reviews / gaps --------------------------------------------
+  const planReviews: { domain: string; reason: string; evidence: Evidence[] }[] = [];
+  const careGaps: CareGap[] = [];
   for (const d of domains) {
     if (d.trend !== "declining") continue;
     const plan = plans.find((p) => p.domain === d.key);
     if (!plan) {
-      planReviews.push({ domain: d.label, reason: "No active care plan despite emerging concerns." });
-    } else if (differenceInDays(now, new Date(plan.updated_at)) > 60) {
-      planReviews.push({
-        domain: d.label,
-        reason: `Care plan not updated in ${differenceInDays(now, new Date(plan.updated_at))} days while concerns are rising.`,
-      });
+      const reason = "No active care plan despite emerging concerns.";
+      planReviews.push({ domain: d.label, reason, evidence: d.evidence });
+      careGaps.push({ domain: d.label, kind: "missing_plan", message: reason, evidence: d.evidence });
     } else {
-      planReviews.push({ domain: d.label, reason: "Recent concerns may warrant intervention update." });
+      const age = differenceInDays(now, new Date(plan.updated_at));
+      if (age > 60) {
+        const reason = `Care plan not updated in ${age} days while concerns are rising.`;
+        planReviews.push({ domain: d.label, reason, evidence: d.evidence });
+        if (age > 90) {
+          careGaps.push({ domain: d.label, kind: "stale_plan", message: reason, evidence: d.evidence });
+        }
+      } else {
+        planReviews.push({
+          domain: d.label,
+          reason: "Recent concerns may warrant intervention update.",
+          evidence: d.evidence,
+        });
+      }
     }
   }
 
   // -- Safeguarding signals -------------------------------------------------
   const sgCounts = new Map<string, number>();
+  const sgEvidence = new Map<string, Evidence[]>();
   for (const n of last60) {
     for (const { key, rx } of SAFEGUARDING_LEX) {
-      if (rx.test(n.content)) sgCounts.set(key, (sgCounts.get(key) ?? 0) + 1);
+      if (rx.test(n.content)) {
+        sgCounts.set(key, (sgCounts.get(key) ?? 0) + 1);
+        const arr = sgEvidence.get(key) ?? [];
+        if (arr.length < 4) arr.push({ date: n.created_at, kind: "Recent observation", snippet: snippetAround(n.content, rx) });
+        sgEvidence.set(key, arr);
+      }
     }
     for (const f of n.flags ?? []) {
       if (f === "safeguarding" || f === "bruising" || f === "injury") {
         sgCounts.set("Flagged incident", (sgCounts.get("Flagged incident") ?? 0) + 1);
+        const arr = sgEvidence.get("Flagged incident") ?? [];
+        if (arr.length < 4) arr.push({ date: n.created_at, kind: "Flag", snippet: `Flag: ${f}` });
+        sgEvidence.set("Flagged incident", arr);
       }
     }
   }
   const safeguarding = Array.from(sgCounts.entries())
     .filter(([, c]) => c >= 2)
-    .map(([signal, count]) => ({ signal, count }));
+    .map(([signal, count]) => ({ signal, count, evidence: sgEvidence.get(signal) ?? [] }));
+
+  // -- Predictions ----------------------------------------------------------
+  const predictions: TimelinePrediction[] = [];
+  for (const r of riskOut) {
+    if (r.score < 0.45) continue;
+    predictions.push({
+      horizon: r.score >= 0.7 ? "Next 7 days" : "Next 30 days",
+      title: `Elevated ${r.label.toLowerCase()}`,
+      likelihood: r.confidence,
+      rationale: `Pattern of related observations indicates raised likelihood. ${r.recommendation}`,
+      evidence: r.evidence,
+    });
+  }
+  if (deterioration.length >= 2) {
+    predictions.push({
+      horizon: "Next 30 days",
+      title: "Wellbeing decline likely to continue",
+      likelihood: deterioration.length >= 3 ? "High" : "Medium",
+      rationale: `Multiple deterioration signals detected: ${deterioration.map((d) => d.label.toLowerCase()).join(", ")}.`,
+      evidence: deterioration.flatMap((d) => d.evidence).slice(0, 5),
+    });
+  }
+  if (wbTrend === "declining" && predictions.length === 0) {
+    predictions.push({
+      horizon: "Next 30 days",
+      title: "Wellbeing trending downward",
+      likelihood: "Medium",
+      rationale: "Aggregate wellbeing indicators have dropped relative to prior period.",
+      evidence: wbEvidence,
+    });
+  }
 
   // -- Recommendations ------------------------------------------------------
   const recommendations: Recommendation[] = [];
@@ -241,6 +400,7 @@ export function analyseResident(
         severity: r.score >= 0.7 ? "critical" : "warning",
         title: `${r.label} escalating`,
         detail: r.recommendation,
+        evidence: r.evidence,
       });
     }
   }
@@ -250,6 +410,16 @@ export function analyseResident(
       severity: "warning",
       title: `Review ${r.domain} care plan`,
       detail: r.reason,
+      evidence: r.evidence,
+    });
+  }
+  for (const d of deterioration) {
+    recommendations.push({
+      id: `det-${d.key}`,
+      severity: d.recent >= 4 ? "critical" : "warning",
+      title: `Deterioration signal: ${d.label}`,
+      detail: d.message,
+      evidence: d.evidence,
     });
   }
   if (safeguarding.length) {
@@ -258,6 +428,7 @@ export function analyseResident(
       severity: "critical",
       title: "Possible safeguarding pattern",
       detail: "Repeated signals detected in recent records. Manager review recommended; do not automatically raise an alert.",
+      evidence: safeguarding.flatMap((s) => s.evidence).slice(0, 5),
     });
   }
   if (wbTrend === "declining") {
@@ -266,19 +437,26 @@ export function analyseResident(
       severity: "warning",
       title: "Wellbeing declining",
       detail: "Aggregate wellbeing indicators have dropped. Consider GP review and MDT discussion.",
+      evidence: wbEvidence,
     });
   }
   // De-dupe
   const seen = new Set<string>();
   const dedup = recommendations.filter((r) => (seen.has(r.id) ? false : seen.add(r.id)));
 
+  // touch `risks` parameter so it is retained for future enrichment
+  void risks;
+
   return {
-    wellbeing: { score, trend: wbTrend, label: wbLabel },
+    wellbeing: { score, trend: wbTrend, label: wbLabel, evidence: wbEvidence },
     domains: domains.sort((a, b) => (a.trend === "declining" ? -1 : 1) - (b.trend === "declining" ? -1 : 1)),
     risks: riskOut,
     planReviews,
     safeguarding,
     recommendations: dedup,
+    deterioration,
+    careGaps,
+    predictions,
     noteCount: notes.length,
   };
 }
