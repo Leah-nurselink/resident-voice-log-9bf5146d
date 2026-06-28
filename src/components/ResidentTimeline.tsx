@@ -45,7 +45,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
   const { data } = useQuery({
     queryKey: ["timeline", residentId],
     queryFn: async () => {
-      const [notes, sessions, plans, risks, consents, mca, wounds, alerts, planList, riskList] = await Promise.all([
+      const [notes, sessions, plans, risks, consents, mca, wounds, alerts, notesAll, plansAll] = await Promise.all([
         supabase.from("daily_notes").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(50),
         supabase.from("care_sessions").select("*").eq("resident_id", residentId).order("started_at", { ascending: false }).limit(20),
         supabase.from("care_plan_history").select("*").eq("resident_id", residentId).order("changed_at", { ascending: false }).limit(20),
