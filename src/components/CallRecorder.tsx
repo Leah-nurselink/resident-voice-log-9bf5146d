@@ -99,8 +99,8 @@ export function CallRecorder({
           .eq("resident_id", residentId),
         supabase
           .from("professionals")
-          .select("id, full_name, role, organisation, phone, email")
-          .order("full_name"),
+          .select("id, name, role, organisation, phone, email")
+          .order("name"),
       ]);
       const list: Contact[] = [];
       (fam.data ?? []).forEach((f) =>
@@ -117,7 +117,7 @@ export function CallRecorder({
         list.push({
           id: `pro:${p.id}`,
           kind: "professional",
-          name: p.full_name,
+          name: p.name,
           role: `${p.role}${p.organisation ? " · " + p.organisation : ""}`,
           phone: p.phone,
           email: p.email,
