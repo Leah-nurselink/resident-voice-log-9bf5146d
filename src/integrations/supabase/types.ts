@@ -1113,6 +1113,9 @@ export type Database = {
           next_of_kin: Json | null
           next_of_kin_phone: string | null
           next_of_kin_relationship: string | null
+          next_of_kin_secondary: string | null
+          next_of_kin_secondary_phone: string | null
+          next_of_kin_secondary_relationship: string | null
           nhs_number: string | null
           notes: string | null
           occupation_history: string | null
@@ -1160,6 +1163,9 @@ export type Database = {
           next_of_kin?: Json | null
           next_of_kin_phone?: string | null
           next_of_kin_relationship?: string | null
+          next_of_kin_secondary?: string | null
+          next_of_kin_secondary_phone?: string | null
+          next_of_kin_secondary_relationship?: string | null
           nhs_number?: string | null
           notes?: string | null
           occupation_history?: string | null
@@ -1207,6 +1213,9 @@ export type Database = {
           next_of_kin?: Json | null
           next_of_kin_phone?: string | null
           next_of_kin_relationship?: string | null
+          next_of_kin_secondary?: string | null
+          next_of_kin_secondary_phone?: string | null
+          next_of_kin_secondary_relationship?: string | null
           nhs_number?: string | null
           notes?: string | null
           occupation_history?: string | null
