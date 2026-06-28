@@ -4,9 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   FileText, Sparkles, Shield, Brain, FileSignature, AlertTriangle,
-  Radio, Activity, Heart, Bandage,
+  Radio, Activity, Heart, Bandage, Telescope,
 } from "lucide-react";
 import { domainLabel, riskLabel, type RiskType, type CarePlanDomain } from "@/lib/care-domains";
+import { analyseResident } from "@/lib/care-intelligence";
+import { ExplainPopover } from "@/components/ExplainPopover";
 
 type Event = {
   id: string;
@@ -43,7 +45,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
   const { data } = useQuery({
     queryKey: ["timeline", residentId],
     queryFn: async () => {
-      const [notes, sessions, plans, risks, consents, mca, wounds, alerts] = await Promise.all([
+      const [notes, sessions, plans, risks, consents, mca, wounds, alerts, notesAll, plansAll] = await Promise.all([
         supabase.from("daily_notes").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(50),
         supabase.from("care_sessions").select("*").eq("resident_id", residentId).order("started_at", { ascending: false }).limit(20),
         supabase.from("care_plan_history").select("*").eq("resident_id", residentId).order("changed_at", { ascending: false }).limit(20),
@@ -52,6 +54,8 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         supabase.from("mca_assessments").select("*").eq("resident_id", residentId).order("assessment_date", { ascending: false }).limit(20),
         supabase.from("wounds").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(20),
         supabase.from("alerts").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("daily_notes").select("id,created_at,content,domain,risks,flags").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(400),
+        supabase.from("care_plans").select("id,domain,updated_at").eq("resident_id", residentId),
       ]);
 
       const events: Event[] = [];
@@ -114,16 +118,22 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
       }));
 
       events.sort((a, b) => +new Date(b.ts) - +new Date(a.ts));
-      return events;
+      const ai = analyseResident(
+        (notesAll.data ?? []) as never,
+        (plansAll.data ?? []) as never,
+        [],
+      );
+      return { events, predictions: ai.predictions };
     },
   });
 
   if (!data) return <p className="px-1 text-sm text-muted-foreground">Loading timeline…</p>;
-  if (data.length === 0) return <p className="px-1 text-sm text-muted-foreground">No events yet.</p>;
+  if (data.events.length === 0 && data.predictions.length === 0)
+    return <p className="px-1 text-sm text-muted-foreground">No events yet.</p>;
 
   // Group by day for the "daily story" feel.
   const groups = new Map<string, Event[]>();
-  for (const e of data) {
+  for (const e of data.events) {
     const key = format(new Date(e.ts), "EEEE d MMM yyyy");
     const arr = groups.get(key) ?? [];
     arr.push(e);
@@ -132,6 +142,42 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
 
   return (
     <div className="space-y-5">
+      {data.predictions.length > 0 && (
+        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="grid h-6 w-6 place-items-center rounded-md bg-primary/15 text-primary">
+              <Telescope className="h-3.5 w-3.5" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold">Looking ahead</p>
+              <p className="text-[10px] text-muted-foreground">Forward-looking signals based on recent patterns</p>
+            </div>
+          </div>
+          <ul className="space-y-2">
+            {data.predictions.map((p, i) => (
+              <li key={i} className="rounded-xl border bg-card p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{p.title}</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{p.horizon}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Badge
+                      variant={p.likelihood === "High" ? "destructive" : p.likelihood === "Medium" ? "default" : "outline"}
+                      className="text-[10px]"
+                    >
+                      {p.likelihood}
+                    </Badge>
+                    <ExplainPopover title={p.title} rationale={p.rationale} evidence={p.evidence} />
+                  </div>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">{p.rationale}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {Array.from(groups.entries()).map(([day, events]) => (
         <div key={day}>
           <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
