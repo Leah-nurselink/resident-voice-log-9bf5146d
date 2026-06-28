@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   FileText, Sparkles, Shield, Brain, FileSignature, AlertTriangle,
-  Radio, Activity, Heart, Bandage, Telescope,
+  Radio, Activity, Heart, Bandage, Telescope, Phone,
 } from "lucide-react";
 import { domainLabel, riskLabel, type RiskType, type CarePlanDomain } from "@/lib/care-domains";
 import { analyseResident } from "@/lib/care-intelligence";
@@ -13,7 +13,7 @@ import { ExplainPopover } from "@/components/ExplainPopover";
 type Event = {
   id: string;
   ts: string;
-  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert";
+  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm";
   title: string;
   detail?: string;
   meta?: React.ReactNode;
