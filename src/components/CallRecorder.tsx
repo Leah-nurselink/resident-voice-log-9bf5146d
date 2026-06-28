@@ -301,15 +301,17 @@ export function CallRecorder({
       const subject =
         summary.reason || `Call with ${contact.name} re: ${residentName}`;
 
+      const statusLabel = callStatus.replace(/_/g, " ");
       const body = [
         `Date: ${new Date().toLocaleString("en-GB")}`,
+        `Call status: ${statusLabel}`,
         `Participants: ${(summary.participants?.length ? summary.participants : [contact.name]).join(", ")}`,
         `Reason: ${summary.reason || reason || "(not stated)"}`,
         "",
         "Discussion summary:",
         editedSummary,
         "",
-        `Outcome: ${summary.outcome || "(none)"}`,
+        `Outcome: ${editedOutcome || "(none)"}`,
       ].join("\n");
 
       const { data: ins, error } = await supabase
