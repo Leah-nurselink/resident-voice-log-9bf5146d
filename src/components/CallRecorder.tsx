@@ -368,7 +368,7 @@ export function CallRecorder({
       await supabase.from("daily_notes").insert({
         resident_id: residentId,
         author_id: userId,
-        content: `Telephone call · ${contact.name} (${contact.role})\n\n${editedSummary}\n\nOutcome: ${summary.outcome || "(none)"}`,
+        content: `Telephone call · ${contact.name} (${contact.role}) · ${callStatus.replace(/_/g, " ")}\n\n${editedSummary}\n\nOutcome: ${editedOutcome || "(none)"}`,
         status: "approved",
         source: "voice",
       } as never);
