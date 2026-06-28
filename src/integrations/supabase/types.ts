@@ -1548,6 +1548,7 @@ export type Database = {
           observations: string | null
           odour: boolean | null
           pain_score: number | null
+          photos: Json
           surrounding_skin: string | null
           tissue_type: string | null
           treatment_plan: string | null
@@ -1567,6 +1568,7 @@ export type Database = {
           observations?: string | null
           odour?: boolean | null
           pain_score?: number | null
+          photos?: Json
           surrounding_skin?: string | null
           tissue_type?: string | null
           treatment_plan?: string | null
@@ -1586,6 +1588,7 @@ export type Database = {
           observations?: string | null
           odour?: boolean | null
           pain_score?: number | null
+          photos?: Json
           surrounding_skin?: string | null
           tissue_type?: string | null
           treatment_plan?: string | null

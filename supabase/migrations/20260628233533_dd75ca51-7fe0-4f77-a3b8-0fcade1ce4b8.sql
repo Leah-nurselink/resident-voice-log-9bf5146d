@@ -1,0 +1,1 @@
+ALTER TABLE public.wound_assessments ADD COLUMN IF NOT EXISTS photos jsonb NOT NULL DEFAULT '[]'::jsonb;
