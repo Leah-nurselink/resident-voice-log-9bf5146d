@@ -280,6 +280,7 @@ export function CallRecorder({
       });
       setSummary(s as CallSummary);
       setEditedSummary((s as CallSummary).summary);
+      setEditedOutcome((s as CallSummary).outcome ?? "");
       setPhase("review");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't process call");
