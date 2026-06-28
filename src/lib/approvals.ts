@@ -46,7 +46,7 @@ export async function applyCareGapToCarePlan(rec: {
     .from("care_plans")
     .select("id")
     .eq("resident_id", rec.resident_id)
-    .eq("domain", rec.domain)
+    .eq("domain", rec.domain as never)
     .maybeSingle();
 
   let planId: string | null = null;
