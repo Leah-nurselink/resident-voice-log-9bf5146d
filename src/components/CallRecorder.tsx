@@ -125,23 +125,39 @@ export function CallRecorder({
           .order("name"),
         supabase
           .from("residents")
-          .select("next_of_kin_name, next_of_kin_relationship, next_of_kin_phone")
+          .select("next_of_kin, next_of_kin_relationship, next_of_kin_phone, next_of_kin_secondary, next_of_kin_secondary_relationship, next_of_kin_secondary_phone")
           .eq("id", residentId)
           .maybeSingle(),
       ]);
       const list: Contact[] = [];
-      const nok = res.data as { next_of_kin_name: string | null; next_of_kin_relationship: string | null; next_of_kin_phone: string | null } | null;
+      const nok = res.data as {
+        next_of_kin: string | null;
+        next_of_kin_relationship: string | null;
+        next_of_kin_phone: string | null;
+        next_of_kin_secondary: string | null;
+        next_of_kin_secondary_relationship: string | null;
+        next_of_kin_secondary_phone: string | null;
+      } | null;
       const famRows = (fam.data ?? []) as Array<{ id: string; full_name: string; relationship: string | null; phone: string | null; email: string | null }>;
-      const nokAlreadyInFamily =
-        nok?.next_of_kin_name &&
-        famRows.some((f) => f.full_name?.trim().toLowerCase() === nok.next_of_kin_name!.trim().toLowerCase());
-      if (nok?.next_of_kin_name && !nokAlreadyInFamily) {
+      const inFamily = (name: string | null | undefined) =>
+        !!name && famRows.some((f) => f.full_name?.trim().toLowerCase() === name.trim().toLowerCase());
+      if (nok?.next_of_kin && !inFamily(nok.next_of_kin)) {
         list.push({
-          id: `nok:${residentId}`,
+          id: `nok:primary:${residentId}`,
           kind: "family",
-          name: nok.next_of_kin_name,
-          role: `Next of kin${nok.next_of_kin_relationship ? " · " + nok.next_of_kin_relationship : ""}`,
+          name: nok.next_of_kin,
+          role: `Primary next of kin${nok.next_of_kin_relationship ? " · " + nok.next_of_kin_relationship : ""}`,
           phone: nok.next_of_kin_phone,
+          email: null,
+        });
+      }
+      if (nok?.next_of_kin_secondary && !inFamily(nok.next_of_kin_secondary)) {
+        list.push({
+          id: `nok:secondary:${residentId}`,
+          kind: "family",
+          name: nok.next_of_kin_secondary,
+          role: `Secondary next of kin${nok.next_of_kin_secondary_relationship ? " · " + nok.next_of_kin_secondary_relationship : ""}`,
+          phone: nok.next_of_kin_secondary_phone,
           email: null,
         });
       }
