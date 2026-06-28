@@ -115,13 +115,40 @@ function ApprovalsPage() {
         <p className="text-sm text-muted-foreground">Review AI-generated insights. Approve, reject, or apply to a care plan.</p>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={(v) => { setTab(v); setSelected({}); }}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="pending">Pending</TabsTrigger>
           <TabsTrigger value="approved">Approved</TabsTrigger>
           <TabsTrigger value="actioned">Actioned</TabsTrigger>
           <TabsTrigger value="rejected">Rejected</TabsTrigger>
         </TabsList>
+
+        {tab === "pending" && (data?.length ?? 0) > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border bg-card p-2 text-xs">
+            <Checkbox
+              checked={selectedIds.length > 0 && selectedIds.length === (data?.length ?? 0)}
+              onCheckedChange={(c) => {
+                if (c) setSelected(Object.fromEntries((data ?? []).map((r) => [r.id, true])));
+                else setSelected({});
+              }}
+            />
+            <span className="font-medium">
+              {selectedIds.length ? `${selectedIds.length} selected` : "Select all"}
+            </span>
+            <div className="ml-auto flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => bulkReview.mutate({ ids: selectedIds, action: "approve" })} disabled={!selectedIds.length || bulkReview.isPending}>
+                <Check className="mr-1 h-3.5 w-3.5" />Approve
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => bulkReview.mutate({ ids: selectedIds, action: "reject" })} disabled={!selectedIds.length || bulkReview.isPending}>
+                <X className="mr-1 h-3.5 w-3.5" />Reject
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => bulkApply.mutate(selectedCareGaps)} disabled={!selectedCareGaps.length || bulkApply.isPending}>
+                <FileText className="mr-1 h-3.5 w-3.5" />
+                Apply {selectedCareGaps.length || ""} care gap{selectedCareGaps.length === 1 ? "" : "s"}
+              </Button>
+            </div>
+          </div>
+        )}
 
         <TabsContent value={tab} className="mt-3 space-y-2">
           {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
@@ -136,8 +163,16 @@ function ApprovalsPage() {
             const payload = (r.payload as { evidence?: { date: string; kind: string; snippet: string }[] }) ?? {};
             return (
               <div key={r.id} className={`rounded-2xl border p-3 ${SEV[r.severity] ?? ""}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
+                <div className="flex items-start gap-2">
+                  {tab === "pending" && (
+                    <Checkbox
+                      className="mt-1"
+                      checked={!!selected[r.id]}
+                      onCheckedChange={(c) => setSelected((s) => ({ ...s, [r.id]: !!c }))}
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+
                     <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide opacity-80">
                       {KIND_ICON[r.kind]}{KIND_LABEL[r.kind] ?? r.kind}
                     </div>
