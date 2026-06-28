@@ -14,33 +14,138 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_recommendations: {
+        Row: {
+          applied_care_plan_id: string | null
+          created_at: string
+          dedupe_key: string | null
+          detail: string | null
+          domain: string | null
+          id: string
+          kind: string
+          payload: Json
+          resident_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          applied_care_plan_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          detail?: string | null
+          domain?: string | null
+          id?: string
+          kind: string
+          payload?: Json
+          resident_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          applied_care_plan_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          detail?: string | null
+          domain?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          resident_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_recommendations_applied_care_plan_id_fkey"
+            columns: ["applied_care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_recommendations_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          assigned_to: string | null
           created_at: string
+          dedupe_key: string | null
           id: string
           kind: string
           message: string
+          payload: Json
           resident_id: string | null
+          resolution_notes: string | null
           resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
           severity: Database["public"]["Enums"]["alert_severity"]
+          source: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          assigned_to?: string | null
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           kind: string
           message: string
+          payload?: Json
           resident_id?: string | null
+          resolution_notes?: string | null
           resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
           severity?: Database["public"]["Enums"]["alert_severity"]
+          source?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          assigned_to?: string | null
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           kind?: string
           message?: string
+          payload?: Json
           resident_id?: string | null
+          resolution_notes?: string | null
           resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
           severity?: Database["public"]["Enums"]["alert_severity"]
+          source?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: [
           {
