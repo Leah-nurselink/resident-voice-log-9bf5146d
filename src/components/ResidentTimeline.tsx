@@ -28,6 +28,7 @@ const ICONS: Record<Event["kind"], React.ReactNode> = {
   mca: <Brain className="h-3.5 w-3.5" />,
   wound: <Bandage className="h-3.5 w-3.5" />,
   alert: <AlertTriangle className="h-3.5 w-3.5" />,
+  comm: <Phone className="h-3.5 w-3.5" />,
 };
 
 const TONES: Record<Event["kind"], string> = {
@@ -39,6 +40,7 @@ const TONES: Record<Event["kind"], string> = {
   mca: "bg-violet-500/15 text-violet-600",
   wound: "bg-rose-500/15 text-rose-600",
   alert: "bg-destructive/15 text-destructive",
+  comm: "bg-teal-500/15 text-teal-600",
 };
 
 export function ResidentTimeline({ residentId }: { residentId: string }) {
