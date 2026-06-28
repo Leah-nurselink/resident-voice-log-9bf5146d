@@ -11,7 +11,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Heart, Home, Users, Stethoscope } from "lucide-react";
+import { Save, Heart, Home, Users, Stethoscope, Mic } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+
 
 export const DNACPR_OPTIONS = ["Not recorded", "For resuscitation", "DNACPR in place", "Under review"];
 export const MARITAL_OPTIONS = ["Single", "Married", "Civil partnership", "Cohabiting", "Separated", "Divorced", "Widowed", "Prefer not to say"];
