@@ -84,7 +84,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
       });
       (plans.data ?? []).forEach((p) => events.push({
         id: `p-${p.id}`, ts: p.changed_at, kind: "care_plan",
-        title: `Care plan updated · ${domainLabel(p.domain)}`,
+        title: `Care plan updated · ${domainLabel(p.domain as CarePlanDomain)}`,
         detail: p.outcome ?? p.content ?? undefined,
       }));
       (risks.data ?? []).forEach((r) => events.push({
