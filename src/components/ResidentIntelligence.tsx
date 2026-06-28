@@ -1,11 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { analyseResident, wellbeingSeries, type Trend } from "@/lib/care-intelligence";
+import { syncResidentIntelligence } from "@/lib/intelligence-sync";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   Brain, TrendingDown, TrendingUp, Minus, AlertTriangle, Activity,
-  Sparkles, ShieldAlert, FileText, Telescope, Stethoscope,
+  Sparkles, ShieldAlert, FileText, Telescope, Stethoscope, ClipboardCheck,
 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ExplainPopover } from "@/components/ExplainPopover";
@@ -40,6 +44,13 @@ export function ResidentIntelligence({ residentId }: { residentId: string }) {
       return { intel, series };
     },
   });
+
+  // Persist outputs into the approvals queue + alert centre (idempotent).
+  useEffect(() => {
+    if (data?.intel) void syncResidentIntelligence(residentId, data.intel);
+  }, [data?.intel, residentId]);
+
+
 
   if (isLoading || !data) return <p className="text-sm text-muted-foreground">Analysing care records…</p>;
   const { intel, series } = data;
