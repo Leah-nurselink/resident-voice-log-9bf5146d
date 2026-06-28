@@ -6,7 +6,7 @@ import {
   FileText, Sparkles, Shield, Brain, FileSignature, AlertTriangle,
   Radio, Activity, Heart, Bandage,
 } from "lucide-react";
-import { domainLabel, riskLabel, type RiskType } from "@/lib/care-domains";
+import { domainLabel, riskLabel, type RiskType, type CarePlanDomain } from "@/lib/care-domains";
 
 type Event = {
   id: string;
