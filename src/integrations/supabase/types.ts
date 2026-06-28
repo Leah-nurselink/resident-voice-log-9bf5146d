@@ -324,6 +324,180 @@ export type Database = {
           },
         ]
       }
+      communication_tasks: {
+        Row: {
+          assigned_to: string | null
+          communication_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          detail: string | null
+          due_date: string | null
+          id: string
+          kind: string
+          priority: string
+          resident_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          communication_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          detail?: string | null
+          due_date?: string | null
+          id?: string
+          kind: string
+          priority?: string
+          resident_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          communication_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          detail?: string | null
+          due_date?: string | null
+          id?: string
+          kind?: string
+          priority?: string
+          resident_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_tasks_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_tasks_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communications: {
+        Row: {
+          ai_summary: string | null
+          approved_at: string | null
+          approved_by: string | null
+          attachments: Json
+          body: string
+          channel: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          external_message_id: string | null
+          family_share_consent: boolean
+          family_summary: string | null
+          from_message_id: string | null
+          id: string
+          in_reply_to: string | null
+          metadata: Json
+          professional_id: string | null
+          raw_input: string | null
+          received_at: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          resident_id: string | null
+          sender_email: string | null
+          sender_name: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attachments?: Json
+          body: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          external_message_id?: string | null
+          family_share_consent?: boolean
+          family_summary?: string | null
+          from_message_id?: string | null
+          id?: string
+          in_reply_to?: string | null
+          metadata?: Json
+          professional_id?: string | null
+          raw_input?: string | null
+          received_at?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          resident_id?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attachments?: Json
+          body?: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          external_message_id?: string | null
+          family_share_consent?: boolean
+          family_summary?: string | null
+          from_message_id?: string | null
+          id?: string
+          in_reply_to?: string | null
+          metadata?: Json
+          professional_id?: string | null
+          raw_input?: string | null
+          received_at?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          resident_id?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communications_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consents: {
         Row: {
           consent_type: string
@@ -688,6 +862,30 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          email_address: string | null
+          email_on_assignment: boolean
+          email_on_critical: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email_address?: string | null
+          email_on_assignment?: boolean
+          email_on_critical?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email_address?: string | null
+          email_on_assignment?: boolean
+          email_on_critical?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -812,6 +1010,54 @@ export type Database = {
           },
         ]
       }
+      professionals: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          organisation: string | null
+          phone: string | null
+          role: string
+          speciality: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          organisation?: string | null
+          phone?: string | null
+          role: string
+          speciality?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          organisation?: string | null
+          phone?: string | null
+          role?: string
+          speciality?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -859,6 +1105,7 @@ export type Database = {
           gp_phone: string | null
           gp_practice: string | null
           id: string
+          inbound_token: string | null
           key_risks: Json | null
           local_authority: string | null
           marital_status: string | null
@@ -899,6 +1146,7 @@ export type Database = {
           gp_phone?: string | null
           gp_practice?: string | null
           id?: string
+          inbound_token?: string | null
           key_risks?: Json | null
           local_authority?: string | null
           marital_status?: string | null
@@ -939,6 +1187,7 @@ export type Database = {
           gp_phone?: string | null
           gp_practice?: string | null
           id?: string
+          inbound_token?: string | null
           key_risks?: Json | null
           local_authority?: string | null
           marital_status?: string | null
