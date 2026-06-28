@@ -1111,6 +1111,8 @@ export type Database = {
           marital_status: string | null
           nationality: string | null
           next_of_kin: Json | null
+          next_of_kin_phone: string | null
+          next_of_kin_relationship: string | null
           nhs_number: string | null
           notes: string | null
           occupation_history: string | null
@@ -1156,6 +1158,8 @@ export type Database = {
           marital_status?: string | null
           nationality?: string | null
           next_of_kin?: Json | null
+          next_of_kin_phone?: string | null
+          next_of_kin_relationship?: string | null
           nhs_number?: string | null
           notes?: string | null
           occupation_history?: string | null
@@ -1201,6 +1205,8 @@ export type Database = {
           marital_status?: string | null
           nationality?: string | null
           next_of_kin?: Json | null
+          next_of_kin_phone?: string | null
+          next_of_kin_relationship?: string | null
           nhs_number?: string | null
           notes?: string | null
           occupation_history?: string | null

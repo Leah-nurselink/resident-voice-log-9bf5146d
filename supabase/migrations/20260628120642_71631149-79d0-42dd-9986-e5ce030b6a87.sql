@@ -1,0 +1,1 @@
+ALTER TABLE public.residents ADD COLUMN IF NOT EXISTS next_of_kin_phone text, ADD COLUMN IF NOT EXISTS next_of_kin_relationship text;

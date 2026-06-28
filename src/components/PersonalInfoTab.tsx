@@ -131,6 +131,14 @@ export function PersonalInfoTab({ resident }: Props) {
         <Field label="Communication needs"><Textarea rows={2} value={form.communication_needs ?? ""} onChange={(e) => set("communication_needs", e.target.value)} placeholder="Hearing aid, glasses, language..." /></Field>
       </Section>
 
+      <Section title="Next of kin" icon={Users}>
+        <Grid>
+          <Field label="Next of kin name"><Input value={form.next_of_kin ?? ""} onChange={(e) => set("next_of_kin", e.target.value)} /></Field>
+          <Field label="Relationship"><Input value={form.next_of_kin_relationship ?? ""} onChange={(e) => set("next_of_kin_relationship", e.target.value)} placeholder="Daughter, Son, Spouse..." /></Field>
+          <Field label="Next of kin telephone"><Input type="tel" value={form.next_of_kin_phone ?? ""} onChange={(e) => set("next_of_kin_phone", e.target.value)} placeholder="07..." /></Field>
+        </Grid>
+      </Section>
+
       <Section title="Recording & transcription consent" icon={Mic}>
         <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 p-3">
           <div className="space-y-0.5">
