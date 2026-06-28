@@ -239,6 +239,7 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
                 {a.dressing && <p className="mt-1.5 text-xs"><span className="font-medium">Dressing:</span> {a.dressing}</p>}
                 {a.treatment_plan && <p className="mt-1 text-xs"><span className="font-medium">Plan:</span> {a.treatment_plan}</p>}
                 {a.observations && <p className="mt-1 text-xs text-muted-foreground">{a.observations}</p>}
+                {Array.isArray(a.photos) && a.photos.length > 0 && <PhotoGallery paths={a.photos} />}
               </li>
             ))}
           </ul>
