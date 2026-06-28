@@ -324,6 +324,41 @@ export type Database = {
           },
         ]
       }
+      communication_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          communication_id: string
+          created_at: string
+          details: Json | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          communication_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          communication_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_audit_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_tasks: {
         Row: {
           assigned_to: string | null
@@ -396,8 +431,16 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           attachments: Json
+          audio_url: string | null
           body: string
+          call_duration_seconds: number | null
+          call_provider: string | null
+          call_status: string | null
           channel: string
+          contact_id: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          contact_type: string | null
           created_at: string
           created_by: string | null
           direction: string
@@ -408,7 +451,9 @@ export type Database = {
           id: string
           in_reply_to: string | null
           metadata: Json
+          outcome: string | null
           professional_id: string | null
+          provider_call_id: string | null
           raw_input: string | null
           received_at: string | null
           recipient_email: string | null
@@ -419,6 +464,7 @@ export type Database = {
           sent_at: string | null
           status: string
           subject: string | null
+          transcript: string | null
           updated_at: string
         }
         Insert: {
@@ -426,8 +472,16 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attachments?: Json
+          audio_url?: string | null
           body: string
+          call_duration_seconds?: number | null
+          call_provider?: string | null
+          call_status?: string | null
           channel?: string
+          contact_id?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_type?: string | null
           created_at?: string
           created_by?: string | null
           direction: string
@@ -438,7 +492,9 @@ export type Database = {
           id?: string
           in_reply_to?: string | null
           metadata?: Json
+          outcome?: string | null
           professional_id?: string | null
+          provider_call_id?: string | null
           raw_input?: string | null
           received_at?: string | null
           recipient_email?: string | null
@@ -449,6 +505,7 @@ export type Database = {
           sent_at?: string | null
           status?: string
           subject?: string | null
+          transcript?: string | null
           updated_at?: string
         }
         Update: {
@@ -456,8 +513,16 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attachments?: Json
+          audio_url?: string | null
           body?: string
+          call_duration_seconds?: number | null
+          call_provider?: string | null
+          call_status?: string | null
           channel?: string
+          contact_id?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_type?: string | null
           created_at?: string
           created_by?: string | null
           direction?: string
@@ -468,7 +533,9 @@ export type Database = {
           id?: string
           in_reply_to?: string | null
           metadata?: Json
+          outcome?: string | null
           professional_id?: string | null
+          provider_call_id?: string | null
           raw_input?: string | null
           received_at?: string | null
           recipient_email?: string | null
@@ -479,6 +546,7 @@ export type Database = {
           sent_at?: string | null
           status?: string
           subject?: string | null
+          transcript?: string | null
           updated_at?: string
         }
         Relationships: [
