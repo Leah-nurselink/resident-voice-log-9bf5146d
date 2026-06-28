@@ -48,6 +48,7 @@ export function AppShell({
 
             <div className="flex items-center gap-1">
               {action}
+              <NotificationBell />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" aria-label="Clinical alerts" asChild>
