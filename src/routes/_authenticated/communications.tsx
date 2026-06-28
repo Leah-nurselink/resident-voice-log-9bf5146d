@@ -363,13 +363,12 @@ function FamilyShareControls({ comm, onChanged }: { comm: Comm; onChanged: () =>
   const fam = useServerFn(generateFamilySummary);
   const [resident, setResident] = useState<Resident | null>(null);
   const [generating, setGenerating] = useState(false);
-  useState(() => {
-    if (comm.resident_id) {
-      supabase.from("residents").select("id,full_name,preferred_name,date_of_birth")
-        .eq("id", comm.resident_id).maybeSingle().then(({ data }) => setResident(data as Resident | null));
-    }
-    return undefined;
-  });
+  useEffect(() => {
+    if (!comm.resident_id) return;
+    supabase.from("residents").select("id,full_name,preferred_name,date_of_birth")
+      .eq("id", comm.resident_id).maybeSingle()
+      .then(({ data }) => setResident(data as Resident | null));
+  }, [comm.resident_id]);
 
   const generate = async () => {
     if (!resident) return;
