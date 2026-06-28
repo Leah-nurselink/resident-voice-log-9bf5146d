@@ -520,7 +520,38 @@ export function CallRecorder({
                 value={editedSummary}
                 onChange={(e) => setEditedSummary(e.target.value)}
               />
-              <p className="mt-2 text-xs"><span className="font-medium">Outcome: </span>{summary.outcome || "(none)"}</p>
+            </div>
+
+            <div className="rounded-lg border bg-card p-3 space-y-2">
+              <p className="text-sm font-medium">Call outcome</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Call status</Label>
+                  <Select value={callStatus} onValueChange={(v) => setCallStatus(v as typeof callStatus)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="answered">Answered</SelectItem>
+                      <SelectItem value="voicemail">Voicemail left</SelectItem>
+                      <SelectItem value="no_answer">No answer</SelectItem>
+                      <SelectItem value="engaged">Engaged</SelectItem>
+                      <SelectItem value="wrong_number">Wrong number</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Duration</Label>
+                  <Input value={fmt(elapsed)} readOnly className="bg-muted/40" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Outcome / next steps</Label>
+                <Textarea
+                  className="min-h-[70px] text-sm"
+                  value={editedOutcome}
+                  onChange={(e) => setEditedOutcome(e.target.value)}
+                  placeholder="What was agreed, what happens next, who is doing it…"
+                />
+              </div>
             </div>
 
             {summary.escalate && (
