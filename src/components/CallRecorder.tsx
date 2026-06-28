@@ -176,6 +176,11 @@ export function CallRecorder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  useEffect(() => {
+    if (hasStandingConsent) setConsent(true);
+  }, [hasStandingConsent]);
+
+
   function reset() {
     stopMedia();
     setContactId("");
