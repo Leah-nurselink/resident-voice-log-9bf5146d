@@ -158,6 +158,8 @@ export function CallRecorder({
   const [transcript, setTranscript] = useState("");
   const [summary, setSummary] = useState<CallSummary | null>(null);
   const [editedSummary, setEditedSummary] = useState("");
+  const [editedOutcome, setEditedOutcome] = useState("");
+  const [callStatus, setCallStatus] = useState<"answered" | "voicemail" | "no_answer" | "engaged" | "wrong_number">("answered");
   const [saving, setSaving] = useState(false);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
