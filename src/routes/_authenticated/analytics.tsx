@@ -112,7 +112,7 @@ function AnalyticsPage() {
   const notesByCategory = useMemo(() => {
     const map = new Map<string, number>();
     (notes.data ?? []).forEach((n: any) => {
-      const k = n.category || "General";
+      const k = n.domain || "General";
       map.set(k, (map.get(k) ?? 0) + 1);
     });
     if (map.size === 0) {
