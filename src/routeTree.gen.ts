@@ -32,6 +32,7 @@ import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedActionPlanRouteImport } from './routes/_authenticated/action-plan'
 import { Route as AuthenticatedResidentsIndexRouteImport } from './routes/_authenticated/residents/index'
+import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound-email'
 import { Route as AuthenticatedResidentsIdRouteImport } from './routes/_authenticated/residents/$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -152,6 +153,11 @@ const AuthenticatedResidentsIndexRoute =
     path: '/residents/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicInboundEmailRoute = ApiPublicInboundEmailRouteImport.update({
+  id: '/api/public/inbound-email',
+  path: '/api/public/inbound-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedResidentsIdRoute =
   AuthenticatedResidentsIdRouteImport.update({
     id: '/residents/$id',
@@ -182,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
+  '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
   '/residents/': typeof AuthenticatedResidentsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
+  '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
   '/residents': typeof AuthenticatedResidentsIndexRoute
 }
 export interface FileRoutesById {
@@ -234,6 +242,7 @@ export interface FileRoutesById {
   '/_authenticated/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/residents/$id': typeof AuthenticatedResidentsIdRoute
+  '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
   '/_authenticated/residents/': typeof AuthenticatedResidentsIndexRoute
 }
 export interface FileRouteTypes {
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/safeguarding'
     | '/tasks'
     | '/residents/$id'
+    | '/api/public/inbound-email'
     | '/residents/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/safeguarding'
     | '/tasks'
     | '/residents/$id'
+    | '/api/public/inbound-email'
     | '/residents'
   id:
     | '__root__'
@@ -312,6 +323,7 @@ export interface FileRouteTypes {
     | '/_authenticated/safeguarding'
     | '/_authenticated/tasks'
     | '/_authenticated/residents/$id'
+    | '/api/public/inbound-email'
     | '/_authenticated/residents/'
   fileRoutesById: FileRoutesById
 }
@@ -319,6 +331,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -484,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedResidentsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/inbound-email': {
+      id: '/api/public/inbound-email'
+      path: '/api/public/inbound-email'
+      fullPath: '/api/public/inbound-email'
+      preLoaderRoute: typeof ApiPublicInboundEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/residents/$id': {
       id: '/_authenticated/residents/$id'
       path: '/residents/$id'
@@ -549,6 +569,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
