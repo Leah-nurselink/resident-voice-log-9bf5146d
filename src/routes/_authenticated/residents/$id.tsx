@@ -26,9 +26,11 @@ import {
 import { useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
-import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone } from "lucide-react";
+import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone, Printer, CalendarClock } from "lucide-react";
 import { CallRecorder } from "@/components/CallRecorder";
 import { CommunicationsTab } from "@/components/CommunicationsTab";
+import { ScheduleTab } from "@/components/ScheduleTab";
+import { exportSingleResidentPDF } from "@/lib/resident-export";
 
 export const Route = createFileRoute("/_authenticated/residents/$id")({
   head: () => ({ meta: [{ title: "Resident · ForgeAI" }] }),
@@ -160,6 +162,12 @@ function ResidentDetail() {
               {r.room_number ? `Room ${r.room_number} · ` : ""}{r.date_of_birth ? `DOB ${format(new Date(r.date_of_birth), "d MMM yyyy")}` : "DOB not set"}
             </div>
           </div>
+          <Button size="sm" variant="outline" onClick={async () => {
+            const { data: sch } = await supabase.from("care_schedules" as never).select("*").eq("resident_id", id);
+            exportSingleResidentPDF(r, (sch as unknown as Record<string, unknown>[]) ?? []);
+          }} className="gap-1.5">
+            <Printer className="h-3.5 w-3.5" /> PDF
+          </Button>
           <Button size="sm" onClick={() => setCallOpen(true)} className="gap-1.5">
             <Phone className="h-3.5 w-3.5" /> Call
           </Button>
