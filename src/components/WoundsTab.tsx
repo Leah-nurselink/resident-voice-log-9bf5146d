@@ -9,9 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Activity, Plus, Ruler, ChevronRight } from "lucide-react";
+import { Activity, Plus, Ruler, ChevronRight, Camera, X, ImageIcon } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { useEffect, useRef } from "react";
 
 const STATUS_COLOR: Record<string, string> = {
   open: "bg-destructive/15 text-destructive border-destructive/30 border",
@@ -238,6 +239,7 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
                 {a.dressing && <p className="mt-1.5 text-xs"><span className="font-medium">Dressing:</span> {a.dressing}</p>}
                 {a.treatment_plan && <p className="mt-1 text-xs"><span className="font-medium">Plan:</span> {a.treatment_plan}</p>}
                 {a.observations && <p className="mt-1 text-xs text-muted-foreground">{a.observations}</p>}
+                {Array.isArray(a.photos) && a.photos.length > 0 && <PhotoGallery paths={(a.photos as unknown[]).filter((x): x is string => typeof x === "string")} />}
               </li>
             ))}
           </ul>
@@ -266,6 +268,36 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
   const [dressing, setDressing] = useState("");
   const [plan, setPlan] = useState("");
   const [observations, setObservations] = useState("");
+  const [photos, setPhotos] = useState<{ path: string; previewUrl: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const uploaded: { path: string; previewUrl: string }[] = [];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${u.user!.id}/${woundId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error } = await supabase.storage.from("wound-photos").upload(path, file, { contentType: file.type, upsert: false });
+        if (error) throw error;
+        uploaded.push({ path, previewUrl: URL.createObjectURL(file) });
+      }
+      setPhotos((prev) => [...prev, ...uploaded]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const removePhoto = async (path: string) => {
+    await supabase.storage.from("wound-photos").remove([path]);
+    setPhotos((prev) => prev.filter((p) => p.path !== path));
+  };
 
   const save = useMutation({
     mutationFn: async () => {
@@ -285,6 +317,7 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
         treatment_plan: plan || null,
         observations: observations || null,
         assessed_by: u.user!.id,
+        photos: photos.map((p) => p.path),
       });
       if (error) throw error;
     },
@@ -349,12 +382,69 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
             <Label>Observations</Label>
             <Textarea rows={2} value={observations} onChange={(e) => setObservations(e.target.value)} className="resize-none" />
           </div>
+          <div className="space-y-1.5">
+            <Label>Photos</Label>
+            <input ref={fileRef} type="file" accept="image/*" capture="environment" multiple className="hidden"
+              onChange={(e) => handleFiles(e.target.files)} />
+            <div className="flex flex-wrap gap-2">
+              {photos.map((p) => (
+                <div key={p.path} className="relative h-20 w-20 overflow-hidden rounded-lg border">
+                  <img src={p.previewUrl} alt="wound" className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => removePhoto(p.path)}
+                    className="absolute right-0.5 top-0.5 rounded-full bg-background/90 p-0.5 shadow">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-xs text-muted-foreground hover:bg-accent/30 disabled:opacity-50">
+                <Camera className="h-5 w-5" />
+                {uploading ? "Uploading…" : "Add photo"}
+              </button>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>Save assessment</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || uploading}>Save assessment</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PhotoGallery({ paths }: { paths: string[] }) {
+  const [urls, setUrls] = useState<string[]>([]);
+  const [viewing, setViewing] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.storage.from("wound-photos").createSignedUrls(paths, 3600);
+      if (!cancelled && data) setUrls(data.map((d) => d.signedUrl).filter((u): u is string => !!u));
+    })();
+    return () => { cancelled = true; };
+  }, [paths.join("|")]);
+
+  if (urls.length === 0) {
+    return <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground"><ImageIcon className="h-3 w-3" /> Loading {paths.length} photo{paths.length > 1 ? "s" : ""}…</div>;
+  }
+  return (
+    <>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {urls.map((u, i) => (
+          <button key={i} type="button" onClick={() => setViewing(u)} className="h-16 w-16 overflow-hidden rounded-md border">
+            <img src={u} alt={`wound ${i + 1}`} className="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+      {viewing && (
+        <Dialog open onOpenChange={() => setViewing(null)}>
+          <DialogContent className="max-w-2xl p-2">
+            <img src={viewing} alt="wound" className="max-h-[80vh] w-full rounded object-contain" />
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
