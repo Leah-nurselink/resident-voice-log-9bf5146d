@@ -688,6 +688,130 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string | null
+          category: string
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          resident_id: string | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          resident_id?: string | null
+          severity?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          resident_id?: string | null
+          severity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pain_assessments: {
+        Row: {
+          ai_confidence: number | null
+          ai_evidence: Json | null
+          approved: boolean
+          assessed_at: string
+          assessed_by: string | null
+          behaviour_change: number
+          body_language: number
+          created_at: string
+          facial_expression: number
+          id: string
+          notes: string | null
+          pain_type: string | null
+          physical_change: number
+          physiological_change: number
+          resident_id: string
+          severity: string
+          source: string
+          total_score: number
+          updated_at: string
+          vocalisation: number
+        }
+        Insert: {
+          ai_confidence?: number | null
+          ai_evidence?: Json | null
+          approved?: boolean
+          assessed_at?: string
+          assessed_by?: string | null
+          behaviour_change?: number
+          body_language?: number
+          created_at?: string
+          facial_expression?: number
+          id?: string
+          notes?: string | null
+          pain_type?: string | null
+          physical_change?: number
+          physiological_change?: number
+          resident_id: string
+          severity?: string
+          source?: string
+          total_score?: number
+          updated_at?: string
+          vocalisation?: number
+        }
+        Update: {
+          ai_confidence?: number | null
+          ai_evidence?: Json | null
+          approved?: boolean
+          assessed_at?: string
+          assessed_by?: string | null
+          behaviour_change?: number
+          body_language?: number
+          created_at?: string
+          facial_expression?: number
+          id?: string
+          notes?: string | null
+          pain_type?: string | null
+          physical_change?: number
+          physiological_change?: number
+          resident_id?: string
+          severity?: string
+          source?: string
+          total_score?: number
+          updated_at?: string
+          vocalisation?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pain_assessments_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
