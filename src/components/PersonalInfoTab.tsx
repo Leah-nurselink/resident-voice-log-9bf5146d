@@ -195,7 +195,17 @@ export function PersonalInfoTab({ resident }: Props) {
 
 
       <div className="sticky bottom-2 flex justify-end">
-        <Button onClick={() => save.mutate()} disabled={save.isPending} className="shadow-elevated">
+        <Button
+          onClick={() => {
+            if (!isValidPhone(form.next_of_kin_phone)) {
+              toast.error("Next of kin telephone is not valid");
+              return;
+            }
+            save.mutate();
+          }}
+          disabled={save.isPending}
+          className="shadow-elevated"
+        >
           <Save className="mr-1 h-4 w-4" /> Save changes
         </Button>
       </div>
