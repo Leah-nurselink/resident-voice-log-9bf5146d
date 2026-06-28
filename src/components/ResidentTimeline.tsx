@@ -152,6 +152,8 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
     },
   });
 
+  const [openEvent, setOpenEvent] = useState<Event | null>(null);
+
   if (!data) return <p className="px-1 text-sm text-muted-foreground">Loading timeline…</p>;
   if (data.events.length === 0 && data.predictions.length === 0)
     return <p className="px-1 text-sm text-muted-foreground">No events yet.</p>;
