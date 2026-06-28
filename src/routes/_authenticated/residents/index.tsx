@@ -17,9 +17,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AlertTriangle, Calendar, FileText, Heart, MapPin, Plus, Search, User } from "lucide-react";
+import { AlertTriangle, Archive, Calendar, FileText, Heart, MapPin, Plus, Search, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const ARCHIVED_STATUSES = ["Discharged", "Deceased"];
 
 export const Route = createFileRoute("/_authenticated/residents/")({
   head: () => ({ meta: [{ title: "Residents · CareCore" }] }),
@@ -28,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/residents/")({
 
 function ResidentsList() {
   const [q, setQ] = useState("");
+  const [view, setView] = useState<"active" | "archived">("active");
   const qc = useQueryClient();
 
   const { data = [] } = useQuery({
@@ -42,7 +46,12 @@ function ResidentsList() {
     },
   });
 
-  const filtered = data.filter((r) =>
+  const isArchived = (r: any) => ARCHIVED_STATUSES.includes(r.residency_status ?? "");
+  const activeResidents = data.filter((r) => !isArchived(r));
+  const archivedResidents = data.filter((r) => isArchived(r));
+  const pool = view === "active" ? activeResidents : archivedResidents;
+
+  const filtered = pool.filter((r) =>
     `${r.full_name} ${r.room_number ?? ""}`.toLowerCase().includes(q.toLowerCase()),
   );
 
