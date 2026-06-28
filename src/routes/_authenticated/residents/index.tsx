@@ -187,8 +187,14 @@ function ResidentsList() {
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed bg-card/50 p-10 text-center">
-            <p className="text-sm text-muted-foreground">No residents yet.</p>
-            <p className="mt-1 text-xs text-muted-foreground">Add a resident to start documenting care.</p>
+            <p className="text-sm text-muted-foreground">
+              {view === "archived" ? "No archived residents." : "No residents yet."}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {view === "archived"
+                ? "Discharged or deceased residents will appear here."
+                : "Add a resident to start documenting care."}
+            </p>
           </div>
         )}
       </div>
