@@ -1118,10 +1118,14 @@ export type Database = {
           power_of_attorney: string | null
           preferred_name: string | null
           pronouns: string | null
+          recording_consent: boolean
+          recording_consent_date: string | null
+          recording_consent_notes: string | null
           religion: string | null
           residency_status: string | null
           room_number: string | null
           tag_id: string | null
+          transcription_enabled: boolean
           updated_at: string
         }
         Insert: {
@@ -1159,10 +1163,14 @@ export type Database = {
           power_of_attorney?: string | null
           preferred_name?: string | null
           pronouns?: string | null
+          recording_consent?: boolean
+          recording_consent_date?: string | null
+          recording_consent_notes?: string | null
           religion?: string | null
           residency_status?: string | null
           room_number?: string | null
           tag_id?: string | null
+          transcription_enabled?: boolean
           updated_at?: string
         }
         Update: {
@@ -1200,10 +1208,14 @@ export type Database = {
           power_of_attorney?: string | null
           preferred_name?: string | null
           pronouns?: string | null
+          recording_consent?: boolean
+          recording_consent_date?: string | null
+          recording_consent_notes?: string | null
           religion?: string | null
           residency_status?: string | null
           room_number?: string | null
           tag_id?: string | null
+          transcription_enabled?: boolean
           updated_at?: string
         }
         Relationships: []

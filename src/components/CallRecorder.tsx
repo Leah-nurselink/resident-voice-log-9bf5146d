@@ -88,8 +88,30 @@ export function CallRecorder({
   const transcribe = useServerFn(transcribeAudio);
   const summarise = useServerFn(summariseCall);
 
-  const contacts = useQuery({
+  const residentSettings = useQuery({
     enabled: open,
+    queryKey: ["resident-consent", residentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("residents")
+        .select("transcription_enabled, recording_consent, recording_consent_date, recording_consent_notes")
+        .eq("id", residentId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? { transcription_enabled: true, recording_consent: false }) as {
+        transcription_enabled: boolean;
+        recording_consent: boolean;
+        recording_consent_date: string | null;
+        recording_consent_notes: string | null;
+      };
+    },
+  });
+
+  const transcriptionDisabled = residentSettings.data?.transcription_enabled === false;
+  const hasStandingConsent = !!residentSettings.data?.recording_consent;
+
+  const contacts = useQuery({
+    enabled: open && !transcriptionDisabled,
     queryKey: ["call-contacts", residentId],
     queryFn: async (): Promise<Contact[]> => {
       const [fam, pro] = await Promise.all([
@@ -127,6 +149,7 @@ export function CallRecorder({
     },
   });
 
+
   const [contactId, setContactId] = useState<string>("");
   const [reason, setReason] = useState("");
   const [consent, setConsent] = useState(false);
@@ -152,6 +175,11 @@ export function CallRecorder({
     if (!open) reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  useEffect(() => {
+    if (hasStandingConsent) setConsent(true);
+  }, [hasStandingConsent]);
+
 
   function reset() {
     stopMedia();
@@ -179,8 +207,10 @@ export function CallRecorder({
   }
 
   async function startCall() {
+    if (transcriptionDisabled) return toast.error("Recording is disabled for this resident");
     if (!contact) return toast.error("Pick a contact first");
     if (!consent) return toast.error("Confirm consent before recording");
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
@@ -372,6 +402,26 @@ export function CallRecorder({
 
         {phase === "setup" && (
           <div className="space-y-4">
+            {transcriptionDisabled && (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                  Recording and transcription are <b>disabled</b> for {residentName}. An
+                  admin or senior must enable it on the resident's Profile tab before
+                  calls can be captured here.
+                </span>
+              </div>
+            )}
+            {!transcriptionDisabled && hasStandingConsent && (
+              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-2 text-xs text-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 mt-0.5 text-primary" />
+                <span>
+                  Standing consent on file for {residentName}
+                  {residentSettings.data?.recording_consent_date ? ` (recorded ${residentSettings.data.recording_consent_date})` : ""}.
+                </span>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>Contact</Label>
               <Select value={contactId} onValueChange={setContactId}>
@@ -509,7 +559,7 @@ export function CallRecorder({
           {phase === "setup" && (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={startCall} disabled={!contact || !consent}>
+              <Button onClick={startCall} disabled={!contact || !consent || transcriptionDisabled}>
                 <Phone className="h-4 w-4 mr-1.5" /> Start call
               </Button>
             </>
