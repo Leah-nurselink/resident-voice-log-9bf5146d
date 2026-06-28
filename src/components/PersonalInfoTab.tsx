@@ -21,6 +21,12 @@ export const RESIDENCY_OPTIONS = ["Permanent", "Respite", "Day care", "Trial sta
 export const ADMISSION_TYPE = ["Self-funded", "Local authority", "NHS CHC", "Joint funded", "Section 117"];
 export const GENDER_OPTIONS = ["Female", "Male", "Non-binary", "Prefer not to say", "Other"];
 
+function isValidPhone(v?: string | null): boolean {
+  if (!v) return true; // empty allowed
+  const cleaned = v.replace(/[\s\-()]/g, "");
+  return /^\+?[0-9]{7,15}$/.test(cleaned);
+}
+
 type Props = { resident: any };
 
 export function PersonalInfoTab({ resident }: Props) {
