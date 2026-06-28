@@ -268,6 +268,36 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
   const [dressing, setDressing] = useState("");
   const [plan, setPlan] = useState("");
   const [observations, setObservations] = useState("");
+  const [photos, setPhotos] = useState<{ path: string; previewUrl: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const uploaded: { path: string; previewUrl: string }[] = [];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${u.user!.id}/${woundId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error } = await supabase.storage.from("wound-photos").upload(path, file, { contentType: file.type, upsert: false });
+        if (error) throw error;
+        uploaded.push({ path, previewUrl: URL.createObjectURL(file) });
+      }
+      setPhotos((prev) => [...prev, ...uploaded]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const removePhoto = async (path: string) => {
+    await supabase.storage.from("wound-photos").remove([path]);
+    setPhotos((prev) => prev.filter((p) => p.path !== path));
+  };
 
   const save = useMutation({
     mutationFn: async () => {
