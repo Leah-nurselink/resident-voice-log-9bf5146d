@@ -52,7 +52,7 @@ function ResidentsList() {
   const pool = view === "active" ? activeResidents : archivedResidents;
 
   const filtered = pool.filter((r) =>
-    `${r.full_name} ${r.room_number ?? ""}`.toLowerCase().includes(q.toLowerCase()),
+    `${r.full_name ?? ""} ${r.room_number ?? ""}`.toLowerCase().includes(q.toLowerCase()),
   );
 
   const highRiskCount = activeResidents.filter((r) =>
@@ -106,7 +106,7 @@ function ResidentsList() {
               const risks = (r.risk_assessments as { level: string }[] | null) ?? [];
               const hasHigh = risks.some((x) => x.level === "high");
               const hasMed = risks.some((x) => x.level === "medium");
-              const initials = r.full_name
+              const initials = (r.full_name ?? "?")
                 .split(" ")
                 .map((s) => s[0])
                 .slice(0, 2)
