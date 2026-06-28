@@ -16,6 +16,7 @@ import {
   Scale,
   Shield,
   ShieldCheck,
+  Stethoscope,
   Users,
   AlertTriangle,
 } from "lucide-react";
