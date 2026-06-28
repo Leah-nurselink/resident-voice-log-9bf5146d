@@ -138,6 +138,7 @@ export function PersonalInfoTab({ resident }: Props) {
       </Section>
 
       <Section title="Next of kin" icon={Users}>
+        <p className="text-xs text-muted-foreground -mt-1 mb-2">Primary contact</p>
         <Grid>
           <Field label="Next of kin name"><Input value={form.next_of_kin ?? ""} onChange={(e) => set("next_of_kin", e.target.value)} /></Field>
           <Field label="Relationship"><Input value={form.next_of_kin_relationship ?? ""} onChange={(e) => set("next_of_kin_relationship", e.target.value)} placeholder="Daughter, Son, Spouse..." /></Field>
@@ -156,7 +157,24 @@ export function PersonalInfoTab({ resident }: Props) {
             )}
           </Field>
         </Grid>
+        <p className="text-xs text-muted-foreground mt-4 mb-2">Secondary contact</p>
+        <Grid>
+          <Field label="Secondary contact name"><Input value={(form as Record<string, unknown>).next_of_kin_secondary as string ?? ""} onChange={(e) => set("next_of_kin_secondary" as never, e.target.value as never)} /></Field>
+          <Field label="Relationship"><Input value={(form as Record<string, unknown>).next_of_kin_secondary_relationship as string ?? ""} onChange={(e) => set("next_of_kin_secondary_relationship" as never, e.target.value as never)} placeholder="Daughter, Son, Spouse..." /></Field>
+          <Field label="Secondary telephone">
+            <Input
+              type="tel"
+              inputMode="tel"
+              value={(form as Record<string, unknown>).next_of_kin_secondary_phone as string ?? ""}
+              onChange={(e) => set("next_of_kin_secondary_phone" as never, e.target.value as never)}
+              placeholder="07123 456789 or +44 7123 456789"
+              aria-invalid={!isValidPhone((form as Record<string, unknown>).next_of_kin_secondary_phone as string | null | undefined)}
+              className={!isValidPhone((form as Record<string, unknown>).next_of_kin_secondary_phone as string | null | undefined) ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+          </Field>
+        </Grid>
       </Section>
+
 
       <Section title="Recording & transcription consent" icon={Mic}>
         <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 p-3">
