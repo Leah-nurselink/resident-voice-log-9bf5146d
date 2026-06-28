@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { VoiceRecorder, type StructuredNote } from "@/components/VoiceRecorder";
+import { SessionRecorder, type StructuredNote } from "@/components/SessionRecorder";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { ResidentTimeline } from "@/components/ResidentTimeline";
 import { WoundsTab } from "@/components/WoundsTab";
 import { PersonalInfoTab } from "@/components/PersonalInfoTab";
 import { Button } from "@/components/ui/button";
@@ -153,8 +155,9 @@ function ResidentDetail() {
       </div>
 
       <Tabs defaultValue="timeline" className="mt-4">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="timeline" className="text-xs px-1">Notes</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="timeline" className="text-xs px-1">Story</TabsTrigger>
+          <TabsTrigger value="notes" className="text-xs px-1">Notes</TabsTrigger>
           <TabsTrigger value="profile" className="text-xs px-1">Profile</TabsTrigger>
           <TabsTrigger value="care" className="text-xs px-1">Care</TabsTrigger>
           <TabsTrigger value="risk" className="text-xs px-1">Risk</TabsTrigger>
@@ -163,13 +166,17 @@ function ResidentDetail() {
           <TabsTrigger value="mca" className="text-xs px-1">MCA</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="timeline" className="mt-4">
+          <ResidentTimeline residentId={id} />
+        </TabsContent>
+
         <TabsContent value="profile" className="mt-4">
           <PersonalInfoTab resident={r} />
         </TabsContent>
 
 
-        <TabsContent value="timeline" className="mt-4 space-y-4">
-          <VoiceRecorder residentName={r.full_name} onResult={(n) => { setPending(n); setEditing(n.content); }} />
+        <TabsContent value="notes" className="mt-4 space-y-4">
+          <SessionRecorder residentName={r.full_name} onResult={(n) => { setPending(n); setEditing(n.content); }} />
 
           {pending && (
             <div className="rounded-2xl border-2 border-primary/40 bg-card p-4">
