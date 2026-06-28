@@ -180,7 +180,7 @@ export async function syncResidentIntelligence(
         .eq("status", "pending");
       const have = new Set((existing ?? []).map((e) => e.dedupe_key));
       const fresh = recs.filter((r) => !have.has(r.dedupe_key));
-      if (fresh.length) await supabase.from("ai_recommendations").insert(fresh);
+      if (fresh.length) await supabase.from("ai_recommendations").insert(fresh as never);
     }
     if (alerts.length) {
       const keys = alerts.map((a) => a.dedupe_key);
@@ -191,7 +191,8 @@ export async function syncResidentIntelligence(
         .in("status", ["open", "acknowledged"]);
       const have = new Set((existing ?? []).map((e) => e.dedupe_key as string));
       const fresh = alerts.filter((a) => !have.has(a.dedupe_key));
-      if (fresh.length) await supabase.from("alerts").insert(fresh.map((a) => ({ ...a, resolved: false })));
+      if (fresh.length) await supabase.from("alerts").insert(fresh.map((a) => ({ ...a, resolved: false })) as never);
+
     }
   } catch (err) {
     // Non-fatal — UI still shows in-memory intelligence.
