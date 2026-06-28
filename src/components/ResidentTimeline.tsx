@@ -19,6 +19,7 @@ type Event = {
   kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm";
   title: string;
   detail?: string;
+  full?: string;
   meta?: React.ReactNode;
 };
 
