@@ -402,6 +402,26 @@ export function CallRecorder({
 
         {phase === "setup" && (
           <div className="space-y-4">
+            {transcriptionDisabled && (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                  Recording and transcription are <b>disabled</b> for {residentName}. An
+                  admin or senior must enable it on the resident's Profile tab before
+                  calls can be captured here.
+                </span>
+              </div>
+            )}
+            {!transcriptionDisabled && hasStandingConsent && (
+              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-2 text-xs text-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 mt-0.5 text-primary" />
+                <span>
+                  Standing consent on file for {residentName}
+                  {residentSettings.data?.recording_consent_date ? ` (recorded ${residentSettings.data.recording_consent_date})` : ""}.
+                </span>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>Contact</Label>
               <Select value={contactId} onValueChange={setContactId}>
