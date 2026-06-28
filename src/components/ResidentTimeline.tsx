@@ -221,8 +221,19 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
                     <p className="text-sm font-medium">{e.title}</p>
                     <span className="text-[10px] text-muted-foreground">{format(new Date(e.ts), "HH:mm")}</span>
                   </div>
-                  {e.detail && <p className="mt-1 text-sm text-muted-foreground">{e.detail}</p>}
+                  {e.detail && (
+                    <p className="mt-1 text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">{e.detail}</p>
+                  )}
                   {e.meta && <div className="mt-2">{e.meta}</div>}
+                  {(e.full ?? e.detail) && (
+                    <button
+                      type="button"
+                      onClick={() => setOpenEvent(e)}
+                      className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                    >
+                      <Maximize2 className="h-3 w-3" /> View full
+                    </button>
+                  )}
                 </div>
               </li>
             ))}
