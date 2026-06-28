@@ -42,7 +42,7 @@ function IntelligencePage() {
     },
   });
 
-  if (isLoading) return <AppShell><p className="p-4 text-sm text-muted-foreground">Analysing organisation-wide care records…</p></AppShell>;
+  if (isLoading) return <AppShell title="Care Intelligence"><p className="p-4 text-sm text-muted-foreground">Analysing organisation-wide care records…</p></AppShell>;
   const rows = data ?? [];
 
   const declining = rows.filter((r) => r.intel.wellbeing.trend === "declining" || r.intel.wellbeing.score < 65);
@@ -52,14 +52,10 @@ function IntelligencePage() {
   const avgWb = rows.length ? Math.round(rows.reduce((a, r) => a + r.intel.wellbeing.score, 0) / rows.length) : 0;
 
   return (
-    <AppShell>
+    <AppShell title="Care Intelligence" subtitle="Organisation-wide patterns from every resident">
       <div className="space-y-4 p-4">
-        <header className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><Brain className="h-4 w-4" /></span>
-            <h1 className="text-xl font-semibold">Care Intelligence</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">Organisation-wide signals from every resident's care records. Advisory only.</p>
+        <header className="space-y-1 sr-only">
+          <h1>Care Intelligence</h1>
         </header>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
