@@ -559,7 +559,7 @@ export function CallRecorder({
           {phase === "setup" && (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={startCall} disabled={!contact || !consent}>
+              <Button onClick={startCall} disabled={!contact || !consent || transcriptionDisabled}>
                 <Phone className="h-4 w-4 mr-1.5" /> Start call
               </Button>
             </>
