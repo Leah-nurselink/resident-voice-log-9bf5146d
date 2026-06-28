@@ -109,7 +109,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
       }));
       (alerts.data ?? []).forEach((a) => events.push({
         id: `a-${a.id}`, ts: a.created_at, kind: "alert",
-        title: a.title ?? "Alert",
+        title: a.kind ?? "Alert",
         detail: a.message ?? undefined,
       }));
 
