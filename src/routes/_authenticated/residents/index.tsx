@@ -127,7 +127,12 @@ function ResidentsList() {
                             <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <CardTitle className="truncate text-base">{r.full_name}</CardTitle>
+                            <CardTitle className="truncate text-base">
+                              {r.full_name}
+                              {r.preferred_name ? (
+                                <span className="ml-1 text-sm font-normal text-muted-foreground">"{r.preferred_name}"</span>
+                              ) : null}
+                            </CardTitle>
                             <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                               {r.date_of_birth && (
                                 <>
