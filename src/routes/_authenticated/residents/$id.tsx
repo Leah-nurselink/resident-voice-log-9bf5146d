@@ -100,6 +100,12 @@ function ResidentDetail() {
     mutationFn: async (status: "draft" | "approved") => {
       if (!pending) return;
       const { data: u } = await supabase.auth.getUser();
+      // Time-saved estimate: typing baseline at ~25 wpm vs voice capture
+      // (recording duration + ~8s review). Floored at 0.
+      const words = editing.trim().split(/\s+/).filter(Boolean).length;
+      const typingBaselineSec = Math.max(30, Math.round(words * 2.4));
+      const voiceActualSec = Math.round((pending.durationSec ?? 0) + 8);
+      const timeSaved = Math.max(0, typingBaselineSec - voiceActualSec);
       const { error } = await supabase.from("daily_notes").insert({
         resident_id: id,
         author_id: u.user!.id,
@@ -110,6 +116,13 @@ function ResidentDetail() {
         flags: pending.flags,
         status,
         source: "voice",
+        audio_quality: pending.audioQuality ?? null,
+        transcript_confidence: pending.transcriptConfidence ?? null,
+        signal_level: pending.signal ?? null,
+        noise_level: pending.noise ?? null,
+        duration_sec: pending.durationSec ?? null,
+        time_saved_seconds: pending.durationSec ? timeSaved : null,
+        segments: pending.segments ?? null,
       });
       if (error) throw error;
     },

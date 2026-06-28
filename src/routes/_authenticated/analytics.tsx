@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
+  AudioLines,
   ClipboardCheck,
   Clock,
   Heart,
@@ -67,11 +68,14 @@ function AnalyticsPage() {
   });
 
   const notes = useQuery({
-    queryKey: ["analytics-notes"],
+    queryKey: ["analytics-notes", days],
     queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - days);
       const { data, error } = await supabase
         .from("daily_notes")
-        .select("id, status, created_at, category");
+        .select("id, status, created_at, source, domain, audio_quality, transcript_confidence, signal_level, noise_level, duration_sec, time_saved_seconds")
+        .gte("created_at", since.toISOString());
       if (error) throw error;
       return data ?? [];
     },
@@ -108,7 +112,7 @@ function AnalyticsPage() {
   const notesByCategory = useMemo(() => {
     const map = new Map<string, number>();
     (notes.data ?? []).forEach((n: any) => {
-      const k = n.category || "General";
+      const k = n.domain || "General";
       map.set(k, (map.get(k) ?? 0) + 1);
     });
     if (map.size === 0) {
@@ -212,6 +216,85 @@ function AnalyticsPage() {
   const drafts = (notes.data ?? []).filter((n: any) => n.status === "draft").length;
   const highRisks = (risks.data ?? []).filter((r: any) => r.level === "high").length;
 
+  // ---------- Audio Quality & Time Saved ----------
+  const voiceNotes = (notes.data ?? []).filter((n: any) => n.source === "voice");
+  const typedNotes = (notes.data ?? []).filter((n: any) => n.source !== "voice");
+  const captureMixLive = useMemo(() => {
+    if ((notes.data ?? []).length === 0) return captureMix;
+    return [
+      { name: "Voice", value: voiceNotes.length },
+      { name: "Typed", value: typedNotes.length },
+    ];
+  }, [notes.data, voiceNotes.length, typedNotes.length]);
+
+  const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
+  const qualityVals = voiceNotes.map((n: any) => Number(n.audio_quality)).filter((v) => Number.isFinite(v));
+  const confVals = voiceNotes.map((n: any) => Number(n.transcript_confidence)).filter((v) => Number.isFinite(v));
+  const signalVals = voiceNotes.map((n: any) => Number(n.signal_level)).filter((v) => Number.isFinite(v));
+  const noiseVals = voiceNotes.map((n: any) => Number(n.noise_level)).filter((v) => Number.isFinite(v));
+  const savedSecondsArr = (notes.data ?? []).map((n: any) => Number(n.time_saved_seconds)).filter((v) => Number.isFinite(v));
+  const totalSavedSec = savedSecondsArr.reduce((a, b) => a + b, 0);
+  const totalSavedHrs = totalSavedSec / 3600;
+  const avgSavedPerNote = savedSecondsArr.length ? totalSavedSec / savedSecondsArr.length : 0;
+
+  const qualityByDay = useMemo(() => {
+    const buckets = new Map<string, { q: number[]; c: number[] }>();
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      buckets.set(d.toISOString().slice(0, 10), { q: [], c: [] });
+    }
+    voiceNotes.forEach((n: any) => {
+      const k = (n.created_at ?? "").slice(0, 10);
+      const b = buckets.get(k);
+      if (!b) return;
+      if (Number.isFinite(Number(n.audio_quality))) b.q.push(Number(n.audio_quality));
+      if (Number.isFinite(Number(n.transcript_confidence))) b.c.push(Number(n.transcript_confidence));
+    });
+    return Array.from(buckets.entries()).map(([k, v]) => ({
+      label: new Date(k).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      "Audio quality": Math.round(avg(v.q) * 100),
+      "Transcript confidence": Math.round(avg(v.c) * 100),
+    }));
+  }, [voiceNotes, days]);
+
+  const savedByDay = useMemo(() => {
+    const buckets = new Map<string, number>();
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      buckets.set(d.toISOString().slice(0, 10), 0);
+    }
+    (notes.data ?? []).forEach((n: any) => {
+      const k = (n.created_at ?? "").slice(0, 10);
+      if (!buckets.has(k)) return;
+      const s = Number(n.time_saved_seconds);
+      if (Number.isFinite(s)) buckets.set(k, (buckets.get(k) ?? 0) + s);
+    });
+    return Array.from(buckets.entries()).map(([k, v]) => ({
+      label: new Date(k).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      value: Math.round((v / 60) * 10) / 10, // minutes saved
+    }));
+  }, [notes.data, days]);
+
+  const qualityDistribution = useMemo(() => {
+    const buckets = { Excellent: 0, Good: 0, Fair: 0, Poor: 0 };
+    qualityVals.forEach((q) => {
+      if (q >= 0.75) buckets.Excellent++;
+      else if (q >= 0.55) buckets.Good++;
+      else if (q >= 0.35) buckets.Fair++;
+      else buckets.Poor++;
+    });
+    return Object.entries(buckets).map(([name, value]) => ({ name, value }));
+  }, [qualityVals]);
+
+  const avgQualityPct = Math.round(avg(qualityVals) * 100);
+  const avgConfPct = Math.round(avg(confVals) * 100);
+  const avgSignalPct = Math.round(avg(signalVals) * 100);
+  const avgNoisePct = Math.round(avg(noiseVals) * 100);
+
   return (
     <AppShell title="Analytics" subtitle="Care operations, compliance and time-on-care insight">
       <div className="space-y-6">
@@ -242,6 +325,7 @@ function AnalyticsPage() {
           <TabsList className="flex flex-wrap">
             <TabsTrigger value="operations"><Activity className="mr-1 h-4 w-4" />Care operations</TabsTrigger>
             <TabsTrigger value="time"><Clock className="mr-1 h-4 w-4" />Time on care</TabsTrigger>
+            <TabsTrigger value="audio"><AudioLines className="mr-1 h-4 w-4" />Audio quality</TabsTrigger>
             <TabsTrigger value="compliance"><ShieldCheck className="mr-1 h-4 w-4" />Compliance & CQC</TabsTrigger>
             <TabsTrigger value="resident"><Stethoscope className="mr-1 h-4 w-4" />Resident-level</TabsTrigger>
             <TabsTrigger value="staff"><Sparkles className="mr-1 h-4 w-4" />Staff & workload</TabsTrigger>
@@ -272,7 +356,13 @@ function AnalyticsPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <MetricCard title="Direct care" value="6.1 hrs" description="Per resident / day" icon={Heart} trend={{ value: 8, isPositive: true }} />
               <MetricCard title="Documentation" value="1.4 hrs" description="Per carer / shift" icon={ClipboardCheck} trend={{ value: 22, isPositive: false }} />
-              <MetricCard title="Time saved by voice" value="38 min" description="Per carer / shift avg" icon={Sparkles} trend={{ value: 15, isPositive: true }} />
+              <MetricCard
+                title="Time saved by voice"
+                value={totalSavedHrs >= 1 ? `${totalSavedHrs.toFixed(1)} hrs` : `${Math.round(totalSavedSec / 60)} min`}
+                description={savedSecondsArr.length ? `${Math.round(avgSavedPerNote)}s avg per note · last ${days}d` : "No voice notes yet"}
+                icon={Sparkles}
+                trend={savedSecondsArr.length ? { value: 15, isPositive: true } : undefined}
+              />
             </div>
             <Card>
               <CardHeader><CardTitle className="text-base">Direct care vs documentation</CardTitle><CardDescription>Hours per carer per day</CardDescription></CardHeader>
@@ -297,6 +387,66 @@ function AnalyticsPage() {
                     ]}
                     keys={["value"]}
                   />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="audio" className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                title="Audio quality"
+                value={voiceNotes.length ? `${avgQualityPct}%` : "—"}
+                description={voiceNotes.length ? `Across ${voiceNotes.length} voice notes` : "No voice notes yet"}
+                icon={AudioLines}
+              />
+              <MetricCard
+                title="Transcript confidence"
+                value={voiceNotes.length ? `${avgConfPct}%` : "—"}
+                description="AI-estimated accuracy"
+                icon={Sparkles}
+              />
+              <MetricCard
+                title="Signal level"
+                value={voiceNotes.length ? `${avgSignalPct}%` : "—"}
+                description={`Noise floor ${voiceNotes.length ? avgNoisePct + "%" : "—"}`}
+                icon={Activity}
+              />
+              <MetricCard
+                title="Documentation time saved"
+                value={totalSavedHrs >= 1 ? `${totalSavedHrs.toFixed(1)} hrs` : `${Math.round(totalSavedSec / 60)} min`}
+                description={`Last ${days} days`}
+                icon={Clock}
+              />
+            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Audio quality & transcript confidence</CardTitle>
+                <CardDescription>Daily average (%) across voice care notes</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MultiLine data={qualityByDay} keys={["Audio quality", "Transcript confidence"]} height={280} />
+              </CardContent>
+            </Card>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Minutes saved per day</CardTitle>
+                  <CardDescription>Typing baseline vs voice + review</CardDescription>
+                </CardHeader>
+                <CardContent><TrendArea data={savedByDay} dataKey="value" color="#8b5cf6" /></CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Quality distribution</CardTitle>
+                  <CardDescription>How recordings score across the home</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {qualityVals.length ? <DonutChart data={qualityDistribution} /> : (
+                    <p className="px-2 py-8 text-center text-sm text-muted-foreground">
+                      Capture a voice care note to populate quality scores.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -364,7 +514,7 @@ function AnalyticsPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <Card>
                 <CardHeader><CardTitle className="text-base">Voice vs typed</CardTitle><CardDescription>How notes are captured</CardDescription></CardHeader>
-                <CardContent><DonutChart data={captureMix} /></CardContent>
+                <CardContent><DonutChart data={captureMixLive} /></CardContent>
               </Card>
               <MetricCard title="Avg time to approve" value="42 min" description="From draft to signed" icon={Clock} trend={{ value: 18, isPositive: true }} />
               <MetricCard title="Notes per carer / shift" value="14.6" description="Across all staff" icon={TrendingUp} trend={{ value: 6, isPositive: true }} />
