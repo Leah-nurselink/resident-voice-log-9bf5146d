@@ -263,7 +263,7 @@ export const emailAlertAssignee = createServerFn({ method: "POST" })
       residentName = (r?.full_name as string | undefined) ?? residentName;
     }
 
-    const subject = `Alert assigned: ${alert.title ?? alert.message ?? "Clinical alert"}`;
+    const subject = `Alert assigned: ${alert.message ?? "Clinical alert"}`;
     const html = `
       <div style="font-family:Inter,Arial,sans-serif;color:#0f172a;max-width:560px;">
         <h2 style="margin:0 0 8px;font-size:16px;">${subject}</h2>
