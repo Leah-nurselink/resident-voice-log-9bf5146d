@@ -421,7 +421,7 @@ function PhotoGallery({ paths }: { paths: string[] }) {
     let cancelled = false;
     (async () => {
       const { data } = await supabase.storage.from("wound-photos").createSignedUrls(paths, 3600);
-      if (!cancelled && data) setUrls(data.map((d) => d.signedUrl).filter(Boolean));
+      if (!cancelled && data) setUrls(data.map((d) => d.signedUrl).filter((u): u is string => !!u));
     })();
     return () => { cancelled = true; };
   }, [paths.join("|")]);
