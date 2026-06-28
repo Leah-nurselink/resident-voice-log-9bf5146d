@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
+  AudioLines,
   ClipboardCheck,
   Clock,
   Heart,
