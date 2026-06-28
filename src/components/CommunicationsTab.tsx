@@ -262,9 +262,7 @@ function AuditTrail({ communicationId }: { communicationId: string }) {
           </div>
         </li>
       ))}
-                  <Button asChild variant="link" size="sm" className="h-auto p-0 text-[11px]">
-        <a href="#" onClick={(e) => { e.preventDefault(); audit.refetch(); }}>Refresh audit</a>
-      </Button>
     </ol>
   );
 }
+
