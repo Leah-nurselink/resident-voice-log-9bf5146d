@@ -317,6 +317,7 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
         treatment_plan: plan || null,
         observations: observations || null,
         assessed_by: u.user!.id,
+        photos: photos.map((p) => p.path),
       });
       if (error) throw error;
     },
