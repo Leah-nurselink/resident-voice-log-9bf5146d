@@ -48,9 +48,14 @@ const SEV: Record<string, string> = {
 
 function ApprovalsPage() {
   const [tab, setTab] = useState("pending");
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
   const qc = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["ai-recs"] });
+    setSelected({});
+  };
+
     queryKey: ["ai-recs", tab],
     queryFn: async () => {
       const { data, error } = await supabase
