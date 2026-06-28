@@ -193,7 +193,9 @@ function Meter({ icon, label, value, tone, invert }: { icon: React.ReactNode; la
   return (
     <div>
       <div className="mb-1 flex items-center gap-1 text-muted-foreground">{icon}<span>{label}</span></div>
-      <Progress value={pct} className="h-1.5" indicatorClassName={cls} />
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className={cn("h-full transition-all", cls)} style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }
