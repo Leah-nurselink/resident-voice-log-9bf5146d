@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   Bluetooth,
+  Brain,
   Calendar,
   ClipboardList,
   ClipboardCheck,
@@ -42,6 +43,7 @@ const careItems = [
 ] as const;
 
 const systemItems = [
+  { title: "Intelligence", url: "/intelligence", icon: Brain },
   { title: "Alerts", url: "/alerts", icon: AlertTriangle },
   { title: "Family", url: "/family", icon: Heart },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
