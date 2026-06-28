@@ -142,18 +142,24 @@ function ResidentsList() {
                             </div>
                           </div>
                         </div>
-                        <Badge
-                          variant="outline"
-                          className={
-                            hasHigh
-                              ? "border-care-urgent/40 bg-care-urgent/10 text-care-urgent"
-                              : hasMed
-                                ? "border-care-attention/40 bg-care-attention/20 text-care-attention"
-                                : "border-care-on-track/40 bg-care-on-track/10 text-care-on-track"
-                          }
-                        >
-                          {hasHigh ? "High risk" : hasMed ? "Medium" : "Low"}
-                        </Badge>
+                        {isArchived(r) ? (
+                          <Badge variant="outline" className="border-muted-foreground/30 bg-muted text-muted-foreground">
+                            <Archive className="mr-1 h-3 w-3" /> {r.residency_status}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className={
+                              hasHigh
+                                ? "border-care-urgent/40 bg-care-urgent/10 text-care-urgent"
+                                : hasMed
+                                  ? "border-care-attention/40 bg-care-attention/20 text-care-attention"
+                                  : "border-care-on-track/40 bg-care-on-track/10 text-care-on-track"
+                            }
+                          >
+                            {hasHigh ? "High risk" : hasMed ? "Medium" : "Low"}
+                          </Badge>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
