@@ -142,6 +142,7 @@ function ResidentDetail() {
   const [newConsent, setNewConsent] = useState(false);
   const [editMca, setEditMca] = useState<any | null>(null);
   const [newMca, setNewMca] = useState(false);
+  const [callOpen, setCallOpen] = useState(false);
 
   if (!resident.data) return <AppShell title="Loading…"><div /></AppShell>;
   const r = resident.data;
