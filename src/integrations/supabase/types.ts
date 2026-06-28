@@ -274,45 +274,66 @@ export type Database = {
       }
       daily_notes: {
         Row: {
+          audio_quality: number | null
           author_id: string
           content: string
           created_at: string
           domain: Database["public"]["Enums"]["care_plan_domain"] | null
+          duration_sec: number | null
           flags: string[] | null
           id: string
+          noise_level: number | null
           resident_id: string
           risks: Database["public"]["Enums"]["risk_assessment_type"][] | null
+          segments: Json | null
+          signal_level: number | null
           source: string
           status: Database["public"]["Enums"]["note_status"]
+          time_saved_seconds: number | null
           transcript: string | null
+          transcript_confidence: number | null
           updated_at: string
         }
         Insert: {
+          audio_quality?: number | null
           author_id: string
           content: string
           created_at?: string
           domain?: Database["public"]["Enums"]["care_plan_domain"] | null
+          duration_sec?: number | null
           flags?: string[] | null
           id?: string
+          noise_level?: number | null
           resident_id: string
           risks?: Database["public"]["Enums"]["risk_assessment_type"][] | null
+          segments?: Json | null
+          signal_level?: number | null
           source?: string
           status?: Database["public"]["Enums"]["note_status"]
+          time_saved_seconds?: number | null
           transcript?: string | null
+          transcript_confidence?: number | null
           updated_at?: string
         }
         Update: {
+          audio_quality?: number | null
           author_id?: string
           content?: string
           created_at?: string
           domain?: Database["public"]["Enums"]["care_plan_domain"] | null
+          duration_sec?: number | null
           flags?: string[] | null
           id?: string
+          noise_level?: number | null
           resident_id?: string
           risks?: Database["public"]["Enums"]["risk_assessment_type"][] | null
+          segments?: Json | null
+          signal_level?: number | null
           source?: string
           status?: Database["public"]["Enums"]["note_status"]
+          time_saved_seconds?: number | null
           transcript?: string | null
+          transcript_confidence?: number | null
           updated_at?: string
         }
         Relationships: [
