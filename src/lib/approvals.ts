@@ -122,3 +122,79 @@ export async function updateAlertStatus(
   const { error } = await supabase.from("alerts").update(patch as never).eq("id", alertId);
   if (error) throw error;
 }
+
+export async function assignAlert(alertId: string, userId: string | null): Promise<void> {
+  const { error } = await supabase
+    .from("alerts")
+    .update({ assigned_to: userId } as never)
+    .eq("id", alertId);
+  if (error) throw error;
+}
+
+export async function bulkUpdateAlerts(
+  ids: string[],
+  action: "acknowledge" | "resolve" | "dismiss",
+): Promise<void> {
+  if (!ids.length) return;
+  const { data: u } = await supabase.auth.getUser();
+  const userId = u.user?.id ?? null;
+  const now = new Date().toISOString();
+  const patch: Record<string, unknown> = {};
+  if (action === "acknowledge") {
+    patch.status = "acknowledged";
+    patch.acknowledged_at = now;
+    patch.acknowledged_by = userId;
+  } else {
+    patch.status = action === "resolve" ? "resolved" : "dismissed";
+    patch.resolved = true;
+    patch.resolved_at = now;
+    patch.resolved_by = userId;
+  }
+  const { error } = await supabase.from("alerts").update(patch as never).in("id", ids);
+  if (error) throw error;
+}
+
+export async function bulkAssignAlerts(ids: string[], userId: string | null): Promise<void> {
+  if (!ids.length) return;
+  const { error } = await supabase
+    .from("alerts")
+    .update({ assigned_to: userId } as never)
+    .in("id", ids);
+  if (error) throw error;
+}
+
+export async function bulkReviewRecommendations(
+  ids: string[],
+  action: "approve" | "reject",
+): Promise<void> {
+  if (!ids.length) return;
+  const { data: u } = await supabase.auth.getUser();
+  const userId = u.user?.id ?? null;
+  const { error } = await supabase
+    .from("ai_recommendations")
+    .update({
+      status: action === "approve" ? "approved" : "rejected",
+      reviewed_by: userId,
+      reviewed_at: new Date().toISOString(),
+    } as never)
+    .in("id", ids);
+  if (error) throw error;
+}
+
+export async function bulkApplyCareGaps(
+  recs: Array<Parameters<typeof applyCareGapToCarePlan>[0]>,
+): Promise<number> {
+  let n = 0;
+  for (const r of recs) {
+    if (!r.resident_id || !r.domain) continue;
+    try {
+      await applyCareGapToCarePlan(r);
+      n++;
+    } catch (e) {
+      // continue; surface count to caller
+      console.error("Bulk apply failed for", r.id, e);
+    }
+  }
+  return n;
+}
+
