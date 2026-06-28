@@ -129,6 +129,12 @@ export async function assignAlert(alertId: string, userId: string | null): Promi
     .update({ assigned_to: userId } as never)
     .eq("id", alertId);
   if (error) throw error;
+  if (userId) {
+    try {
+      const { emailAlertAssignee } = await import("@/lib/communications.functions");
+      await emailAlertAssignee({ data: { alertId } });
+    } catch (e) { console.warn("[assignAlert] email failed", e); }
+  }
 }
 
 export async function bulkUpdateAlerts(
@@ -161,6 +167,12 @@ export async function bulkAssignAlerts(ids: string[], userId: string | null): Pr
     .update({ assigned_to: userId } as never)
     .in("id", ids);
   if (error) throw error;
+  if (userId) {
+    try {
+      const { emailAlertAssignee } = await import("@/lib/communications.functions");
+      await Promise.all(ids.map((id) => emailAlertAssignee({ data: { alertId: id } })));
+    } catch (e) { console.warn("[bulkAssignAlerts] email failed", e); }
+  }
 }
 
 export async function bulkReviewRecommendations(
