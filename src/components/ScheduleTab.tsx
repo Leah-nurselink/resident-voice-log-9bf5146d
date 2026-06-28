@@ -183,12 +183,16 @@ function ScheduleDialog({
         specific_time: f.specific_time || null,
         is_active: f.is_active ?? true,
       };
+      const table = supabase.from("care_schedules" as never) as unknown as {
+        update: (p: unknown) => { eq: (k: string, v: string) => Promise<{ error: unknown }> };
+        insert: (p: unknown) => Promise<{ error: unknown }>;
+      };
       if (f.id) {
-        const { error } = await supabase.from("care_schedules" as never).update(payload).eq("id", f.id);
+        const { error } = await table.update(payload).eq("id", f.id);
         if (error) throw error;
       } else {
         const { data: u } = await supabase.auth.getUser();
-        const { error } = await supabase.from("care_schedules" as never).insert({ ...payload, created_by: u.user?.id });
+        const { error } = await table.insert({ ...payload, created_by: u.user?.id });
         if (error) throw error;
       }
     },
