@@ -378,6 +378,26 @@ ${sanitise(data.transcript).slice(0,18000)}
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes("429")) throw new Error("AI rate limit reached. Try again shortly.");
       if (msg.includes("402")) throw new Error("AI credits exhausted. Add credits to continue.");
-      throw e;
+      // Schema/parse failure (e.g. "No object generated"): fall back to plain-text summary
+      // so the call and transcript are never lost.
+      try {
+        const fallback = await aiText(
+          `${sys}\n\nReply with a short plain-English summary (3-6 sentences). UK English. Do not invent facts.`,
+          prompt,
+          key,
+        );
+        return {
+          reason: data.reason?.slice(0, 200) || `Call with ${data.contactName}`,
+          summary: fallback.slice(0, 1200) || "Call recorded — summary unavailable, please review transcript.",
+          outcome: "",
+          participants: [data.contactName],
+          sentiment: "neutral" as const,
+          requires_follow_up: false,
+          actions: [],
+          escalate: false,
+        };
+      } catch {
+        throw e;
+      }
     }
   });
