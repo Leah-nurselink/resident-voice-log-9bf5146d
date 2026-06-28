@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { SessionRecorder, type StructuredNote } from "@/components/SessionRecorder";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { ResidentTimeline } from "@/components/ResidentTimeline";
+import { ResidentIntelligence } from "@/components/ResidentIntelligence";
 import { WoundsTab } from "@/components/WoundsTab";
 import { PersonalInfoTab } from "@/components/PersonalInfoTab";
 import { Button } from "@/components/ui/button";
@@ -167,8 +168,9 @@ function ResidentDetail() {
         )}
       </div>
 
-      <Tabs defaultValue="timeline" className="mt-4">
-        <TabsList className="grid w-full grid-cols-8">
+      <Tabs defaultValue="intel" className="mt-4">
+        <TabsList className="grid w-full grid-cols-9">
+          <TabsTrigger value="intel" className="text-xs px-1">AI</TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs px-1">Story</TabsTrigger>
           <TabsTrigger value="notes" className="text-xs px-1">Notes</TabsTrigger>
           <TabsTrigger value="profile" className="text-xs px-1">Profile</TabsTrigger>
@@ -178,6 +180,10 @@ function ResidentDetail() {
           <TabsTrigger value="consent" className="text-xs px-1">Consent</TabsTrigger>
           <TabsTrigger value="mca" className="text-xs px-1">MCA</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="intel" className="mt-4">
+          <ResidentIntelligence residentId={id} />
+        </TabsContent>
 
         <TabsContent value="timeline" className="mt-4">
           <ResidentTimeline residentId={id} />
