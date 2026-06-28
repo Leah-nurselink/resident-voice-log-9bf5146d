@@ -8,6 +8,7 @@ import { ResidentTimeline } from "@/components/ResidentTimeline";
 import { ResidentIntelligence } from "@/components/ResidentIntelligence";
 import { WoundsTab } from "@/components/WoundsTab";
 import { PersonalInfoTab } from "@/components/PersonalInfoTab";
+import { PainTab } from "@/components/PainTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
