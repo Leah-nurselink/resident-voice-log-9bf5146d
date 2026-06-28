@@ -158,6 +158,8 @@ export function CallRecorder({
   const [transcript, setTranscript] = useState("");
   const [summary, setSummary] = useState<CallSummary | null>(null);
   const [editedSummary, setEditedSummary] = useState("");
+  const [editedOutcome, setEditedOutcome] = useState("");
+  const [callStatus, setCallStatus] = useState<"answered" | "voicemail" | "no_answer" | "engaged" | "wrong_number">("answered");
   const [saving, setSaving] = useState(false);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -191,6 +193,8 @@ export function CallRecorder({
     setTranscript("");
     setSummary(null);
     setEditedSummary("");
+    setEditedOutcome("");
+    setCallStatus("answered");
     setSaving(false);
   }
 
@@ -276,6 +280,7 @@ export function CallRecorder({
       });
       setSummary(s as CallSummary);
       setEditedSummary((s as CallSummary).summary);
+      setEditedOutcome((s as CallSummary).outcome ?? "");
       setPhase("review");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't process call");
@@ -296,15 +301,17 @@ export function CallRecorder({
       const subject =
         summary.reason || `Call with ${contact.name} re: ${residentName}`;
 
+      const statusLabel = callStatus.replace(/_/g, " ");
       const body = [
         `Date: ${new Date().toLocaleString("en-GB")}`,
+        `Call status: ${statusLabel}`,
         `Participants: ${(summary.participants?.length ? summary.participants : [contact.name]).join(", ")}`,
         `Reason: ${summary.reason || reason || "(not stated)"}`,
         "",
         "Discussion summary:",
         editedSummary,
         "",
-        `Outcome: ${summary.outcome || "(none)"}`,
+        `Outcome: ${editedOutcome || "(none)"}`,
       ].join("\n");
 
       const { data: ins, error } = await supabase
@@ -330,7 +337,8 @@ export function CallRecorder({
             contact_phone: contact.phone ?? null,
             duration_sec: elapsed,
             sentiment: summary.sentiment,
-            outcome: summary.outcome,
+            outcome: editedOutcome,
+            call_status: callStatus,
             reason: summary.reason || reason || null,
             requires_follow_up: summary.requires_follow_up,
           },
@@ -360,7 +368,7 @@ export function CallRecorder({
       await supabase.from("daily_notes").insert({
         resident_id: residentId,
         author_id: userId,
-        content: `Telephone call · ${contact.name} (${contact.role})\n\n${editedSummary}\n\nOutcome: ${summary.outcome || "(none)"}`,
+        content: `Telephone call · ${contact.name} (${contact.role}) · ${callStatus.replace(/_/g, " ")}\n\n${editedSummary}\n\nOutcome: ${editedOutcome || "(none)"}`,
         status: "approved",
         source: "voice",
       } as never);
@@ -371,7 +379,7 @@ export function CallRecorder({
           kind: "communication_escalation",
           severity: "high",
           title: `Escalation from call with ${contact.name}`,
-          message: summary.outcome || summary.summary.slice(0, 280),
+          message: editedOutcome || summary.summary.slice(0, 280),
           status: "open",
         } as never);
       }
@@ -512,7 +520,38 @@ export function CallRecorder({
                 value={editedSummary}
                 onChange={(e) => setEditedSummary(e.target.value)}
               />
-              <p className="mt-2 text-xs"><span className="font-medium">Outcome: </span>{summary.outcome || "(none)"}</p>
+            </div>
+
+            <div className="rounded-lg border bg-card p-3 space-y-2">
+              <p className="text-sm font-medium">Call outcome</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Call status</Label>
+                  <Select value={callStatus} onValueChange={(v) => setCallStatus(v as typeof callStatus)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="answered">Answered</SelectItem>
+                      <SelectItem value="voicemail">Voicemail left</SelectItem>
+                      <SelectItem value="no_answer">No answer</SelectItem>
+                      <SelectItem value="engaged">Engaged</SelectItem>
+                      <SelectItem value="wrong_number">Wrong number</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Duration</Label>
+                  <Input value={fmt(elapsed)} readOnly className="bg-muted/40" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Outcome / next steps</Label>
+                <Textarea
+                  className="min-h-[70px] text-sm"
+                  value={editedOutcome}
+                  onChange={(e) => setEditedOutcome(e.target.value)}
+                  placeholder="What was agreed, what happens next, who is doing it…"
+                />
+              </div>
             </div>
 
             {summary.escalate && (

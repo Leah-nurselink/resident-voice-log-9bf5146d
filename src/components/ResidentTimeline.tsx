@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   FileText, Sparkles, Shield, Brain, FileSignature, AlertTriangle,
-  Radio, Activity, Heart, Bandage, Telescope, Phone,
+  Radio, Activity, Heart, Bandage, Telescope, Phone, Maximize2,
 } from "lucide-react";
 import { domainLabel, riskLabel, type RiskType, type CarePlanDomain } from "@/lib/care-domains";
 import { analyseResident } from "@/lib/care-intelligence";
@@ -16,6 +19,7 @@ type Event = {
   kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm";
   title: string;
   detail?: string;
+  full?: string;
   meta?: React.ReactNode;
 };
 
@@ -56,7 +60,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         supabase.from("mca_assessments").select("*").eq("resident_id", residentId).order("assessment_date", { ascending: false }).limit(20),
         supabase.from("wounds").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(20),
         supabase.from("alerts").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(20),
-        supabase.from("communications").select("id,channel,direction,subject,ai_summary,recipient_name,sender_name,created_at,metadata").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(30),
+        supabase.from("communications").select("id,channel,direction,subject,body,ai_summary,recipient_name,sender_name,created_at,metadata").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(30),
         supabase.from("daily_notes").select("id,created_at,content,domain,risks,flags").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(400),
         supabase.from("care_plans").select("id,domain,updated_at").eq("resident_id", residentId),
       ]);
@@ -67,6 +71,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
           id: `n-${n.id}`, ts: n.created_at, kind: "note",
           title: n.source === "voice" ? "AI care note" : "Care note",
           detail: n.content,
+          full: n.content,
           meta: (
             <div className="flex flex-wrap gap-1">
               {n.domain && <Badge variant="secondary" className="text-[10px]">{domainLabel(n.domain)}</Badge>}
@@ -130,6 +135,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
           id: `cm-${c.id}`, ts: c.created_at, kind: "comm",
           title: `${chLabel} · ${partner}${role ? " (" + role + ")" : ""}`,
           detail: c.ai_summary ?? c.subject ?? undefined,
+          full: c.body ?? c.ai_summary ?? c.subject ?? undefined,
           meta: (
             <Badge variant="outline" className="text-[10px] capitalize">{c.direction}</Badge>
           ),
@@ -145,6 +151,8 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
       return { events, predictions: ai.predictions };
     },
   });
+
+  const [openEvent, setOpenEvent] = useState<Event | null>(null);
 
   if (!data) return <p className="px-1 text-sm text-muted-foreground">Loading timeline…</p>;
   if (data.events.length === 0 && data.predictions.length === 0)
@@ -213,8 +221,19 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
                     <p className="text-sm font-medium">{e.title}</p>
                     <span className="text-[10px] text-muted-foreground">{format(new Date(e.ts), "HH:mm")}</span>
                   </div>
-                  {e.detail && <p className="mt-1 text-sm text-muted-foreground">{e.detail}</p>}
+                  {e.detail && (
+                    <p className="mt-1 text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">{e.detail}</p>
+                  )}
                   {e.meta && <div className="mt-2">{e.meta}</div>}
+                  {(e.full ?? e.detail) && (
+                    <button
+                      type="button"
+                      onClick={() => setOpenEvent(e)}
+                      className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                    >
+                      <Maximize2 className="h-3 w-3" /> View full
+                    </button>
+                  )}
                 </div>
               </li>
             ))}
@@ -224,6 +243,26 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
       <div className="flex items-center gap-1.5 px-1 pt-2 text-[11px] text-muted-foreground">
         <Sparkles className="h-3 w-3" /> Auto-compiled from notes, sessions, plans, risks, consents & alerts.
       </div>
+
+      <Dialog open={!!openEvent} onOpenChange={(o) => !o && setOpenEvent(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{openEvent?.title}</DialogTitle>
+            {openEvent && (
+              <DialogDescription>
+                {format(new Date(openEvent.ts), "EEEE d MMM yyyy 'at' HH:mm")}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          {openEvent?.meta && <div>{openEvent.meta}</div>}
+          <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">
+            {openEvent?.full ?? openEvent?.detail ?? "No additional detail recorded."}
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setOpenEvent(null)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

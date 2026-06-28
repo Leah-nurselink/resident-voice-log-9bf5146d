@@ -21,6 +21,12 @@ export const RESIDENCY_OPTIONS = ["Permanent", "Respite", "Day care", "Trial sta
 export const ADMISSION_TYPE = ["Self-funded", "Local authority", "NHS CHC", "Joint funded", "Section 117"];
 export const GENDER_OPTIONS = ["Female", "Male", "Non-binary", "Prefer not to say", "Other"];
 
+function isValidPhone(v?: string | null): boolean {
+  if (!v) return true; // empty allowed
+  const cleaned = v.replace(/[\s\-()]/g, "");
+  return /^\+?[0-9]{7,15}$/.test(cleaned);
+}
+
 type Props = { resident: any };
 
 export function PersonalInfoTab({ resident }: Props) {
@@ -135,7 +141,20 @@ export function PersonalInfoTab({ resident }: Props) {
         <Grid>
           <Field label="Next of kin name"><Input value={form.next_of_kin ?? ""} onChange={(e) => set("next_of_kin", e.target.value)} /></Field>
           <Field label="Relationship"><Input value={form.next_of_kin_relationship ?? ""} onChange={(e) => set("next_of_kin_relationship", e.target.value)} placeholder="Daughter, Son, Spouse..." /></Field>
-          <Field label="Next of kin telephone"><Input type="tel" value={form.next_of_kin_phone ?? ""} onChange={(e) => set("next_of_kin_phone", e.target.value)} placeholder="07..." /></Field>
+          <Field label="Next of kin telephone">
+            <Input
+              type="tel"
+              inputMode="tel"
+              value={form.next_of_kin_phone ?? ""}
+              onChange={(e) => set("next_of_kin_phone", e.target.value)}
+              placeholder="07123 456789 or +44 7123 456789"
+              aria-invalid={!isValidPhone(form.next_of_kin_phone)}
+              className={!isValidPhone(form.next_of_kin_phone) ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {!isValidPhone(form.next_of_kin_phone) && (
+              <p className="text-[11px] text-destructive">Enter a valid UK or international phone number (digits, spaces, + and -).</p>
+            )}
+          </Field>
         </Grid>
       </Section>
 
@@ -176,7 +195,17 @@ export function PersonalInfoTab({ resident }: Props) {
 
 
       <div className="sticky bottom-2 flex justify-end">
-        <Button onClick={() => save.mutate()} disabled={save.isPending} className="shadow-elevated">
+        <Button
+          onClick={() => {
+            if (!isValidPhone(form.next_of_kin_phone)) {
+              toast.error("Next of kin telephone is not valid");
+              return;
+            }
+            save.mutate();
+          }}
+          disabled={save.isPending}
+          className="shadow-elevated"
+        >
           <Save className="mr-1 h-4 w-4" /> Save changes
         </Button>
       </div>
