@@ -73,6 +73,9 @@ export function SessionRecorder({
         transcript,
         transcriptConfidence: confidence,
         audioQuality: audio?.avgQuality,
+        signal: audio?.avgSignal,
+        noise: audio?.avgNoise,
+        durationSec: audio?.durationSec,
         segments: audio?.segments.map((s) => ({ start: s.start, end: s.end, speakerTag: s.speakerTag })),
       });
     } catch (e) {
