@@ -26,7 +26,8 @@ import {
 import { useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
-import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature } from "lucide-react";
+import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone } from "lucide-react";
+import { CallRecorder } from "@/components/CallRecorder";
 
 export const Route = createFileRoute("/_authenticated/residents/$id")({
   head: () => ({ meta: [{ title: "Resident · ForgeAI" }] }),
@@ -141,6 +142,7 @@ function ResidentDetail() {
   const [newConsent, setNewConsent] = useState(false);
   const [editMca, setEditMca] = useState<any | null>(null);
   const [newMca, setNewMca] = useState(false);
+  const [callOpen, setCallOpen] = useState(false);
 
   if (!resident.data) return <AppShell title="Loading…"><div /></AppShell>;
   const r = resident.data;
@@ -157,7 +159,11 @@ function ResidentDetail() {
               {r.room_number ? `Room ${r.room_number} · ` : ""}{r.date_of_birth ? `DOB ${format(new Date(r.date_of_birth), "d MMM yyyy")}` : "DOB not set"}
             </div>
           </div>
+          <Button size="sm" onClick={() => setCallOpen(true)} className="gap-1.5">
+            <Phone className="h-3.5 w-3.5" /> Call
+          </Button>
         </div>
+        <CallRecorder open={callOpen} onOpenChange={setCallOpen} residentId={id} residentName={r.full_name} />
         {risks.data && risks.data.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {risks.data.map((rk) => (

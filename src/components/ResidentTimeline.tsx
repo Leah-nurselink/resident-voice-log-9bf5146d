@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   FileText, Sparkles, Shield, Brain, FileSignature, AlertTriangle,
-  Radio, Activity, Heart, Bandage, Telescope,
+  Radio, Activity, Heart, Bandage, Telescope, Phone,
 } from "lucide-react";
 import { domainLabel, riskLabel, type RiskType, type CarePlanDomain } from "@/lib/care-domains";
 import { analyseResident } from "@/lib/care-intelligence";
@@ -13,7 +13,7 @@ import { ExplainPopover } from "@/components/ExplainPopover";
 type Event = {
   id: string;
   ts: string;
-  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert";
+  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm";
   title: string;
   detail?: string;
   meta?: React.ReactNode;
@@ -28,6 +28,7 @@ const ICONS: Record<Event["kind"], React.ReactNode> = {
   mca: <Brain className="h-3.5 w-3.5" />,
   wound: <Bandage className="h-3.5 w-3.5" />,
   alert: <AlertTriangle className="h-3.5 w-3.5" />,
+  comm: <Phone className="h-3.5 w-3.5" />,
 };
 
 const TONES: Record<Event["kind"], string> = {
@@ -39,13 +40,14 @@ const TONES: Record<Event["kind"], string> = {
   mca: "bg-violet-500/15 text-violet-600",
   wound: "bg-rose-500/15 text-rose-600",
   alert: "bg-destructive/15 text-destructive",
+  comm: "bg-teal-500/15 text-teal-600",
 };
 
 export function ResidentTimeline({ residentId }: { residentId: string }) {
   const { data } = useQuery({
     queryKey: ["timeline", residentId],
     queryFn: async () => {
-      const [notes, sessions, plans, risks, consents, mca, wounds, alerts, notesAll, plansAll] = await Promise.all([
+      const [notes, sessions, plans, risks, consents, mca, wounds, alerts, comms, notesAll, plansAll] = await Promise.all([
         supabase.from("daily_notes").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(50),
         supabase.from("care_sessions").select("*").eq("resident_id", residentId).order("started_at", { ascending: false }).limit(20),
         supabase.from("care_plan_history").select("*").eq("resident_id", residentId).order("changed_at", { ascending: false }).limit(20),
@@ -54,6 +56,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         supabase.from("mca_assessments").select("*").eq("resident_id", residentId).order("assessment_date", { ascending: false }).limit(20),
         supabase.from("wounds").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(20),
         supabase.from("alerts").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("communications").select("id,channel,direction,subject,ai_summary,recipient_name,sender_name,created_at,metadata").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(30),
         supabase.from("daily_notes").select("id,created_at,content,domain,risks,flags").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(400),
         supabase.from("care_plans").select("id,domain,updated_at").eq("resident_id", residentId),
       ]);
@@ -116,6 +119,22 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         title: a.kind ?? "Alert",
         detail: a.message ?? undefined,
       }));
+      (comms.data ?? []).forEach((c) => {
+        const meta = (c.metadata && typeof c.metadata === "object") ? c.metadata as Record<string, unknown> : {};
+        const role = (meta.contact_role as string | undefined) ?? "";
+        const partner = c.direction === "outbound"
+          ? (c.recipient_name ?? "contact")
+          : (c.sender_name ?? "contact");
+        const chLabel = c.channel === "phone" ? "Telephone call" : c.channel === "email" ? "Email" : c.channel;
+        events.push({
+          id: `cm-${c.id}`, ts: c.created_at, kind: "comm",
+          title: `${chLabel} · ${partner}${role ? " (" + role + ")" : ""}`,
+          detail: c.ai_summary ?? c.subject ?? undefined,
+          meta: (
+            <Badge variant="outline" className="text-[10px] capitalize">{c.direction}</Badge>
+          ),
+        });
+      });
 
       events.sort((a, b) => +new Date(b.ts) - +new Date(a.ts));
       const ai = analyseResident(
