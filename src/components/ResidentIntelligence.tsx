@@ -3,8 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { analyseResident, wellbeingSeries, type Trend } from "@/lib/care-intelligence";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Brain, TrendingDown, TrendingUp, Minus, AlertTriangle, Activity, Sparkles, ShieldAlert, FileText } from "lucide-react";
+import {
+  Brain, TrendingDown, TrendingUp, Minus, AlertTriangle, Activity,
+  Sparkles, ShieldAlert, FileText, Telescope, Stethoscope,
+} from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ExplainPopover } from "@/components/ExplainPopover";
 
 function TrendIcon({ t }: { t: Trend }) {
   if (t === "declining") return <TrendingDown className="h-4 w-4 text-destructive" />;
@@ -66,7 +70,14 @@ export function ResidentIntelligence({ residentId }: { residentId: string }) {
               <TrendIcon t={w.trend} /> <span className="capitalize">{w.label}</span>
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px]"><Sparkles className="mr-1 h-3 w-3" />AI advisory</Badge>
+          <div className="flex flex-col items-end gap-1.5">
+            <Badge variant="outline" className="text-[10px]"><Sparkles className="mr-1 h-3 w-3" />AI advisory</Badge>
+            <ExplainPopover
+              title="Wellbeing score"
+              rationale="Computed from positive/negative tone in recent notes, flagged incidents, and trend vs prior period."
+              evidence={w.evidence}
+            />
+          </div>
         </div>
         <Progress value={w.score} className="mt-3 h-2" />
         <div className="-mx-1 mt-3 h-24">
@@ -87,14 +98,88 @@ export function ResidentIntelligence({ residentId }: { residentId: string }) {
         </div>
       </div>
 
+      {/* Predictions — Looking ahead */}
+      {intel.predictions.length > 0 && (
+        <Section icon={<Telescope className="h-4 w-4" />} title="Looking ahead" subtitle="Forward-looking signals based on recent patterns">
+          <ul className="space-y-2">
+            {intel.predictions.map((p, i) => (
+              <li key={i} className="rounded-xl border bg-card p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{p.title}</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{p.horizon}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant={p.likelihood === "High" ? "destructive" : p.likelihood === "Medium" ? "default" : "outline"} className="text-[10px]">
+                      {p.likelihood} likelihood
+                    </Badge>
+                    <ExplainPopover title={p.title} rationale={p.rationale} evidence={p.evidence} />
+                  </div>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">{p.rationale}</p>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {/* Deterioration signals */}
+      {intel.deterioration.length > 0 && (
+        <Section icon={<Stethoscope className="h-4 w-4" />} title="Deterioration detection" subtitle="Signals that may indicate decline">
+          <ul className="space-y-2">
+            {intel.deterioration.map((d) => (
+              <li key={d.key} className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{d.label}</p>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="outline" className="text-[10px]">Recent {d.recent} · Prior {d.prior}</Badge>
+                    <ExplainPopover title={d.label} rationale={d.message} evidence={d.evidence} />
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{d.message}</p>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
       {/* Recommendations */}
       {intel.recommendations.length > 0 && (
         <Section icon={<Sparkles className="h-4 w-4" />} title="AI Recommendations" subtitle="Advisory — clinician must review">
           <ul className="space-y-2">
             {intel.recommendations.map((r) => (
               <li key={r.id} className={`rounded-xl border p-3 ${SEV[r.severity]}`}>
-                <p className="text-sm font-medium">{r.title}</p>
-                <p className="mt-0.5 text-xs opacity-90">{r.detail}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{r.title}</p>
+                    <p className="mt-0.5 text-xs opacity-90">{r.detail}</p>
+                  </div>
+                  <ExplainPopover title={r.title} rationale={r.detail} evidence={r.evidence} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {/* Care plan gaps */}
+      {intel.careGaps.length > 0 && (
+        <Section icon={<FileText className="h-4 w-4" />} title="Care Plan Assistant — Gaps" subtitle="Mismatches between observed needs and active plans">
+          <ul className="space-y-2">
+            {intel.careGaps.map((g, i) => (
+              <li key={i} className="rounded-xl border bg-card p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium capitalize">{g.domain}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{g.message}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="outline" className="text-[10px]">
+                      {g.kind === "missing_plan" ? "Missing plan" : "Stale plan"}
+                    </Badge>
+                    <ExplainPopover title={`${g.domain} gap`} rationale={g.message} evidence={g.evidence} />
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
@@ -109,9 +194,12 @@ export function ResidentIntelligence({ residentId }: { residentId: string }) {
               <li key={r.key} className="rounded-xl border bg-card p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">{r.label}</p>
-                  <Badge variant={r.confidence === "High" ? "destructive" : r.confidence === "Medium" ? "default" : "outline"} className="text-[10px]">
-                    Confidence: {r.confidence}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant={r.confidence === "High" ? "destructive" : r.confidence === "Medium" ? "default" : "outline"} className="text-[10px]">
+                      Confidence: {r.confidence}
+                    </Badge>
+                    <ExplainPopover title={r.label} rationale={r.recommendation} evidence={r.evidence} />
+                  </div>
                 </div>
                 <Progress value={r.score * 100} className="mt-2 h-1.5" />
                 <p className="mt-1.5 text-xs text-muted-foreground">{r.recommendation}</p>
@@ -130,7 +218,10 @@ export function ResidentIntelligence({ residentId }: { residentId: string }) {
               <li key={d.key} className="flex items-start gap-2 rounded-xl border bg-card p-3">
                 <TrendIcon t={d.trend} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium capitalize">{d.label}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium capitalize">{d.label}</p>
+                    <ExplainPopover title={d.label} rationale={d.message} evidence={d.evidence} />
+                  </div>
                   <p className="text-xs text-muted-foreground">{d.message}</p>
                   <p className="mt-0.5 text-[10px] text-muted-foreground">Recent: {d.recent} · Prior: {d.prior}</p>
                 </div>
@@ -146,8 +237,13 @@ export function ResidentIntelligence({ residentId }: { residentId: string }) {
           <ul className="space-y-2">
             {intel.planReviews.map((p, i) => (
               <li key={i} className="rounded-xl border bg-card p-3">
-                <p className="text-sm font-medium capitalize">{p.domain}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{p.reason}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium capitalize">{p.domain}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{p.reason}</p>
+                  </div>
+                  <ExplainPopover title={p.domain} rationale={p.reason} evidence={p.evidence} />
+                </div>
               </li>
             ))}
           </ul>
@@ -161,7 +257,10 @@ export function ResidentIntelligence({ residentId }: { residentId: string }) {
             {intel.safeguarding.map((s) => (
               <li key={s.signal} className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 p-3">
                 <p className="text-sm font-medium text-destructive">{s.signal}</p>
-                <Badge variant="destructive" className="text-[10px]">{s.count} signals</Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="destructive" className="text-[10px]">{s.count} signals</Badge>
+                  <ExplainPopover title={s.signal} rationale="Repeated language patterns or flags in recent records." evidence={s.evidence} />
+                </div>
               </li>
             ))}
           </ul>
