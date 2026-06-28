@@ -45,7 +45,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
   const { data } = useQuery({
     queryKey: ["timeline", residentId],
     queryFn: async () => {
-      const [notes, sessions, plans, risks, consents, mca, wounds, alerts] = await Promise.all([
+      const [notes, sessions, plans, risks, consents, mca, wounds, alerts, planList, riskList] = await Promise.all([
         supabase.from("daily_notes").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(50),
         supabase.from("care_sessions").select("*").eq("resident_id", residentId).order("started_at", { ascending: false }).limit(20),
         supabase.from("care_plan_history").select("*").eq("resident_id", residentId).order("changed_at", { ascending: false }).limit(20),
@@ -54,6 +54,8 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         supabase.from("mca_assessments").select("*").eq("resident_id", residentId).order("assessment_date", { ascending: false }).limit(20),
         supabase.from("wounds").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(20),
         supabase.from("alerts").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("daily_notes").select("id,created_at,content,domain,risks,flags").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(400),
+        supabase.from("care_plans").select("id,domain,updated_at").eq("resident_id", residentId),
       ]);
 
       const events: Event[] = [];
