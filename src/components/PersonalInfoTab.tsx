@@ -131,6 +131,42 @@ export function PersonalInfoTab({ resident }: Props) {
         <Field label="Communication needs"><Textarea rows={2} value={form.communication_needs ?? ""} onChange={(e) => set("communication_needs", e.target.value)} placeholder="Hearing aid, glasses, language..." /></Field>
       </Section>
 
+      <Section title="Recording & transcription consent" icon={Mic}>
+        <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 p-3">
+          <div className="space-y-0.5">
+            <Label className="text-sm">Allow voice recording & AI transcription</Label>
+            <p className="text-xs text-muted-foreground">
+              When off, staff cannot record calls or voice notes for this resident.
+            </p>
+          </div>
+          <Switch
+            checked={form.transcription_enabled ?? true}
+            onCheckedChange={(v) => set("transcription_enabled", v)}
+          />
+        </div>
+        <div className="flex items-start justify-between gap-3 rounded-lg border p-3">
+          <div className="space-y-0.5">
+            <Label className="text-sm">Standing consent recorded</Label>
+            <p className="text-xs text-muted-foreground">
+              Resident (or appropriate representative) has consented to calls being recorded, transcribed and stored in the care record.
+            </p>
+          </div>
+          <Switch
+            checked={form.recording_consent ?? false}
+            onCheckedChange={(v) => set("recording_consent", v)}
+          />
+        </div>
+        <Grid>
+          <Field label="Consent date">
+            <Input type="date" value={form.recording_consent_date ?? ""} onChange={(e) => set("recording_consent_date", e.target.value)} />
+          </Field>
+        </Grid>
+        <Field label="Consent notes (who gave consent, capacity, scope)">
+          <Textarea rows={2} value={form.recording_consent_notes ?? ""} onChange={(e) => set("recording_consent_notes", e.target.value)} />
+        </Field>
+      </Section>
+
+
       <div className="sticky bottom-2 flex justify-end">
         <Button onClick={() => save.mutate()} disabled={save.isPending} className="shadow-elevated">
           <Save className="mr-1 h-4 w-4" /> Save changes
