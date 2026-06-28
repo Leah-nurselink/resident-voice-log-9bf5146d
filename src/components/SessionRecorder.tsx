@@ -18,6 +18,9 @@ export type StructuredNote = {
   transcript: string;
   transcriptConfidence?: number;
   audioQuality?: number;
+  signal?: number;
+  noise?: number;
+  durationSec?: number;
   segments?: { start: number; end: number; speakerTag: string }[];
 };
 
