@@ -325,6 +325,7 @@ function AnalyticsPage() {
           <TabsList className="flex flex-wrap">
             <TabsTrigger value="operations"><Activity className="mr-1 h-4 w-4" />Care operations</TabsTrigger>
             <TabsTrigger value="time"><Clock className="mr-1 h-4 w-4" />Time on care</TabsTrigger>
+            <TabsTrigger value="audio"><AudioLines className="mr-1 h-4 w-4" />Audio quality</TabsTrigger>
             <TabsTrigger value="compliance"><ShieldCheck className="mr-1 h-4 w-4" />Compliance & CQC</TabsTrigger>
             <TabsTrigger value="resident"><Stethoscope className="mr-1 h-4 w-4" />Resident-level</TabsTrigger>
             <TabsTrigger value="staff"><Sparkles className="mr-1 h-4 w-4" />Staff & workload</TabsTrigger>
