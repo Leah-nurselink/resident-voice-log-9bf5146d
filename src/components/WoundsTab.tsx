@@ -9,9 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Activity, Plus, Ruler, ChevronRight } from "lucide-react";
+import { Activity, Plus, Ruler, ChevronRight, Camera, X, ImageIcon } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { useEffect, useRef } from "react";
 
 const STATUS_COLOR: Record<string, string> = {
   open: "bg-destructive/15 text-destructive border-destructive/30 border",
