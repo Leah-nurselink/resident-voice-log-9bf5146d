@@ -135,6 +135,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
           id: `cm-${c.id}`, ts: c.created_at, kind: "comm",
           title: `${chLabel} · ${partner}${role ? " (" + role + ")" : ""}`,
           detail: c.ai_summary ?? c.subject ?? undefined,
+          full: c.body ?? c.ai_summary ?? c.subject ?? undefined,
           meta: (
             <Badge variant="outline" className="text-[10px] capitalize">{c.direction}</Badge>
           ),
