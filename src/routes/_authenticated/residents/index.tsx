@@ -106,7 +106,7 @@ function ResidentsList() {
               const risks = (r.risk_assessments as { level: string }[] | null) ?? [];
               const hasHigh = risks.some((x) => x.level === "high");
               const hasMed = risks.some((x) => x.level === "medium");
-              const initials = r.full_name
+              const initials = (r.full_name ?? "?")
                 .split(" ")
                 .map((s) => s[0])
                 .slice(0, 2)
