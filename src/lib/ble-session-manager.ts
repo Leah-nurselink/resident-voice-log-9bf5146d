@@ -123,7 +123,7 @@ async function reloadRegistered() {
   const { data, error } = await supabase
     .from("devices")
     .select(
-      "id, device_type, label, beacon_protocol, beacon_uuid, beacon_major, beacon_minor, ble_identifier, rssi_threshold, session_timeout_seconds, room_id, resident_id, staff_user_id",
+      "id, device_type, label, beacon_protocol, beacon_uuid, beacon_major, beacon_minor, ble_identifier, rssi_threshold, session_timeout_seconds, room_id, resident_id, staff_user_id, ambiguity_strategy",
     )
     .eq("status", "active");
   if (error) {
