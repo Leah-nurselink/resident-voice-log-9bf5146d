@@ -174,11 +174,13 @@ function record(partial: Omit<BeaconObservation, "firstSeen" | "lastSeen" | "hit
   } else {
     observations.set(partial.key, {
       ...partial,
+      simulated: partial.simulated ?? false,
       firstSeen: now,
       lastSeen: now,
       hits: 1,
     });
   }
+
 }
 
 function handleAdvertisement(e: any) {
