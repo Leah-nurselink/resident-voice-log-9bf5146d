@@ -553,3 +553,87 @@ export async function endTriggerManually(deviceId: string) {
   }
   emit();
 }
+
+// Resolve a pending decision created by the `prompt` ambiguity strategy.
+// Either picks the resident the session is for, or dismisses the prompt.
+export async function resolvePendingDecision(
+  pendingId: string,
+  pick: { residentId: string } | { dismiss: true },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: pending, error: loadErr } = await supabase
+    .from("pending_session_decisions" as any)
+    .select("id, triggering_device_id, room_id, candidate_resident_ids, rssi, status")
+    .eq("id", pendingId)
+    .maybeSingle();
+  if (loadErr || !pending) return { ok: false, error: loadErr?.message ?? "Not found" };
+  const p = pending as any;
+  if (p.status !== "pending") return { ok: false, error: `Already ${p.status}` };
+
+  const { data: u } = await supabase.auth.getUser();
+
+  if ("dismiss" in pick) {
+    await supabase
+      .from("pending_session_decisions" as any)
+      .update({
+        status: "dismissed",
+        resolved_by: u?.user?.id ?? null,
+        resolved_at: new Date().toISOString(),
+      })
+      .eq("id", pendingId);
+    emit();
+    return { ok: true };
+  }
+
+  const residentId = pick.residentId;
+  if (!(p.candidate_resident_ids as string[]).includes(residentId)) {
+    return { ok: false, error: "Resident not in candidates" };
+  }
+  const device = registered.find((d) => d.id === p.triggering_device_id);
+  if (!device) return { ok: false, error: "Triggering device no longer registered" };
+
+  const obs: BeaconObservation = {
+    key: keyForDevice(device),
+    protocol: device.beacon_protocol,
+    uuid: device.beacon_uuid,
+    major: device.beacon_major,
+    minor: device.beacon_minor,
+    mac: null,
+    rssi: p.rssi ?? device.rssi_threshold,
+    txPower: null,
+    name: device.label,
+    firstSeen: new Date().toISOString(),
+    lastSeen: new Date().toISOString(),
+    count: 1,
+  };
+  const sessionId = await openSession(
+    residentId,
+    p.room_id,
+    u?.user?.id ?? null,
+    device,
+    obs,
+    "manual_resolution",
+  );
+  sessions.set(residentId, {
+    deviceId: device.id,
+    sessionId,
+    residentId,
+    roomId: p.room_id,
+    staffUserId: u?.user?.id ?? null,
+    rule: "manual_resolution",
+    lastRssi: obs.rssi,
+    lastSeen: obs.lastSeen,
+    startedAt: new Date().toISOString(),
+  });
+  await supabase
+    .from("pending_session_decisions" as any)
+    .update({
+      status: "resolved",
+      resolved_resident_id: residentId,
+      resolved_session_id: sessionId,
+      resolved_by: u?.user?.id ?? null,
+      resolved_at: new Date().toISOString(),
+    })
+    .eq("id", pendingId);
+  emit();
+  return { ok: true };
+}
