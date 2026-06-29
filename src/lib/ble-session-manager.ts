@@ -341,12 +341,13 @@ async function tick() {
     if (occupantAlreadyIdentified) continue;
 
     if (occupants.length === 0) {
-      // Room with no assigned resident — log occasionally.
+      // Room with no assigned resident — log occasionally regardless of strategy.
       await logAmbiguity(device.id, roomId, []);
       continue;
     }
     if (occupants.length > 1) {
-      await logAmbiguity(device.id, roomId, occupants);
+      // Multi-occupant room: apply the admin-chosen strategy.
+      await handleAmbiguousRoom(device, obs, roomId, occupants, strongestBadge, refreshed);
       continue;
     }
     const residentId = occupants[0];
