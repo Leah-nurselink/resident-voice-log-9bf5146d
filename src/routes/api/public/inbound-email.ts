@@ -112,7 +112,10 @@ export const Route = createFileRoute("/api/public/inbound-email")({
             in_reply_to: p.in_reply_to ?? null,
             received_at: new Date().toISOString(),
           } as never).select("id").single();
-        if (ce) return new Response(`DB error: ${ce.message}`, { status: 500 });
+        if (ce) {
+          console.error("[inbound-email] DB insert failed", ce);
+          return new Response("Internal server error", { status: 500 });
+        }
         const commId = (commIns as { id: string }).id;
 
         // Extract tasks via Lovable AI (best effort, non-blocking on failure)
