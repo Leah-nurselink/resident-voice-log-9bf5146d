@@ -120,6 +120,7 @@ function DevicesPage() {
   const [residents, setResidents] = useState<Resident[]>([]);
   const [staff, setStaff] = useState<StaffProfile[]>([]);
   const [observations, setObservations] = useState<BeaconObservation[]>([]);
+  const [pending, setPending] = useState<PendingDecision[]>([]);
   const [scannerStatus, setScannerStatus] = useState<ScannerStatus>({
     running: false,
     mode: isLEScanAvailable() ? "native" : "unavailable",
