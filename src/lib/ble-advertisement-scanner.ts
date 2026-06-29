@@ -39,10 +39,13 @@ export interface BeaconObservation {
   txPower: number | null;
   /** Friendly name from the GAP local-name field, when present. */
   name: string | null;
+  /** True when this observation was produced by the simulator (no real radio). */
+  simulated: boolean;
   firstSeen: string;
   lastSeen: string;
   hits: number;
 }
+
 
 type Listener = (obs: BeaconObservation[]) => void;
 
