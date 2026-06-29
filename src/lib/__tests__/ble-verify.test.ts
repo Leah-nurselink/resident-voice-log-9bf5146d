@@ -44,15 +44,13 @@ describe("createVerifyTracker", () => {
     expect(s.verified).toBe(true);
   });
 
-  it("ignores observations weaker than the threshold", () => {
+  it("counts hits regardless of RSSI (threshold gates sessions, not verification)", () => {
     const t = createVerifyTracker({ expectedKey: KEY, threshold: -70, now: () => 0 });
-    const s1 = t.observe([obs({ lastSeen: "t1", rssi: -85 })]);
-    const s2 = t.observe([obs({ lastSeen: "t2", rssi: -80 })]);
-    const s3 = t.observe([obs({ lastSeen: "t3", rssi: -78 })]);
-    expect(s1.hits).toBe(0);
-    expect(s2.hits).toBe(0);
-    expect(s3.hits).toBe(0);
-    expect(s3.verified).toBe(false);
+    t.observe([obs({ lastSeen: "t1", rssi: -85 })]);
+    t.observe([obs({ lastSeen: "t2", rssi: -80 })]);
+    const s = t.observe([obs({ lastSeen: "t3", rssi: -78 })]);
+    expect(s.hits).toBe(3);
+    expect(s.verified).toBe(true);
   });
 
   it("does not double-count repeated observations with the same lastSeen", () => {
