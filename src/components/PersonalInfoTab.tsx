@@ -35,6 +35,29 @@ export function PersonalInfoTab({ resident }: Props) {
 
   useEffect(() => setForm(resident), [resident.id]);
 
+  const rooms = useQuery({
+    queryKey: ["rooms"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rooms").select("id, name, floor").order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const createRoom = useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await supabase.from("rooms").insert({ name }).select("id, name, floor").single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (row) => {
+      qc.invalidateQueries({ queryKey: ["rooms"] });
+      set("room_number", row.name);
+      toast.success(`Room ${row.name} created and assigned`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to create room"),
+  });
+
   const save = useMutation({
     mutationFn: async () => {
       const { id, created_at, updated_at, ...patch } = form;
