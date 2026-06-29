@@ -1,16 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Battery,
-  BatteryLow,
   Bluetooth,
   BluetoothSearching,
   CheckCircle2,
-  Plus,
+  IdCard,
+  Pause,
+  Play,
   Radio,
   Tag,
-  IdCard,
-  Sparkles,
+  Trash2,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,15 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -35,27 +27,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  clearObservations,
+  getNearby,
+  isLEScanAvailable,
   isWebBluetoothAvailable,
-  recordScanEvents,
-  scanOnce,
-  type ScanHit,
-} from "@/lib/ble-scanner";
-import { inferInteraction, startCareSessionIfConfident } from "@/lib/confidence-engine";
+  startScanner,
+  stopScanner,
+  subscribe as subscribeObservations,
+  subscribeStatus,
+  type BeaconObservation,
+  type ScannerStatus,
+} from "@/lib/ble-advertisement-scanner";
 import {
-  startAutoConnect,
-  stopAutoConnect,
-  subscribeAutoConnect,
-  type AutoConnectStatus,
-} from "@/lib/ble-auto-connect";
-import { Switch } from "@/components/ui/switch";
-import { PairDeviceWizard } from "@/components/devices/PairDeviceWizard";
+  endTriggerManually,
+  refreshRegisteredDevices,
+  startSessionManager,
+  stopSessionManager,
+  subscribeSessionManager,
+  type ActiveTrigger,
+  type SessionManagerState,
+} from "@/lib/ble-session-manager";
+import { RegisterBeaconDialog } from "@/components/devices/RegisterBeaconDialog";
 
 export const Route = createFileRoute("/_authenticated/devices")({
-  head: () => ({ meta: [{ title: "Devices · CareCore" }] }),
+  head: () => ({ meta: [{ title: "Nearby Devices · CareCore" }] }),
   component: DevicesPage,
 });
 
@@ -65,17 +63,19 @@ type DeviceRow = {
   label: string;
   ble_identifier: string;
   mac_address: string | null;
-  manufacturer: string | null;
-  model: string | null;
   status: string;
-  battery_level: number | null;
   last_seen_at: string | null;
   last_rssi: number | null;
+  beacon_protocol: "ibeacon" | "eddystone-uid" | "generic";
+  beacon_uuid: string | null;
+  beacon_major: number | null;
+  beacon_minor: number | null;
+  tx_power: number | null;
+  rssi_threshold: number;
+  session_timeout_seconds: number;
   room_id: string | null;
   resident_id: string | null;
   staff_user_id: string | null;
-  paired_at: string | null;
-  notes: string | null;
 };
 
 type Room = { id: string; name: string; floor: string | null };
@@ -83,24 +83,34 @@ type Resident = { id: string; full_name: string };
 type StaffProfile = { id: string; full_name: string | null };
 
 function typeIcon(t: DeviceRow["device_type"]) {
-  if (t === "room_beacon") return Radio;
-  if (t === "wearable_tag") return Tag;
-  return IdCard;
+  return t === "room_beacon" ? Radio : t === "wearable_tag" ? Tag : IdCard;
 }
 
 function typeLabel(t: DeviceRow["device_type"]) {
-  return t === "room_beacon" ? "Room beacon" : t === "wearable_tag" ? "Wearable tag" : "Staff badge";
+  return t === "room_beacon" ? "Room" : t === "wearable_tag" ? "Wearable" : "Staff badge";
 }
 
 function relTime(iso: string | null) {
   if (!iso) return "never";
   const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.round(diff / 60_000);
-  if (m < 1) return "just now";
+  const s = Math.round(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.round(s / 60);
   if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.round(h / 24)}d ago`;
+  return `${Math.round(m / 60)}h ago`;
+}
+
+function rssiBar(rssi: number) {
+  // Map -100..-30 dBm to 0..100%.
+  const pct = Math.max(0, Math.min(100, ((rssi + 100) / 70) * 100));
+  return Math.round(pct);
+}
+
+function deviceKey(d: DeviceRow): string {
+  if (d.beacon_protocol === "ibeacon" && d.beacon_uuid) {
+    return `ibeacon:${d.beacon_uuid}:${d.beacon_major ?? 0}:${d.beacon_minor ?? 0}`;
+  }
+  return d.ble_identifier;
 }
 
 function DevicesPage() {
@@ -108,190 +118,168 @@ function DevicesPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [residents, setResidents] = useState<Resident[]>([]);
   const [staff, setStaff] = useState<StaffProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [scanning, setScanning] = useState(false);
-  const [lastScan, setLastScan] = useState<ScanHit[]>([]);
-  const [history, setHistory] = useState<
-    { id: string; device_id: string; event_type: string; rssi: number | null; created_at: string }[]
-  >([]);
-  const [guessResult, setGuessResult] = useState<string | null>(null);
-  const [autoStatus, setAutoStatus] = useState<AutoConnectStatus | null>(null);
-
-  useEffect(() => subscribeAutoConnect(setAutoStatus), []);
-
-  const toggleAutoConnect = async (on: boolean) => {
-    if (on) {
-      await startAutoConnect();
-      toast.success("Auto-connect on — paired devices will reconnect automatically");
-    } else {
-      stopAutoConnect();
-      toast.message("Auto-connect off");
-    }
-  };
+  const [observations, setObservations] = useState<BeaconObservation[]>([]);
+  const [scannerStatus, setScannerStatus] = useState<ScannerStatus>({
+    running: false,
+    mode: isLEScanAvailable() ? "native" : "unavailable",
+  });
+  const [sessionState, setSessionState] = useState<SessionManagerState>({
+    running: false,
+    registeredCount: 0,
+    activeSessions: [],
+    lastTickAt: null,
+  });
 
   const load = async () => {
-    setLoading(true);
-    const [d, r, res, p, ev] = await Promise.all([
+    const [d, r, res, p] = await Promise.all([
       supabase
         .from("devices")
         .select(
-          "id, device_type, label, ble_identifier, mac_address, manufacturer, model, status, battery_level, last_seen_at, last_rssi, room_id, resident_id, staff_user_id, paired_at, notes",
+          "id, device_type, label, ble_identifier, mac_address, status, last_seen_at, last_rssi, beacon_protocol, beacon_uuid, beacon_major, beacon_minor, tx_power, rssi_threshold, session_timeout_seconds, room_id, resident_id, staff_user_id",
         )
         .order("device_type"),
       supabase.from("rooms").select("id, name, floor").order("name"),
       supabase.from("residents").select("id, full_name").order("full_name"),
       supabase.from("profiles").select("id, full_name").order("full_name"),
-      supabase
-        .from("device_events")
-        .select("id, device_id, event_type, rssi, created_at")
-        .order("created_at", { ascending: false })
-        .limit(50),
     ]);
     setDevices((d.data ?? []) as DeviceRow[]);
     setRooms((r.data ?? []) as Room[]);
     setResidents((res.data ?? []) as Resident[]);
     setStaff((p.data ?? []) as StaffProfile[]);
-    setHistory(ev.data ?? []);
-    setLoading(false);
   };
 
   useEffect(() => {
     void load();
   }, []);
 
-  const beacons = devices.filter((d) => d.device_type === "room_beacon");
-  const wearables = devices.filter((d) => d.device_type === "wearable_tag");
-  const badges = devices.filter((d) => d.device_type === "staff_badge");
+  useEffect(() => subscribeObservations(setObservations), []);
+  useEffect(() => subscribeStatus(setScannerStatus), []);
+  useEffect(() => subscribeSessionManager(setSessionState), []);
 
-  const lowBattery = devices.filter((d) => (d.battery_level ?? 100) < 20).length;
-  const online = devices.filter(
-    (d) => d.last_seen_at && Date.now() - new Date(d.last_seen_at).getTime() < 10 * 60_000,
-  ).length;
-
-  const residentName = (id: string | null) => {
-    if (!id) return "—";
-    const r = residents.find((x) => x.id === id);
-    return r ? r.full_name : "—";
+  const toggleScanner = async () => {
+    if (scannerStatus.running) {
+      stopScanner();
+      await stopSessionManager();
+      toast.message("Scanning paused");
+    } else {
+      try {
+        await startScanner();
+        await startSessionManager();
+        toast.success(
+          scannerStatus.mode === "native"
+            ? "Listening for BLE advertisements"
+            : "Scanning in simulator mode — registered beacons will appear",
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to start scanner");
+      }
+    }
   };
-  const roomName = (id: string | null) => rooms.find((x) => x.id === id)?.name ?? "—";
+
+  const residentName = (id: string | null) =>
+    id ? (residents.find((x) => x.id === id)?.full_name ?? "—") : "—";
+  const roomName = (id: string | null) =>
+    id ? (rooms.find((x) => x.id === id)?.name ?? "—") : "—";
   const staffName = (id: string | null) =>
-    staff.find((x) => x.id === id)?.full_name ?? (id ? "Staff" : "—");
+    id ? (staff.find((x) => x.id === id)?.full_name ?? "Staff") : "—";
 
-  const runScan = async () => {
-    if (devices.length === 0) {
-      toast.error("No devices paired yet", {
-        description: "Use 'Pair device' to register a beacon, wearable or staff badge first.",
-      });
-      return;
-    }
-    setScanning(true);
-    setGuessResult(null);
-    try {
-      const hits = await scanOnce();
-      setLastScan(hits);
-      if (hits.length === 0) {
-        setGuessResult("Scan complete — no devices in range");
-        toast.message("Scan finished", { description: "No devices detected in range." });
-        return;
-      }
-      await recordScanEvents(hits);
-      toast.success(`Detected ${hits.length} device${hits.length === 1 ? "" : "s"}`);
-      const { data: u } = await supabase.auth.getUser();
-      const guess = inferInteraction(hits, { signedInStaffUserId: u?.user?.id });
-      const sid = await startCareSessionIfConfident(guess, 0.6);
-      if (sid && guess.residentId) {
-        setGuessResult(
-          `Started care session with ${residentName(guess.residentId)} in ${roomName(guess.roomId)} (confidence ${(guess.confidence * 100).toFixed(0)}%)`,
-        );
-        toast.success("Care session auto-started");
-      } else if (guess.residentId) {
-        setGuessResult(
-          `Best guess: ${residentName(guess.residentId)} — confidence ${(guess.confidence * 100).toFixed(0)}% (below 60% threshold)`,
-        );
-      } else {
-        setGuessResult("No resident interaction detected");
-      }
-      await load();
-    } catch (e) {
-      console.error("Scan failed", e);
-      toast.error(e instanceof Error ? e.message : "Scan failed");
-    } finally {
-      setScanning(false);
-    }
-  };
+  const registeredKeys = useMemo(() => {
+    const m = new Map<string, DeviceRow>();
+    for (const d of devices) m.set(deviceKey(d), d);
+    return m;
+  }, [devices]);
+
+  const nearbyRegistered = observations.filter((o) => registeredKeys.has(o.key));
+  const nearbyUnknown = observations.filter((o) => !registeredKeys.has(o.key));
 
   return (
     <AppShell
-      title="Device Management"
-      subtitle="BLE beacons, wearables and staff badges"
+      title="Nearby Devices"
+      subtitle="Live BLE advertisement scanning — no pairing required"
       action={
         <div className="flex gap-2">
-          <Button onClick={runScan} disabled={scanning} variant="outline">
-            <BluetoothSearching className="h-4 w-4" />
-            {scanning ? "Scanning…" : "Scan now"}
+          <Button onClick={() => clearObservations()} variant="ghost" size="sm">
+            <Trash2 className="h-4 w-4" />
+            Clear list
           </Button>
-          <PairDeviceWizard rooms={rooms} residents={residents} staff={staff} onSaved={load} />
+          <Button onClick={() => void toggleScanner()} variant="outline">
+            {scannerStatus.running ? (
+              <>
+                <Pause className="h-4 w-4" /> Pause scan
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" /> Start scan
+              </>
+            )}
+          </Button>
+          <RegisterBeaconDialog
+            rooms={rooms}
+            residents={residents}
+            staff={staff}
+            onSaved={() => void load()}
+          />
         </div>
       }
     >
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Total devices" value={devices.length} icon={Bluetooth} />
-        <StatCard label="Online (10m)" value={online} icon={CheckCircle2} />
-        <StatCard label="Low battery" value={lowBattery} icon={BatteryLow} />
-        <StatCard label="Last scan hits" value={lastScan.length} icon={Sparkles} />
+        <StatCard
+          label="Scanner"
+          value={scannerStatus.running ? "Running" : "Paused"}
+          icon={scannerStatus.running ? Wifi : WifiOff}
+        />
+        <StatCard label="Nearby beacons" value={observations.length} icon={BluetoothSearching} />
+        <StatCard label="Registered" value={devices.length} icon={Bluetooth} />
+        <StatCard
+          label="Active sessions"
+          value={sessionState.activeSessions.length}
+          icon={CheckCircle2}
+        />
       </div>
 
       {!isWebBluetoothAvailable() && (
         <Card className="mt-4 border-amber-200 bg-amber-50">
           <CardContent className="py-3 text-sm text-amber-900">
-            Web Bluetooth isn't available in this browser — scans run in simulator mode so you can
-            still test the confidence engine and care-session flow.
+            Web Bluetooth isn't available in this browser. Scanning runs in simulator mode so you
+            can still register beacons and exercise the session workflow. For real BLE, open in
+            Chrome / Edge on Android, Windows or macOS over HTTPS.
           </CardContent>
         </Card>
       )}
 
-      <Card className="mt-4">
-        <CardContent className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-start gap-3">
-            <Bluetooth className="mt-0.5 h-5 w-5 text-primary" />
-            <div>
-              <div className="font-medium">Auto-connect</div>
-              <div className="text-sm text-muted-foreground">
-                {autoStatus?.enabled
-                  ? `On · ${autoStatus.mode === "native" ? "live BLE" : autoStatus.mode === "simulator" ? "simulator" : "unavailable"} · ${autoStatus.pairedCount} paired · ${autoStatus.connectedCount} connected${autoStatus.lastTickAt ? ` · last check ${new Date(autoStatus.lastTickAt).toLocaleTimeString()}` : ""}`
-                  : "Reconnect paired beacons, wearables and badges automatically whenever they're in range."}
-              </div>
-              {autoStatus?.lastError && (
-                <div className="mt-1 text-xs text-amber-700">{autoStatus.lastError}</div>
-              )}
-            </div>
-          </div>
-          <Switch
-            checked={!!autoStatus?.enabled}
-            onCheckedChange={(v) => void toggleAutoConnect(v)}
-          />
-        </CardContent>
-      </Card>
-
-      {guessResult && (
-        <Card className="mt-4 border-primary/30">
-          <CardContent className="py-3 text-sm">{guessResult}</CardContent>
+      {isWebBluetoothAvailable() && !isLEScanAvailable() && (
+        <Card className="mt-4 border-amber-200 bg-amber-50">
+          <CardContent className="py-3 text-sm text-amber-900">
+            Passive BLE scanning requires the experimental Web Platform features flag in your
+            browser (chrome://flags/#enable-experimental-web-platform-features). Running in
+            simulator mode for now.
+          </CardContent>
         </Card>
       )}
 
-      <Tabs defaultValue="all" className="mt-6">
+      {scannerStatus.lastError && (
+        <Card className="mt-4 border-destructive/30">
+          <CardContent className="py-3 text-sm text-destructive">
+            Scanner error: {scannerStatus.lastError}
+          </CardContent>
+        </Card>
+      )}
+
+      <Tabs defaultValue="nearby" className="mt-6">
         <TabsList>
-          <TabsTrigger value="all">All ({devices.length})</TabsTrigger>
-          <TabsTrigger value="beacons">Room beacons ({beacons.length})</TabsTrigger>
-          <TabsTrigger value="wearables">Wearables ({wearables.length})</TabsTrigger>
-          <TabsTrigger value="badges">Staff badges ({badges.length})</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="nearby">Nearby ({observations.length})</TabsTrigger>
+          <TabsTrigger value="registered">Registered ({devices.length})</TabsTrigger>
+          <TabsTrigger value="sessions">
+            Active sessions ({sessionState.activeSessions.length})
+          </TabsTrigger>
+          <TabsTrigger value="rooms">Rooms</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="mt-4">
-          <DeviceList
-            devices={devices}
-            loading={loading}
+        <TabsContent value="nearby" className="mt-4 space-y-4">
+          <NearbySection
+            title="Registered beacons in range"
+            observations={nearbyRegistered}
+            registered={registeredKeys}
             residentName={residentName}
             roomName={roomName}
             staffName={staffName}
@@ -299,12 +287,16 @@ function DevicesPage() {
             residents={residents}
             staff={staff}
             onChanged={load}
+            emptyHint={
+              scannerStatus.running
+                ? "No registered beacons are in range yet."
+                : "Press Start scan to begin listening."
+            }
           />
-        </TabsContent>
-        <TabsContent value="beacons" className="mt-4">
-          <DeviceList
-            devices={beacons}
-            loading={loading}
+          <NearbySection
+            title="Unknown beacons"
+            observations={nearbyUnknown}
+            registered={registeredKeys}
             residentName={residentName}
             roomName={roomName}
             staffName={staffName}
@@ -312,67 +304,36 @@ function DevicesPage() {
             residents={residents}
             staff={staff}
             onChanged={load}
+            emptyHint="No unknown beacons heard. Bring one closer to the device."
           />
         </TabsContent>
-        <TabsContent value="wearables" className="mt-4">
-          <DeviceList
-            devices={wearables}
-            loading={loading}
-            residentName={residentName}
-            roomName={roomName}
-            staffName={staffName}
-            rooms={rooms}
-            residents={residents}
-            staff={staff}
-            onChanged={load}
-          />
-        </TabsContent>
-        <TabsContent value="badges" className="mt-4">
-          <DeviceList
-            devices={badges}
-            loading={loading}
-            residentName={residentName}
-            roomName={roomName}
-            staffName={staffName}
-            rooms={rooms}
-            residents={residents}
-            staff={staff}
-            onChanged={load}
-          />
-        </TabsContent>
-        <TabsContent value="history" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Recent device events</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {history.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No events yet — run a scan.</p>
-              ) : (
-                <ul className="divide-y text-sm">
-                  {history.map((h) => {
-                    const dev = devices.find((d) => d.id === h.device_id);
-                    return (
-                      <li key={h.id} className="flex items-center justify-between py-2">
-                        <div>
-                          <span className="font-medium">{dev?.label ?? "Unknown device"}</span>{" "}
-                          <span className="text-muted-foreground">· {h.event_type}</span>
-                          {h.rssi != null && (
-                            <span className="text-muted-foreground"> · {h.rssi} dBm</span>
-                          )}
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {relTime(h.created_at)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
 
-          <Card className="mt-4">
+        <TabsContent value="registered" className="mt-4">
+          <RegisteredList
+            devices={devices}
+            residentName={residentName}
+            roomName={roomName}
+            staffName={staffName}
+            observations={observations}
+            onChanged={load}
+          />
+        </TabsContent>
+
+        <TabsContent value="sessions" className="mt-4">
+          <ActiveSessionsList
+            sessions={sessionState.activeSessions}
+            devices={devices}
+            residentName={residentName}
+            roomName={roomName}
+            onEnd={async (id) => {
+              await endTriggerManually(id);
+              toast.message("Session ended");
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="rooms" className="mt-4">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base">Rooms</CardTitle>
             </CardHeader>
@@ -400,7 +361,7 @@ function StatCard({
   icon: Icon,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
@@ -418,9 +379,10 @@ function StatCard({
   );
 }
 
-function DeviceList({
-  devices,
-  loading,
+function NearbySection({
+  title,
+  observations,
+  registered,
   residentName,
   roomName,
   staffName,
@@ -428,9 +390,11 @@ function DeviceList({
   residents,
   staff,
   onChanged,
+  emptyHint,
 }: {
-  devices: DeviceRow[];
-  loading: boolean;
+  title: string;
+  observations: BeaconObservation[];
+  registered: Map<string, DeviceRow>;
   residentName: (id: string | null) => string;
   roomName: (id: string | null) => string;
   staffName: (id: string | null) => string;
@@ -438,29 +402,122 @@ function DeviceList({
   residents: Resident[];
   staff: StaffProfile[];
   onChanged: () => void;
+  emptyHint: string;
 }) {
-  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
-  if (devices.length === 0)
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {observations.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{emptyHint}</p>
+        ) : (
+          <ul className="divide-y">
+            {observations.map((o) => {
+              const dev = registered.get(o.key);
+              const pct = rssiBar(o.rssi);
+              const assigned = dev
+                ? dev.device_type === "room_beacon"
+                  ? roomName(dev.room_id)
+                  : dev.device_type === "wearable_tag"
+                    ? residentName(dev.resident_id)
+                    : staffName(dev.staff_user_id)
+                : null;
+              return (
+                <li key={o.key} className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="font-mono text-[10px] uppercase">
+                        {o.protocol}
+                      </Badge>
+                      <span className="font-medium">{o.name ?? dev?.label ?? "Unknown beacon"}</span>
+                      {dev && (
+                        <Badge variant="secondary">
+                          {typeLabel(dev.device_type)} · {assigned}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="mt-1 break-all font-mono text-[11px] text-muted-foreground">
+                      {o.uuid ? `${o.uuid}` : o.key}
+                      {o.major != null && ` · M:${o.major}/m:${o.minor}`}
+                      {o.mac && ` · MAC ${o.mac}`}
+                      {o.txPower != null && ` · TxPwr ${o.txPower}`}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 md:w-72 md:justify-end">
+                    <div className="flex flex-col items-end">
+                      <div className="text-sm font-semibold">{o.rssi} dBm</div>
+                      <div className="h-1.5 w-28 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full bg-primary"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {o.hits} hit{o.hits === 1 ? "" : "s"} · seen {relTime(o.lastSeen)}
+                      </div>
+                    </div>
+                    {!dev && (
+                      <RegisterBeaconDialog
+                        rooms={rooms}
+                        residents={residents}
+                        staff={staff}
+                        detected={o}
+                        onSaved={onChanged}
+                        trigger={<Button size="sm">Register</Button>}
+                      />
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function RegisteredList({
+  devices,
+  residentName,
+  roomName,
+  staffName,
+  observations,
+  onChanged,
+}: {
+  devices: DeviceRow[];
+  residentName: (id: string | null) => string;
+  roomName: (id: string | null) => string;
+  staffName: (id: string | null) => string;
+  observations: BeaconObservation[];
+  onChanged: () => void;
+}) {
+  if (devices.length === 0) {
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          No devices registered yet.
+          No beacons registered yet. Detected beacons can be registered from the Nearby tab, or use
+          the Register beacon button to add one manually.
         </CardContent>
       </Card>
     );
+  }
+  const obsByKey = new Map(observations.map((o) => [o.key, o]));
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {devices.map((d) => {
         const Icon = typeIcon(d.device_type);
-        const assignedLabel =
+        const k = deviceKey(d);
+        const obs = obsByKey.get(k);
+        const inRange = obs && obs.rssi >= d.rssi_threshold;
+        const assigned =
           d.device_type === "room_beacon"
             ? roomName(d.room_id)
             : d.device_type === "wearable_tag"
               ? residentName(d.resident_id)
               : staffName(d.staff_user_id);
-        const isOnline =
-          d.last_seen_at && Date.now() - new Date(d.last_seen_at).getTime() < 10 * 60_000;
-        const battery = d.battery_level ?? null;
         return (
           <Card key={d.id}>
             <CardContent className="py-4">
@@ -472,42 +529,56 @@ function DeviceList({
                   <div>
                     <div className="font-medium">{d.label}</div>
                     <div className="text-xs text-muted-foreground">
-                      {typeLabel(d.device_type)} · {d.ble_identifier}
+                      {typeLabel(d.device_type)} · {d.beacon_protocol}
                     </div>
                     <div className="mt-1 text-sm">
-                      Assigned to: <span className="font-medium">{assignedLabel}</span>
+                      Assigned to: <span className="font-medium">{assigned}</span>
+                    </div>
+                    <div className="mt-1 break-all font-mono text-[10px] text-muted-foreground">
+                      {d.beacon_uuid
+                        ? `${d.beacon_uuid} · ${d.beacon_major ?? 0}/${d.beacon_minor ?? 0}`
+                        : d.ble_identifier}
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <Badge variant={isOnline ? "default" : "secondary"}>
-                    {isOnline ? "Online" : "Offline"}
+                  <Badge variant={inRange ? "default" : "secondary"}>
+                    {inRange ? "In range" : "Out of range"}
                   </Badge>
                   <span className="text-[11px] text-muted-foreground">
-                    seen {relTime(d.last_seen_at)}
+                    {obs ? `${obs.rssi} dBm` : "no signal"}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    last seen {relTime(d.last_seen_at)}
                   </span>
                 </div>
               </div>
-              {battery != null && (
-                <div className="mt-3">
-                  <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Battery className="h-3 w-3" /> Battery
-                    </span>
-                    <span>{battery}%</span>
-                  </div>
-                  <Progress value={battery} />
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <div>
+                  Threshold: <span className="font-medium text-foreground">{d.rssi_threshold} dBm</span>
                 </div>
-              )}
+                <div>
+                  Timeout: <span className="font-medium text-foreground">{d.session_timeout_seconds}s</span>
+                </div>
+              </div>
               <div className="mt-3 flex justify-end gap-2">
-                <TestConnectionButton device={d} onTested={onChanged} />
-                <EditDeviceDialog
-                  device={d}
-                  rooms={rooms}
-                  residents={residents}
-                  staff={staff}
-                  onSaved={onChanged}
-                />
+                <EditBeaconDialog device={d} onSaved={onChanged} />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={async () => {
+                    if (!confirm("Remove this beacon?")) return;
+                    const { error } = await supabase.from("devices").delete().eq("id", d.id);
+                    if (error) toast.error(error.message);
+                    else {
+                      toast.success("Beacon removed");
+                      await refreshRegisteredDevices();
+                      onChanged();
+                    }
+                  }}
+                >
+                  Remove
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -517,343 +588,117 @@ function DeviceList({
   );
 }
 
-function TestConnectionButton({
-  device,
-  onTested,
-}: {
-  device: DeviceRow;
-  onTested: () => void;
-}) {
-  const [testing, setTesting] = useState(false);
-  const run = async () => {
-    setTesting(true);
-    try {
-      // Lazy-import so the route bundle still loads if Web Bluetooth is missing.
-      const { testConnectById, isWebBluetoothAvailable: avail } = await import(
-        "@/lib/ble-real"
-      );
-      if (!avail()) {
-        throw new Error(
-          "Web Bluetooth not available — open this app in Chrome/Edge on Android, Windows or macOS over HTTPS.",
-        );
-      }
-      const result = await testConnectById(device.ble_identifier);
-      const rssi = result.rssi;
-      const now = new Date().toISOString();
-      const [{ error: e1 }, { error: e2 }] = await Promise.all([
-        supabase.from("device_events").insert({
-          device_id: device.id,
-          event_type: "test",
-          rssi,
-          battery_level: device.battery_level,
-        }),
-        supabase
-          .from("devices")
-          .update({ last_seen_at: now, last_rssi: rssi })
-          .eq("id", device.id),
-      ]);
-      if (e1 || e2) throw e1 ?? e2;
-      toast.success(
-        `Reached ${device.label}${rssi != null ? ` · ${rssi} dBm` : result.connected ? " · connected" : ""}`,
-      );
-      onTested();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Test failed");
-    } finally {
-      setTesting(false);
-    }
-  };
-  return (
-    <Button size="sm" variant="ghost" onClick={run} disabled={testing}>
-      {testing ? "Testing…" : "Test"}
-    </Button>
-  );
-}
-
-function AddDeviceDialog({
-  rooms,
-  residents,
-  staff,
-  onSaved,
-}: {
-  rooms: Room[];
-  residents: Resident[];
-  staff: StaffProfile[];
-  onSaved: () => void;
-}) {
+function EditBeaconDialog({ device, onSaved }: { device: DeviceRow; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4" />
-          Pair device
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Pair a BLE device</DialogTitle>
-        </DialogHeader>
-        <DeviceForm
-          rooms={rooms}
-          residents={residents}
-          staff={staff}
-          onSaved={() => {
-            setOpen(false);
-            onSaved();
-          }}
-        />
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function EditDeviceDialog({
-  device,
-  rooms,
-  residents,
-  staff,
-  onSaved,
-}: {
-  device: DeviceRow;
-  rooms: Room[];
-  residents: Resident[];
-  staff: StaffProfile[];
-  onSaved: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
-          Manage
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{device.label}</DialogTitle>
-        </DialogHeader>
-        <DeviceForm
-          device={device}
-          rooms={rooms}
-          residents={residents}
-          staff={staff}
-          onSaved={() => {
-            setOpen(false);
-            onSaved();
-          }}
-        />
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function DeviceForm({
-  device,
-  rooms,
-  residents,
-  staff,
-  onSaved,
-}: {
-  device?: DeviceRow;
-  rooms: Room[];
-  residents: Resident[];
-  staff: StaffProfile[];
-  onSaved: () => void;
-}) {
-  const [type, setType] = useState<DeviceRow["device_type"]>(device?.device_type ?? "room_beacon");
-  const [label, setLabel] = useState(device?.label ?? "");
-  const [bleId, setBleId] = useState(device?.ble_identifier ?? "");
-  const [mac, setMac] = useState(device?.mac_address ?? "");
-  const [manufacturer, setManufacturer] = useState(device?.manufacturer ?? "");
-  const [model, setModel] = useState(device?.model ?? "");
-  const [battery, setBattery] = useState<string>(device?.battery_level?.toString() ?? "100");
-  const [status, setStatus] = useState<"active" | "inactive" | "lost" | "maintenance">(
-    (device?.status as "active" | "inactive" | "lost" | "maintenance") ?? "active",
-  );
-  const [roomId, setRoomId] = useState<string>(device?.room_id ?? "");
-  const [residentId, setResidentId] = useState<string>(device?.resident_id ?? "");
-  const [staffId, setStaffId] = useState<string>(device?.staff_user_id ?? "");
-  const [notes, setNotes] = useState(device?.notes ?? "");
-  const [saving, setSaving] = useState(false);
-
+  const [label, setLabel] = useState(device.label);
+  const [threshold, setThreshold] = useState(String(device.rssi_threshold));
+  const [timeoutSec, setTimeoutSec] = useState(String(device.session_timeout_seconds));
   const save = async () => {
-    if (!label || !bleId) {
-      toast.error("Label and BLE identifier are required");
+    const { error } = await supabase
+      .from("devices")
+      .update({
+        label,
+        rssi_threshold: parseInt(threshold, 10) || -75,
+        session_timeout_seconds: parseInt(timeoutSec, 10) || 60,
+      })
+      .eq("id", device.id);
+    if (error) {
+      toast.error(error.message);
       return;
     }
-    setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    const payload = {
-      device_type: type,
-      label,
-      ble_identifier: bleId,
-      mac_address: mac || null,
-      manufacturer: manufacturer || null,
-      model: model || null,
-      battery_level: battery ? Math.min(100, Math.max(0, parseInt(battery, 10))) : null,
-      status,
-      room_id: type === "room_beacon" ? roomId || null : null,
-      resident_id: type === "wearable_tag" ? residentId || null : null,
-      staff_user_id: type === "staff_badge" ? staffId || null : null,
-      notes: notes || null,
-      paired_at: device?.paired_at ?? new Date().toISOString(),
-      paired_by: device?.paired_at ? undefined : u?.user?.id,
-    };
-    const res = device
-      ? await supabase.from("devices").update(payload).eq("id", device.id)
-      : await supabase.from("devices").insert(payload);
-    setSaving(false);
-    if (res.error) {
-      toast.error(res.error.message);
-      return;
-    }
-    toast.success(device ? "Device updated" : "Device paired");
+    toast.success("Beacon updated");
+    await refreshRegisteredDevices();
     onSaved();
+    setOpen(false);
   };
-
-  const remove = async () => {
-    if (!device) return;
-    if (!confirm("Remove this device?")) return;
-    const { error } = await supabase.from("devices").delete().eq("id", device.id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Device removed");
-      onSaved();
-    }
-  };
-
+  if (!open) {
+    return (
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        Edit
+      </Button>
+    );
+  }
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+    <div className="absolute right-2 z-10 mt-8 w-72 rounded-md border bg-background p-3 shadow-lg">
+      <div className="space-y-2">
         <div>
-          <Label>Device type</Label>
-          <Select value={type} onValueChange={(v) => setType(v as DeviceRow["device_type"])}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="room_beacon">Room beacon</SelectItem>
-              <SelectItem value="wearable_tag">Wearable tag</SelectItem>
-              <SelectItem value="staff_badge">Staff badge</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label>Label</Label>
+          <Input value={label} onChange={(e) => setLabel(e.target.value)} />
         </div>
-        <div>
-          <Label>Status</Label>
-          <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="lost">Lost</SelectItem>
-              <SelectItem value="maintenance">Maintenance</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label>Threshold</Label>
+            <Input value={threshold} onChange={(e) => setThreshold(e.target.value)} />
+          </div>
+          <div>
+            <Label>Timeout (s)</Label>
+            <Input value={timeoutSec} onChange={(e) => setTimeoutSec(e.target.value)} />
+          </div>
         </div>
-      </div>
-      <div>
-        <Label>Label</Label>
-        <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Room 12 beacon" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label>BLE identifier</Label>
-          <Input value={bleId} onChange={(e) => setBleId(e.target.value)} placeholder="UUID or device id" />
-        </div>
-        <div>
-          <Label>MAC address</Label>
-          <Input value={mac} onChange={(e) => setMac(e.target.value)} placeholder="optional" />
-        </div>
-        <div>
-          <Label>Manufacturer</Label>
-          <Input value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} />
-        </div>
-        <div>
-          <Label>Model</Label>
-          <Input value={model} onChange={(e) => setModel(e.target.value)} />
-        </div>
-        <div>
-          <Label>Battery %</Label>
-          <Input type="number" min={0} max={100} value={battery} onChange={(e) => setBattery(e.target.value)} />
-        </div>
-      </div>
-
-      {type === "room_beacon" && (
-        <div>
-          <Label>Assign to room</Label>
-          <Select value={roomId} onValueChange={setRoomId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Pick a room" />
-            </SelectTrigger>
-            <SelectContent>
-              {rooms.map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {rooms.length === 0 && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Add a room first in the History → Rooms section.
-            </p>
-          )}
-        </div>
-      )}
-      {type === "wearable_tag" && (
-        <div>
-          <Label>Assign to resident</Label>
-          <Select value={residentId} onValueChange={setResidentId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Pick a resident" />
-            </SelectTrigger>
-            <SelectContent>
-              {residents.map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.full_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-      {type === "staff_badge" && (
-        <div>
-          <Label>Assign to staff member</Label>
-          <Select value={staffId} onValueChange={setStaffId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Pick a staff member" />
-            </SelectTrigger>
-            <SelectContent>
-              {staff.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.full_name ?? "Unnamed"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      <div>
-        <Label>Notes</Label>
-        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
-      </div>
-
-      <DialogFooter className="gap-2">
-        {device && (
-          <Button variant="destructive" onClick={remove} type="button">
-            Remove
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+            Cancel
           </Button>
-        )}
-        <Button onClick={save} disabled={saving}>
-          {saving ? "Saving…" : device ? "Save changes" : "Pair device"}
-        </Button>
-      </DialogFooter>
+          <Button size="sm" onClick={save}>
+            Save
+          </Button>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function ActiveSessionsList({
+  sessions,
+  devices,
+  residentName,
+  roomName,
+  onEnd,
+}: {
+  sessions: ActiveTrigger[];
+  devices: DeviceRow[];
+  residentName: (id: string | null) => string;
+  roomName: (id: string | null) => string;
+  onEnd: (deviceId: string) => Promise<void>;
+}) {
+  if (sessions.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          No active sessions. Sessions start automatically when a registered beacon is detected
+          above its RSSI threshold.
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <ul className="divide-y">
+          {sessions.map((s) => {
+            const dev = devices.find((d) => d.id === s.deviceId);
+            const subject = dev?.resident_id
+              ? residentName(dev.resident_id)
+              : dev?.room_id
+                ? `Room: ${roomName(dev.room_id)}`
+                : (dev?.label ?? "Beacon");
+            return (
+              <li key={s.deviceId} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div>
+                  <div className="font-medium">{subject}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {dev?.label} · last RSSI {s.lastRssi} dBm · started {relTime(s.startedAt)}
+                  </div>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => void onEnd(s.deviceId)}>
+                  End session
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -874,8 +719,15 @@ function AddRoomInline({ onSaved }: { onSaved: () => void }) {
   return (
     <div className="flex gap-2">
       <Input placeholder="Room name" value={name} onChange={(e) => setName(e.target.value)} />
-      <Input placeholder="Floor" value={floor} onChange={(e) => setFloor(e.target.value)} className="w-24" />
-      <Button onClick={add} size="sm">Add</Button>
+      <Input
+        placeholder="Floor"
+        value={floor}
+        onChange={(e) => setFloor(e.target.value)}
+        className="w-24"
+      />
+      <Button onClick={add} size="sm">
+        Add
+      </Button>
     </div>
   );
 }
