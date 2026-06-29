@@ -61,7 +61,7 @@ export interface ActiveTrigger {
   residentId: string | null;
   roomId: string | null;
   staffUserId: string | null;
-  rule: "wearable" | "room_single_occupant";
+  rule: "wearable" | "room_single_occupant" | "room_open_all" | "manual_resolution";
   lastRssi: number;
   lastSeen: string; // last time the *triggering* beacon was heard
   startedAt: string;
