@@ -625,8 +625,9 @@ function VerifyPanel({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Hold the beacon near this device until you see {hitsRequired} confirmed hits at or above the
-        threshold. Walk closer if the bar stays below the threshold marker.
+        Hold the beacon near this device until you see {hitsRequired} confirmed advertisements
+        with the matching signature. A care session will only auto-start later when the signal
+        clears the {threshold} dBm threshold.
       </p>
 
       <label className="flex items-center gap-2 text-xs text-muted-foreground">
