@@ -82,6 +82,16 @@ type DeviceRow = {
 type Room = { id: string; name: string; floor: string | null };
 type Resident = { id: string; full_name: string };
 type StaffProfile = { id: string; full_name: string | null };
+type PendingDecision = {
+  id: string;
+  triggering_device_id: string;
+  room_id: string | null;
+  candidate_resident_ids: string[];
+  rssi: number | null;
+  status: "pending" | "resolved" | "dismissed" | "expired";
+  created_at: string;
+  expires_at: string;
+};
 
 function typeIcon(t: DeviceRow["device_type"]) {
   return t === "room_beacon" ? Radio : t === "wearable_tag" ? Tag : IdCard;
