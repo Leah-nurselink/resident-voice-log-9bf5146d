@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Radio, Tag, IdCard, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Plus, Radio, Tag, IdCard, ArrowLeft, ArrowRight, Check, BluetoothSearching } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { isWebBluetoothAvailable, requestAndPair } from "@/lib/ble-real";
+import { rememberPairedDevice } from "@/lib/ble-auto-connect";
 
 type DeviceType = "room_beacon" | "wearable_tag" | "staff_badge";
 type Room = { id: string; name: string; floor: string | null };
