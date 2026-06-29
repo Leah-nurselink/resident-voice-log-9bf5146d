@@ -255,6 +255,93 @@ async function logAmbiguity(deviceId: string, roomId: string, residentIds: strin
   });
 }
 
+// Throttle pending-decision creation per (device, room) so we don't flood the
+// queue every tick while the beacon keeps advertising.
+const pendingPrompted = new Map<string, number>();
+
+async function handleAmbiguousRoom(
+  device: RegisteredBeacon,
+  obs: BeaconObservation,
+  roomId: string,
+  occupants: string[],
+  strongestBadge: { device: RegisteredBeacon; obs: BeaconObservation } | null,
+  refreshed: Set<string>,
+) {
+  const strategy = device.ambiguity_strategy ?? "skip";
+  const staffUserId = strongestBadge?.device.staff_user_id ?? null;
+
+  if (strategy === "skip") {
+    await logAmbiguity(device.id, roomId, occupants);
+    return;
+  }
+
+  if (strategy === "open_all") {
+    // Open a low-confidence session for every candidate resident; staff can
+    // end the incorrect ones from the Active Sessions list.
+    for (const residentId of occupants) {
+      refreshed.add(residentId);
+      const existing = sessions.get(residentId);
+      if (existing) {
+        if (existing.rule === "room_single_occupant" || existing.rule === "room_open_all") {
+          existing.lastRssi = obs.rssi;
+          existing.lastSeen = obs.lastSeen;
+          existing.deviceId = device.id;
+        }
+        continue;
+      }
+      const sessionId = await openSession(
+        residentId,
+        roomId,
+        staffUserId,
+        device,
+        obs,
+        "room_open_all",
+      );
+      sessions.set(residentId, {
+        deviceId: device.id,
+        sessionId,
+        residentId,
+        roomId,
+        staffUserId,
+        rule: "room_open_all",
+        lastRssi: obs.rssi,
+        lastSeen: obs.lastSeen,
+        startedAt: new Date().toISOString(),
+      });
+    }
+    return;
+  }
+
+  if (strategy === "prompt") {
+    const key = `${device.id}:${roomId}`;
+    const last = pendingPrompted.get(key) ?? 0;
+    if (Date.now() - last < 60_000) return; // one prompt per device/room per minute
+    // Don't queue a duplicate if one is already pending in the DB.
+    const { data: existing } = await supabase
+      .from("pending_session_decisions" as any)
+      .select("id")
+      .eq("triggering_device_id", device.id)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+    if (existing) return;
+    pendingPrompted.set(key, Date.now());
+    await supabase.from("pending_session_decisions" as any).insert({
+      triggering_device_id: device.id,
+      room_id: roomId,
+      candidate_resident_ids: occupants,
+      rssi: obs.rssi,
+    });
+    await supabase.from("device_events").insert({
+      device_id: device.id,
+      event_type: "pending_decision_created",
+      rssi: obs.rssi,
+      payload: { room_id: roomId, candidate_resident_ids: occupants } as any,
+    });
+  }
+}
+
 async function tick() {
   state.lastTickAt = new Date().toISOString();
   const now = Date.now();
