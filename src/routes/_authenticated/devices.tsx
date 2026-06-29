@@ -467,10 +467,15 @@ function NearbySection({
               return (
                 <li key={o.key} className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="font-mono text-[10px] uppercase">
                         {o.protocol}
                       </Badge>
+                      {o.simulated && (
+                        <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100 text-[10px] uppercase">
+                          Simulated
+                        </Badge>
+                      )}
                       <span className="font-medium">{o.name ?? dev?.label ?? "Unknown beacon"}</span>
                       {dev && (
                         <Badge variant="secondary">
@@ -485,6 +490,7 @@ function NearbySection({
                       {o.txPower != null && ` · TxPwr ${o.txPower}`}
                     </div>
                   </div>
+
                   <div className="flex items-center gap-3 md:w-72 md:justify-end">
                     <div className="flex flex-col items-end">
                       <div className="text-sm font-semibold">{o.rssi} dBm</div>
