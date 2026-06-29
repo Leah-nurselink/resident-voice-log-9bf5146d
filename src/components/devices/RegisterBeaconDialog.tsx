@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribe, type BeaconObservation } from "@/lib/ble-advertisement-scanner";
 import { refreshRegisteredDevices } from "@/lib/ble-session-manager";
+import { createVerifyTracker } from "@/lib/ble-verify";
 
 type Step = "details" | "verify" | "assign";
 
