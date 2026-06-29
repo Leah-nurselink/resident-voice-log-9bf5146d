@@ -275,10 +275,10 @@ export const emailAlertAssignee = createServerFn({ method: "POST" })
     const subject = `Alert assigned: ${alert.message ?? "Clinical alert"}`;
     const html = `
       <div style="font-family:Inter,Arial,sans-serif;color:#0f172a;max-width:560px;">
-        <h2 style="margin:0 0 8px;font-size:16px;">${subject}</h2>
-        <p style="margin:0 0 6px;color:#475569;font-size:13px;">Resident: <strong>${residentName}</strong></p>
-        <p style="margin:0 0 6px;color:#475569;font-size:13px;">Severity: ${alert.severity ?? "info"}</p>
-        ${alert.message ? `<p style="margin:12px 0;">${String(alert.message).replace(/</g,"&lt;")}</p>` : ""}
+        <h2 style="margin:0 0 8px;font-size:16px;">${escapeHtml(subject)}</h2>
+        <p style="margin:0 0 6px;color:#475569;font-size:13px;">Resident: <strong>${escapeHtml(residentName)}</strong></p>
+        <p style="margin:0 0 6px;color:#475569;font-size:13px;">Severity: ${escapeHtml(alert.severity ?? "info")}</p>
+        ${alert.message ? `<p style="margin:12px 0;">${escapeHtml(alert.message)}</p>` : ""}
         <p style="margin:16px 0 0;font-size:12px;color:#64748b;">Open ForgeAI to triage this alert.</p>
       </div>`;
 
