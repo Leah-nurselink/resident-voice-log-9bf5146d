@@ -80,6 +80,14 @@ export function RegisterBeaconDialog({
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // ---- Verification state ----
+  const [step, setStep] = useState<Step>("details");
+  const [verified, setVerified] = useState(false);
+  const [skipVerify, setSkipVerify] = useState(false);
+  const [liveObs, setLiveObs] = useState<BeaconObservation | null>(null);
+  const verifyHitsRef = useRef(0);
+  const verifyStartedRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!detected) return;
     setProtocol(detected.protocol);
@@ -90,6 +98,68 @@ export function RegisterBeaconDialog({
     setTxPower(detected.txPower != null ? String(detected.txPower) : "");
     if (!label) setLabel(detected.name ?? "");
   }, [detected, label]);
+
+  // Reset all state when the dialog closes.
+  useEffect(() => {
+    if (open) return;
+    setStep("details");
+    setVerified(false);
+    setSkipVerify(false);
+    setLiveObs(null);
+    verifyHitsRef.current = 0;
+    verifyStartedRef.current = null;
+  }, [open]);
+
+  // The key the scanner uses for this beacon — must match
+  // ble-advertisement-scanner.ts `record()` keys.
+  const expectedKey = useMemo(() => {
+    if (protocol === "ibeacon" && uuid.trim()) {
+      return `ibeacon:${uuid.trim().toLowerCase()}:${major || 0}:${minor || 0}`;
+    }
+    if (protocol === "eddystone-uid" && uuid.trim()) {
+      return `eddystone-uid:${uuid.trim().toLowerCase()}:${minor.trim().toLowerCase()}`;
+    }
+    return detected?.key ?? null;
+  }, [protocol, uuid, major, minor, detected?.key]);
+
+  const inRangeThreshold = parseInt(rssiThreshold, 10) || -75;
+  const VERIFY_HITS_REQUIRED = 3;
+  const VERIFY_WINDOW_MS = 15_000;
+
+  // While on the verify step, subscribe to live observations and watch for
+  // matching hits at or above the threshold.
+  useEffect(() => {
+    if (step !== "verify" || !expectedKey) return;
+    verifyHitsRef.current = 0;
+    verifyStartedRef.current = Date.now();
+    setVerified(false);
+    setLiveObs(null);
+    let lastSeenStamp = "";
+    const unsub = subscribe((nearby) => {
+      const match = nearby.find((o) => o.key === expectedKey);
+      if (!match) {
+        setLiveObs(null);
+        return;
+      }
+      setLiveObs(match);
+      // Count each *new* hit (lastSeen advances) at or above threshold.
+      if (match.lastSeen !== lastSeenStamp && match.rssi >= inRangeThreshold) {
+        lastSeenStamp = match.lastSeen;
+        verifyHitsRef.current += 1;
+        if (verifyHitsRef.current >= VERIFY_HITS_REQUIRED) setVerified(true);
+      }
+      // Reset hit count if the window expires without enough hits.
+      if (
+        verifyStartedRef.current &&
+        Date.now() - verifyStartedRef.current > VERIFY_WINDOW_MS &&
+        verifyHitsRef.current < VERIFY_HITS_REQUIRED
+      ) {
+        verifyHitsRef.current = 0;
+        verifyStartedRef.current = Date.now();
+      }
+    });
+    return () => unsub();
+  }, [step, expectedKey, inRangeThreshold]);
 
   const assignmentOptions =
     type === "room_beacon"
