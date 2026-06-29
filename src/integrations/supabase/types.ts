@@ -318,6 +318,7 @@ export type Database = {
           auto_initiated: boolean
           confidence: number
           created_at: string
+          end_reason: string | null
           ended_at: string | null
           id: string
           note_id: string | null
@@ -326,12 +327,14 @@ export type Database = {
           signals: Json
           staff_user_id: string | null
           started_at: string
+          triggering_device_id: string | null
           updated_at: string
         }
         Insert: {
           auto_initiated?: boolean
           confidence: number
           created_at?: string
+          end_reason?: string | null
           ended_at?: string | null
           id?: string
           note_id?: string | null
@@ -340,12 +343,14 @@ export type Database = {
           signals?: Json
           staff_user_id?: string | null
           started_at?: string
+          triggering_device_id?: string | null
           updated_at?: string
         }
         Update: {
           auto_initiated?: boolean
           confidence?: number
           created_at?: string
+          end_reason?: string | null
           ended_at?: string | null
           id?: string
           note_id?: string | null
@@ -354,6 +359,7 @@ export type Database = {
           signals?: Json
           staff_user_id?: string | null
           started_at?: string
+          triggering_device_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -376,6 +382,13 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_sessions_triggering_device_id_fkey"
+            columns: ["triggering_device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
             referencedColumns: ["id"]
           },
         ]
@@ -793,6 +806,10 @@ export type Database = {
       devices: {
         Row: {
           battery_level: number | null
+          beacon_major: number | null
+          beacon_minor: number | null
+          beacon_protocol: string
+          beacon_uuid: string | null
           ble_identifier: string
           created_at: string
           device_type: Database["public"]["Enums"]["device_type"]
@@ -809,12 +826,19 @@ export type Database = {
           paired_by: string | null
           resident_id: string | null
           room_id: string | null
+          rssi_threshold: number
+          session_timeout_seconds: number
           staff_user_id: string | null
           status: Database["public"]["Enums"]["device_status"]
+          tx_power: number | null
           updated_at: string
         }
         Insert: {
           battery_level?: number | null
+          beacon_major?: number | null
+          beacon_minor?: number | null
+          beacon_protocol?: string
+          beacon_uuid?: string | null
           ble_identifier: string
           created_at?: string
           device_type: Database["public"]["Enums"]["device_type"]
@@ -831,12 +855,19 @@ export type Database = {
           paired_by?: string | null
           resident_id?: string | null
           room_id?: string | null
+          rssi_threshold?: number
+          session_timeout_seconds?: number
           staff_user_id?: string | null
           status?: Database["public"]["Enums"]["device_status"]
+          tx_power?: number | null
           updated_at?: string
         }
         Update: {
           battery_level?: number | null
+          beacon_major?: number | null
+          beacon_minor?: number | null
+          beacon_protocol?: string
+          beacon_uuid?: string | null
           ble_identifier?: string
           created_at?: string
           device_type?: Database["public"]["Enums"]["device_type"]
@@ -853,8 +884,11 @@ export type Database = {
           paired_by?: string | null
           resident_id?: string | null
           room_id?: string | null
+          rssi_threshold?: number
+          session_timeout_seconds?: number
           staff_user_id?: string | null
           status?: Database["public"]["Enums"]["device_status"]
+          tx_power?: number | null
           updated_at?: string
         }
         Relationships: [
