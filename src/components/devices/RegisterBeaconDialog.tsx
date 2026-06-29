@@ -70,6 +70,9 @@ export function RegisterBeaconDialog({
   const [txPower, setTxPower] = useState("");
   const [rssiThreshold, setRssiThreshold] = useState("-75");
   const [timeoutSec, setTimeoutSec] = useState("60");
+  const [ambiguityStrategy, setAmbiguityStrategy] = useState<"skip" | "prompt" | "open_all">(
+    "prompt",
+  );
   const [assignmentId, setAssignmentId] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
