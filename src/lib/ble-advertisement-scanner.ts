@@ -298,6 +298,7 @@ async function simulatorTick() {
         rssi,
         txPower,
         name: d.label,
+        simulated: true,
       });
     } else if (d.beacon_protocol === "eddystone-uid" && d.ble_identifier?.startsWith("eddystone-uid:")) {
       const [, ns, inst] = d.ble_identifier.split(":");
@@ -313,6 +314,7 @@ async function simulatorTick() {
         rssi,
         txPower,
         name: d.label,
+        simulated: true,
       });
     } else {
       record({
@@ -327,30 +329,34 @@ async function simulatorTick() {
         rssi,
         txPower,
         name: d.label,
+        simulated: true,
       });
     }
   }
 
-  // Every ~6 ticks, inject one unknown beacon so the "register" flow can be
-  // exercised end-to-end in environments without real BLE hardware.
-  if (simulatorTickCount % 6 === 0) {
+  // Inject a SINGLE stable demo beacon so the registration flow can be
+  // exercised end-to-end without real hardware. Keeping the key stable
+  // (fixed major/minor) prevents "5 different beacons" confusion.
+  if (simulatorTickCount % 4 === 0) {
     const fakeUuid = "f7826da6-4fa2-4e98-8024-bc5b71e0893e";
     record({
-      key: `ibeacon:${fakeUuid}:1:${100 + (simulatorTickCount % 5)}`,
+      key: `ibeacon:${fakeUuid}:1:1`,
       protocol: "ibeacon",
       uuid: fakeUuid,
       major: 1,
-      minor: 100 + (simulatorTickCount % 5),
+      minor: 1,
       namespace: null,
       instance: null,
       mac: null,
-      rssi: -68 + Math.round(Math.random() * 10 - 5),
+      rssi: -68 + Math.round(Math.random() * 6 - 3),
       txPower: -59,
-      name: "Unregistered beacon",
+      name: "DEMO beacon (simulated)",
+      simulated: true,
     });
   }
   emit();
 }
+
 
 // ---------- Lifecycle ----------
 
