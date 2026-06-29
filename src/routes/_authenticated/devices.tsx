@@ -551,7 +551,8 @@ function RegisteredList({
         const Icon = typeIcon(d.device_type);
         const k = deviceKey(d);
         const obs = obsByKey.get(k);
-        const inRange = obs && obs.rssi >= d.rssi_threshold;
+        const connected = !!obs; // heard at least one advertisement recently
+        const inRange = obs && obs.rssi >= d.rssi_threshold; // strong enough to trigger
         const assigned =
           d.device_type === "room_beacon"
             ? roomName(d.room_id)
@@ -582,14 +583,23 @@ function RegisteredList({
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <Badge variant={inRange ? "default" : "secondary"}>
-                    {inRange ? "In range" : "Out of range"}
+                  <Badge
+                    variant={inRange ? "default" : connected ? "secondary" : "outline"}
+                    className={
+                      inRange
+                        ? "bg-emerald-600 hover:bg-emerald-600"
+                        : connected
+                          ? "bg-amber-100 text-amber-900 hover:bg-amber-100"
+                          : ""
+                    }
+                  >
+                    {inRange ? "Connected · in range" : connected ? "Connected · weak" : "Offline"}
                   </Badge>
                   <span className="text-[11px] text-muted-foreground">
                     {obs ? `${obs.rssi} dBm` : "no signal"}
                   </span>
                   <span className="text-[10px] text-muted-foreground">
-                    last seen {relTime(d.last_seen_at)}
+                    last seen {relTime(obs?.lastSeen ?? d.last_seen_at)}
                   </span>
                 </div>
               </div>
