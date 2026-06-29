@@ -362,6 +362,16 @@ function DevicesPage() {
           />
         </TabsContent>
 
+        <TabsContent value="pending" className="mt-4">
+          <PendingDecisionsList
+            pending={pending}
+            devices={devices}
+            residentName={residentName}
+            roomName={roomName}
+            onResolved={loadPending}
+          />
+        </TabsContent>
+
         <TabsContent value="rooms" className="mt-4">
           <Card>
             <CardHeader>
