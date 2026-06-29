@@ -26,7 +26,7 @@ import {
 import { useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
-import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone, Printer, CalendarClock } from "lucide-react";
+import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone, Printer, CalendarClock, UserCog } from "lucide-react";
 import { CallRecorder } from "@/components/CallRecorder";
 import { CommunicationsTab } from "@/components/CommunicationsTab";
 import { ScheduleTab } from "@/components/ScheduleTab";
@@ -142,6 +142,7 @@ function ResidentDetail() {
   });
 
   const [editConsent, setEditConsent] = useState<any | null>(null);
+  const [activeTab, setActiveTab] = useState("intel");
   const [newConsent, setNewConsent] = useState(false);
   const [editMca, setEditMca] = useState<any | null>(null);
   const [newMca, setNewMca] = useState(false);
@@ -162,6 +163,9 @@ function ResidentDetail() {
               {r.room_number ? `Room ${r.room_number} · ` : ""}{r.date_of_birth ? `DOB ${format(new Date(r.date_of_birth), "d MMM yyyy")}` : "DOB not set"}
             </div>
           </div>
+          <Button size="sm" variant="outline" onClick={() => setActiveTab("profile")} className="gap-1.5">
+            <UserCog className="h-3.5 w-3.5" /> Edit
+          </Button>
           <Button size="sm" variant="outline" onClick={async () => {
             const { data: sch } = await supabase.from("care_schedules" as never).select("*").eq("resident_id", id);
             exportSingleResidentPDF(r, (sch as unknown as Record<string, unknown>[]) ?? []);
@@ -184,7 +188,7 @@ function ResidentDetail() {
         )}
       </div>
 
-      <Tabs defaultValue="intel" className="mt-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
         <TabsList className="grid w-full grid-cols-6 md:grid-cols-12">
           <TabsTrigger value="intel" className="text-xs px-1">AI</TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs px-1">Story</TabsTrigger>
