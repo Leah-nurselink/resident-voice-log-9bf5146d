@@ -189,7 +189,7 @@ export const sendCommunication = createServerFn({ method: "POST" })
 
     const html = String(comm.body)
       .split(/\n{2,}/)
-      .map((p) => `<p style="margin:0 0 12px;">${p.replace(/\n/g, "<br/>")}</p>`)
+      .map((p) => `<p style="margin:0 0 12px;">${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`)
       .join("");
 
     const res = await fetch(`${GATEWAY}/emails`, {
