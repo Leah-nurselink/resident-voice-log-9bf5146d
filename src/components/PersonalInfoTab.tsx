@@ -123,7 +123,33 @@ export function PersonalInfoTab({ resident }: Props) {
           <Field label="Admission type / funding">
             <SelectBox value={form.admission_type} onChange={(v) => set("admission_type", v)} options={ADMISSION_TYPE} />
           </Field>
-          <Field label="Room number"><Input value={form.room_number ?? ""} onChange={(e) => set("room_number", e.target.value)} /></Field>
+          <Field label="Room">
+            <div className="flex gap-2">
+              <Select
+                value={form.room_number ?? undefined}
+                onValueChange={(v) => {
+                  if (v === "__new__") {
+                    const name = window.prompt("New room name / number (e.g. 12, Bluebell)")?.trim();
+                    if (name) createRoom.mutate(name);
+                    return;
+                  }
+                  if (v === "__clear__") { set("room_number", ""); return; }
+                  set("room_number", v);
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Assign a room…" /></SelectTrigger>
+                <SelectContent>
+                  {(rooms.data ?? []).map((r) => (
+                    <SelectItem key={r.id} value={r.name}>
+                      {r.name}{r.floor ? ` · ${r.floor}` : ""}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__new__">+ Create new room…</SelectItem>
+                  {form.room_number && <SelectItem value="__clear__">Unassign room</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+          </Field>
           <Field label="Admission date"><Input type="date" value={form.admission_date ?? ""} onChange={(e) => set("admission_date", e.target.value)} /></Field>
           <Field label="Discharge date"><Input type="date" value={form.discharge_date ?? ""} onChange={(e) => set("discharge_date", e.target.value)} /></Field>
           <Field label="Funding source"><Input value={form.funding_source ?? ""} onChange={(e) => set("funding_source", e.target.value)} placeholder="Self / LA name" /></Field>
