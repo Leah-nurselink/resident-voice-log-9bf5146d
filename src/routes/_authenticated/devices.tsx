@@ -44,6 +44,7 @@ import {
 import {
   endTriggerManually,
   refreshRegisteredDevices,
+  resolvePendingDecision,
   startSessionManager,
   stopSessionManager,
   subscribeSessionManager,
