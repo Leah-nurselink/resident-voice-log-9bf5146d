@@ -21,6 +21,15 @@ function sanitise(s: string) {
     .trim();
 }
 
+function escapeHtml(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function aiText(system: string, prompt: string, key: string) {
   const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
   const { generateText } = await import("ai");
