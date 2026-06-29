@@ -193,7 +193,12 @@ async function openSession(
       resident_id: residentId,
       room_id: roomId,
       staff_user_id: staffUserId ?? u?.user?.id ?? null,
-      confidence: rule === "wearable" ? 1 : 0.7,
+      confidence:
+        rule === "wearable" || rule === "manual_resolution"
+          ? 1
+          : rule === "room_single_occupant"
+            ? 0.7
+            : 0.4,
       auto_initiated: true,
       triggering_device_id: triggeringDevice.id,
       signals: {
