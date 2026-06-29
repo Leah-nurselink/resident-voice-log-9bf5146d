@@ -178,12 +178,24 @@ function DevicesPage() {
     staff.find((x) => x.id === id)?.full_name ?? (id ? "Staff" : "—");
 
   const runScan = async () => {
+    if (devices.length === 0) {
+      toast.error("No devices paired yet", {
+        description: "Use 'Pair device' to register a beacon, wearable or staff badge first.",
+      });
+      return;
+    }
     setScanning(true);
     setGuessResult(null);
     try {
       const hits = await scanOnce();
       setLastScan(hits);
+      if (hits.length === 0) {
+        setGuessResult("Scan complete — no devices in range");
+        toast.message("Scan finished", { description: "No devices detected in range." });
+        return;
+      }
       await recordScanEvents(hits);
+      toast.success(`Detected ${hits.length} device${hits.length === 1 ? "" : "s"}`);
       const { data: u } = await supabase.auth.getUser();
       const guess = inferInteraction(hits, { signedInStaffUserId: u?.user?.id });
       const sid = await startCareSessionIfConfident(guess, 0.6);
@@ -201,6 +213,7 @@ function DevicesPage() {
       }
       await load();
     } catch (e) {
+      console.error("Scan failed", e);
       toast.error(e instanceof Error ? e.message : "Scan failed");
     } finally {
       setScanning(false);
