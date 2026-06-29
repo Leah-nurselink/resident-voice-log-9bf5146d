@@ -135,6 +135,7 @@ export function RegisterBeaconDialog({
       tx_power: txPower ? parseInt(txPower, 10) : null,
       rssi_threshold: parseInt(rssiThreshold, 10) || -75,
       session_timeout_seconds: parseInt(timeoutSec, 10) || 60,
+      ambiguity_strategy: type === "room_beacon" ? ambiguityStrategy : "skip",
       status: "active",
       room_id: type === "room_beacon" ? assignmentId : null,
       resident_id: type === "wearable_tag" ? assignmentId : null,
