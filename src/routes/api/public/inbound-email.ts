@@ -37,14 +37,16 @@ export const Route = createFileRoute("/api/public/inbound-email")({
       POST: async ({ request }) => {
         const raw = await request.text();
         const secret = process.env.INBOUND_WEBHOOK_SECRET;
-        if (secret) {
-          const sig = request.headers.get("x-signature") ?? "";
-          const expected = createHmac("sha256", secret).update(raw).digest("hex");
-          const a = Buffer.from(sig);
-          const b = Buffer.from(expected);
-          if (a.length !== b.length || !timingSafeEqual(a, b)) {
-            return new Response("Invalid signature", { status: 401 });
-          }
+        if (!secret) {
+          console.error("[inbound-email] INBOUND_WEBHOOK_SECRET not configured; rejecting request");
+          return new Response("Unauthorized", { status: 401 });
+        }
+        const sig = request.headers.get("x-signature") ?? "";
+        const expected = createHmac("sha256", secret).update(raw).digest("hex");
+        const a = Buffer.from(sig);
+        const b = Buffer.from(expected);
+        if (a.length !== b.length || !timingSafeEqual(a, b)) {
+          return new Response("Unauthorized", { status: 401 });
         }
 
         let p: Payload;
@@ -110,7 +112,10 @@ export const Route = createFileRoute("/api/public/inbound-email")({
             in_reply_to: p.in_reply_to ?? null,
             received_at: new Date().toISOString(),
           } as never).select("id").single();
-        if (ce) return new Response(`DB error: ${ce.message}`, { status: 500 });
+        if (ce) {
+          console.error("[inbound-email] DB insert failed", ce);
+          return new Response("Internal server error", { status: 500 });
+        }
         const commId = (commIns as { id: string }).id;
 
         // Extract tasks via Lovable AI (best effort, non-blocking on failure)
