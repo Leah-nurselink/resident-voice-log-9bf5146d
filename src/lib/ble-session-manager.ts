@@ -50,6 +50,7 @@ export interface RegisteredBeacon {
   room_id: string | null;
   resident_id: string | null;
   staff_user_id: string | null;
+  ambiguity_strategy: "skip" | "prompt" | "open_all";
 }
 
 export interface ActiveTrigger {
