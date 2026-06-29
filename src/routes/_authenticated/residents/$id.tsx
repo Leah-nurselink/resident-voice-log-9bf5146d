@@ -142,6 +142,7 @@ function ResidentDetail() {
   });
 
   const [editConsent, setEditConsent] = useState<any | null>(null);
+  const [activeTab, setActiveTab] = useState("intel");
   const [newConsent, setNewConsent] = useState(false);
   const [editMca, setEditMca] = useState<any | null>(null);
   const [newMca, setNewMca] = useState(false);
