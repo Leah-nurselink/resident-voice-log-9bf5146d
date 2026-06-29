@@ -805,6 +805,7 @@ export type Database = {
       }
       devices: {
         Row: {
+          ambiguity_strategy: string
           battery_level: number | null
           beacon_major: number | null
           beacon_minor: number | null
@@ -834,6 +835,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ambiguity_strategy?: string
           battery_level?: number | null
           beacon_major?: number | null
           beacon_minor?: number | null
@@ -863,6 +865,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ambiguity_strategy?: string
           battery_level?: number | null
           beacon_major?: number | null
           beacon_minor?: number | null
@@ -1164,6 +1167,83 @@ export type Database = {
             columns: ["resident_id"]
             isOneToOne: false
             referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_session_decisions: {
+        Row: {
+          candidate_resident_ids: string[]
+          created_at: string
+          expires_at: string
+          id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_resident_id: string | null
+          resolved_session_id: string | null
+          room_id: string | null
+          rssi: number | null
+          status: string
+          triggering_device_id: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_resident_ids: string[]
+          created_at?: string
+          expires_at?: string
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_resident_id?: string | null
+          resolved_session_id?: string | null
+          room_id?: string | null
+          rssi?: number | null
+          status?: string
+          triggering_device_id: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_resident_ids?: string[]
+          created_at?: string
+          expires_at?: string
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_resident_id?: string | null
+          resolved_session_id?: string | null
+          room_id?: string | null
+          rssi?: number | null
+          status?: string
+          triggering_device_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_session_decisions_resolved_resident_id_fkey"
+            columns: ["resolved_resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_session_decisions_resolved_session_id_fkey"
+            columns: ["resolved_session_id"]
+            isOneToOne: false
+            referencedRelation: "care_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_session_decisions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_session_decisions_triggering_device_id_fkey"
+            columns: ["triggering_device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
             referencedColumns: ["id"]
           },
         ]

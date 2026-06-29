@@ -50,6 +50,7 @@ export interface RegisteredBeacon {
   room_id: string | null;
   resident_id: string | null;
   staff_user_id: string | null;
+  ambiguity_strategy: "skip" | "prompt" | "open_all";
 }
 
 export interface ActiveTrigger {
@@ -60,7 +61,7 @@ export interface ActiveTrigger {
   residentId: string | null;
   roomId: string | null;
   staffUserId: string | null;
-  rule: "wearable" | "room_single_occupant";
+  rule: "wearable" | "room_single_occupant" | "room_open_all" | "manual_resolution";
   lastRssi: number;
   lastSeen: string; // last time the *triggering* beacon was heard
   startedAt: string;
@@ -122,7 +123,7 @@ async function reloadRegistered() {
   const { data, error } = await supabase
     .from("devices")
     .select(
-      "id, device_type, label, beacon_protocol, beacon_uuid, beacon_major, beacon_minor, ble_identifier, rssi_threshold, session_timeout_seconds, room_id, resident_id, staff_user_id",
+      "id, device_type, label, beacon_protocol, beacon_uuid, beacon_major, beacon_minor, ble_identifier, rssi_threshold, session_timeout_seconds, room_id, resident_id, staff_user_id, ambiguity_strategy",
     )
     .eq("status", "active");
   if (error) {
@@ -192,7 +193,12 @@ async function openSession(
       resident_id: residentId,
       room_id: roomId,
       staff_user_id: staffUserId ?? u?.user?.id ?? null,
-      confidence: rule === "wearable" ? 1 : 0.7,
+      confidence:
+        rule === "wearable" || rule === "manual_resolution"
+          ? 1
+          : rule === "room_single_occupant"
+            ? 0.7
+            : 0.4,
       auto_initiated: true,
       triggering_device_id: triggeringDevice.id,
       signals: {
@@ -252,6 +258,93 @@ async function logAmbiguity(deviceId: string, roomId: string, residentIds: strin
     event_type: "ambiguous_room_occupancy",
     payload: { room_id: roomId, candidate_resident_ids: residentIds } as any,
   });
+}
+
+// Throttle pending-decision creation per (device, room) so we don't flood the
+// queue every tick while the beacon keeps advertising.
+const pendingPrompted = new Map<string, number>();
+
+async function handleAmbiguousRoom(
+  device: RegisteredBeacon,
+  obs: BeaconObservation,
+  roomId: string,
+  occupants: string[],
+  strongestBadge: { device: RegisteredBeacon; obs: BeaconObservation } | null,
+  refreshed: Set<string>,
+) {
+  const strategy = device.ambiguity_strategy ?? "skip";
+  const staffUserId = strongestBadge?.device.staff_user_id ?? null;
+
+  if (strategy === "skip") {
+    await logAmbiguity(device.id, roomId, occupants);
+    return;
+  }
+
+  if (strategy === "open_all") {
+    // Open a low-confidence session for every candidate resident; staff can
+    // end the incorrect ones from the Active Sessions list.
+    for (const residentId of occupants) {
+      refreshed.add(residentId);
+      const existing = sessions.get(residentId);
+      if (existing) {
+        if (existing.rule === "room_single_occupant" || existing.rule === "room_open_all") {
+          existing.lastRssi = obs.rssi;
+          existing.lastSeen = obs.lastSeen;
+          existing.deviceId = device.id;
+        }
+        continue;
+      }
+      const sessionId = await openSession(
+        residentId,
+        roomId,
+        staffUserId,
+        device,
+        obs,
+        "room_open_all",
+      );
+      sessions.set(residentId, {
+        deviceId: device.id,
+        sessionId,
+        residentId,
+        roomId,
+        staffUserId,
+        rule: "room_open_all",
+        lastRssi: obs.rssi,
+        lastSeen: obs.lastSeen,
+        startedAt: new Date().toISOString(),
+      });
+    }
+    return;
+  }
+
+  if (strategy === "prompt") {
+    const key = `${device.id}:${roomId}`;
+    const last = pendingPrompted.get(key) ?? 0;
+    if (Date.now() - last < 60_000) return; // one prompt per device/room per minute
+    // Don't queue a duplicate if one is already pending in the DB.
+    const { data: existing } = await supabase
+      .from("pending_session_decisions" as any)
+      .select("id")
+      .eq("triggering_device_id", device.id)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+    if (existing) return;
+    pendingPrompted.set(key, Date.now());
+    await supabase.from("pending_session_decisions" as any).insert({
+      triggering_device_id: device.id,
+      room_id: roomId,
+      candidate_resident_ids: occupants,
+      rssi: obs.rssi,
+    });
+    await supabase.from("device_events").insert({
+      device_id: device.id,
+      event_type: "pending_decision_created",
+      rssi: obs.rssi,
+      payload: { room_id: roomId, candidate_resident_ids: occupants } as any,
+    });
+  }
 }
 
 async function tick() {
@@ -340,12 +433,13 @@ async function tick() {
     if (occupantAlreadyIdentified) continue;
 
     if (occupants.length === 0) {
-      // Room with no assigned resident — log occasionally.
+      // Room with no assigned resident — log occasionally regardless of strategy.
       await logAmbiguity(device.id, roomId, []);
       continue;
     }
     if (occupants.length > 1) {
-      await logAmbiguity(device.id, roomId, occupants);
+      // Multi-occupant room: apply the admin-chosen strategy.
+      await handleAmbiguousRoom(device, obs, roomId, occupants, strongestBadge, refreshed);
       continue;
     }
     const residentId = occupants[0];
@@ -458,4 +552,90 @@ export async function endTriggerManually(deviceId: string) {
     }
   }
   emit();
+}
+
+// Resolve a pending decision created by the `prompt` ambiguity strategy.
+// Either picks the resident the session is for, or dismisses the prompt.
+export async function resolvePendingDecision(
+  pendingId: string,
+  pick: { residentId: string } | { dismiss: true },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: pending, error: loadErr } = await supabase
+    .from("pending_session_decisions" as any)
+    .select("id, triggering_device_id, room_id, candidate_resident_ids, rssi, status")
+    .eq("id", pendingId)
+    .maybeSingle();
+  if (loadErr || !pending) return { ok: false, error: loadErr?.message ?? "Not found" };
+  const p = pending as any;
+  if (p.status !== "pending") return { ok: false, error: `Already ${p.status}` };
+
+  const { data: u } = await supabase.auth.getUser();
+
+  if ("dismiss" in pick) {
+    await supabase
+      .from("pending_session_decisions" as any)
+      .update({
+        status: "dismissed",
+        resolved_by: u?.user?.id ?? null,
+        resolved_at: new Date().toISOString(),
+      })
+      .eq("id", pendingId);
+    emit();
+    return { ok: true };
+  }
+
+  const residentId = pick.residentId;
+  if (!(p.candidate_resident_ids as string[]).includes(residentId)) {
+    return { ok: false, error: "Resident not in candidates" };
+  }
+  const device = registered.find((d) => d.id === p.triggering_device_id);
+  if (!device) return { ok: false, error: "Triggering device no longer registered" };
+
+  const obs: BeaconObservation = {
+    key: keyForDevice(device),
+    protocol: device.beacon_protocol,
+    uuid: device.beacon_uuid,
+    major: device.beacon_major,
+    minor: device.beacon_minor,
+    namespace: null,
+    instance: null,
+    mac: null,
+    rssi: p.rssi ?? device.rssi_threshold,
+    txPower: null,
+    name: device.label,
+    firstSeen: new Date().toISOString(),
+    lastSeen: new Date().toISOString(),
+    hits: 1,
+  };
+  const sessionId = await openSession(
+    residentId,
+    p.room_id,
+    u?.user?.id ?? null,
+    device,
+    obs,
+    "manual_resolution",
+  );
+  sessions.set(residentId, {
+    deviceId: device.id,
+    sessionId,
+    residentId,
+    roomId: p.room_id,
+    staffUserId: u?.user?.id ?? null,
+    rule: "manual_resolution",
+    lastRssi: obs.rssi,
+    lastSeen: obs.lastSeen,
+    startedAt: new Date().toISOString(),
+  });
+  await supabase
+    .from("pending_session_decisions" as any)
+    .update({
+      status: "resolved",
+      resolved_resident_id: residentId,
+      resolved_session_id: sessionId,
+      resolved_by: u?.user?.id ?? null,
+      resolved_at: new Date().toISOString(),
+    })
+    .eq("id", pendingId);
+  emit();
+  return { ok: true };
 }

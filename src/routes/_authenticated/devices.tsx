@@ -44,6 +44,7 @@ import {
 import {
   endTriggerManually,
   refreshRegisteredDevices,
+  resolvePendingDecision,
   startSessionManager,
   stopSessionManager,
   subscribeSessionManager,
@@ -81,6 +82,16 @@ type DeviceRow = {
 type Room = { id: string; name: string; floor: string | null };
 type Resident = { id: string; full_name: string };
 type StaffProfile = { id: string; full_name: string | null };
+type PendingDecision = {
+  id: string;
+  triggering_device_id: string;
+  room_id: string | null;
+  candidate_resident_ids: string[];
+  rssi: number | null;
+  status: "pending" | "resolved" | "dismissed" | "expired";
+  created_at: string;
+  expires_at: string;
+};
 
 function typeIcon(t: DeviceRow["device_type"]) {
   return t === "room_beacon" ? Radio : t === "wearable_tag" ? Tag : IdCard;
@@ -119,6 +130,7 @@ function DevicesPage() {
   const [residents, setResidents] = useState<Resident[]>([]);
   const [staff, setStaff] = useState<StaffProfile[]>([]);
   const [observations, setObservations] = useState<BeaconObservation[]>([]);
+  const [pending, setPending] = useState<PendingDecision[]>([]);
   const [scannerStatus, setScannerStatus] = useState<ScannerStatus>({
     running: false,
     mode: isLEScanAvailable() ? "native" : "unavailable",
@@ -148,8 +160,23 @@ function DevicesPage() {
     setStaff((p.data ?? []) as StaffProfile[]);
   };
 
+  const loadPending = async () => {
+    const { data } = await supabase
+      .from("pending_session_decisions" as any)
+      .select(
+        "id, triggering_device_id, room_id, candidate_resident_ids, rssi, status, created_at, expires_at",
+      )
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+    setPending((data ?? []) as unknown as PendingDecision[]);
+  };
+
   useEffect(() => {
     void load();
+    void loadPending();
+    const t = setInterval(() => void loadPending(), 8_000);
+    return () => clearInterval(t);
   }, []);
 
   useEffect(() => subscribeObservations(setObservations), []);
@@ -272,6 +299,9 @@ function DevicesPage() {
           <TabsTrigger value="sessions">
             Active sessions ({sessionState.activeSessions.length})
           </TabsTrigger>
+          <TabsTrigger value="pending">
+            Pending {pending.length > 0 ? `(${pending.length})` : ""}
+          </TabsTrigger>
           <TabsTrigger value="rooms">Rooms</TabsTrigger>
         </TabsList>
 
@@ -329,6 +359,16 @@ function DevicesPage() {
               await endTriggerManually(id);
               toast.message("Session ended");
             }}
+          />
+        </TabsContent>
+
+        <TabsContent value="pending" className="mt-4">
+          <PendingDecisionsList
+            pending={pending}
+            devices={devices}
+            residentName={residentName}
+            roomName={roomName}
+            onResolved={loadPending}
           />
         </TabsContent>
 
@@ -729,6 +769,87 @@ function AddRoomInline({ onSaved }: { onSaved: () => void }) {
       <Button onClick={add} size="sm">
         Add
       </Button>
+    </div>
+  );
+}
+
+function PendingDecisionsList({
+  pending,
+  devices,
+  residentName,
+  roomName,
+  onResolved,
+}: {
+  pending: PendingDecision[];
+  devices: DeviceRow[];
+  residentName: (id: string | null) => string;
+  roomName: (id: string | null) => string;
+  onResolved: () => void;
+}) {
+  if (pending.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          No pending decisions. When a room beacon with the "Prompt" strategy detects multiple
+          possible residents, the choices appear here for a carer to confirm.
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {pending.map((p) => {
+        const dev = devices.find((d) => d.id === p.triggering_device_id);
+        return (
+          <Card key={p.id}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">
+                {dev?.label ?? "Beacon"} · {roomName(p.room_id)}
+              </CardTitle>
+              <div className="text-xs text-muted-foreground">
+                {p.rssi != null ? `${p.rssi} dBm · ` : ""}detected {relTime(p.created_at)} · expires{" "}
+                {relTime(p.expires_at)}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-sm">Which resident is this session for?</div>
+              <div className="flex flex-wrap gap-2">
+                {p.candidate_resident_ids.map((rid) => (
+                  <Button
+                    key={rid}
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      const r = await resolvePendingDecision(p.id, { residentId: rid });
+                      if (!r.ok) toast.error(r.error);
+                      else {
+                        toast.success(`Session started for ${residentName(rid)}`);
+                        onResolved();
+                      }
+                    }}
+                  >
+                    {residentName(rid)}
+                  </Button>
+                ))}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={async () => {
+                    const r = await resolvePendingDecision(p.id, { dismiss: true });
+                    if (!r.ok) toast.error(r.error);
+                    else {
+                      toast.message("Dismissed");
+                      onResolved();
+                    }
+                  }}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

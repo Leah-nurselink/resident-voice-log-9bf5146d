@@ -70,6 +70,9 @@ export function RegisterBeaconDialog({
   const [txPower, setTxPower] = useState("");
   const [rssiThreshold, setRssiThreshold] = useState("-75");
   const [timeoutSec, setTimeoutSec] = useState("60");
+  const [ambiguityStrategy, setAmbiguityStrategy] = useState<"skip" | "prompt" | "open_all">(
+    "prompt",
+  );
   const [assignmentId, setAssignmentId] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -132,6 +135,7 @@ export function RegisterBeaconDialog({
       tx_power: txPower ? parseInt(txPower, 10) : null,
       rssi_threshold: parseInt(rssiThreshold, 10) || -75,
       session_timeout_seconds: parseInt(timeoutSec, 10) || 60,
+      ambiguity_strategy: type === "room_beacon" ? ambiguityStrategy : "skip",
       status: "active",
       room_id: type === "room_beacon" ? assignmentId : null,
       resident_id: type === "wearable_tag" ? assignmentId : null,
@@ -296,6 +300,31 @@ export function RegisterBeaconDialog({
             </Select>
           </div>
 
+          {type === "room_beacon" && (
+            <div>
+              <Label>If room has multiple residents</Label>
+              <Select
+                value={ambiguityStrategy}
+                onValueChange={(v) => setAmbiguityStrategy(v as typeof ambiguityStrategy)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="skip">Skip — don't open a session, just log</SelectItem>
+                  <SelectItem value="prompt">Prompt — queue for manual confirmation</SelectItem>
+                  <SelectItem value="open_all">
+                    Open all — low-confidence session per resident
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Wearable tags always override this — if a wearable identifies the resident, no
+                ambiguity arises.
+              </p>
+            </div>
+          )}
+
           <div>
             <Label>Notes</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
@@ -315,8 +344,7 @@ export function RegisterBeaconDialog({
                 When this beacon clears the threshold and the assigned room has{" "}
                 <span className="font-medium">exactly one</span> active resident, a session opens
                 for that resident. If a wearable identifies someone else first, the wearable
-                wins. If the room has multiple residents and no wearable is present, no session
-                is opened and an <code>ambiguous_room_occupancy</code> event is logged.
+                wins. For rooms with multiple residents, the strategy above decides what happens.
               </p>
             )}
             {type === "staff_badge" && (
