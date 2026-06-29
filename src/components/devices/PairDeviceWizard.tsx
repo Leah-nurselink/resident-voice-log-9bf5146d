@@ -151,6 +151,11 @@ export function PairDeviceWizard({
       return;
     }
     toast.success(`${meta.label} paired and assigned to ${assignmentName()}`);
+    try {
+      rememberPairedDevice(bleId.trim());
+    } catch {
+      /* localStorage may be unavailable */
+    }
     reset();
     setOpen(false);
     onSaved();
