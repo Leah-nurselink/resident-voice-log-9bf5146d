@@ -128,36 +128,27 @@ export function RegisterBeaconDialog({
   const VERIFY_WINDOW_MS = 15_000;
 
   // While on the verify step, subscribe to live observations and watch for
-  // matching hits at or above the threshold.
+  // matching hits at or above the threshold. The actual gating logic lives
+  // in createVerifyTracker so it can be unit-tested in isolation.
   useEffect(() => {
     if (step !== "verify" || !expectedKey) return;
     verifyHitsRef.current = 0;
     verifyStartedRef.current = Date.now();
     setVerified(false);
     setLiveObs(null);
-    let lastSeenStamp = "";
+    const tracker = createVerifyTracker({
+      expectedKey,
+      threshold: inRangeThreshold,
+      hitsRequired: VERIFY_HITS_REQUIRED,
+      windowMs: VERIFY_WINDOW_MS,
+    });
     const unsub = subscribe((nearby) => {
-      const match = nearby.find((o) => o.key === expectedKey);
-      if (!match) {
-        setLiveObs(null);
-        return;
-      }
+      const state = tracker.observe(nearby);
+      verifyHitsRef.current = state.hits;
+      verifyStartedRef.current = state.windowStartedAt;
+      const match = nearby.find((o) => o.key === expectedKey) ?? null;
       setLiveObs(match);
-      // Count each *new* hit (lastSeen advances) at or above threshold.
-      if (match.lastSeen !== lastSeenStamp && match.rssi >= inRangeThreshold) {
-        lastSeenStamp = match.lastSeen;
-        verifyHitsRef.current += 1;
-        if (verifyHitsRef.current >= VERIFY_HITS_REQUIRED) setVerified(true);
-      }
-      // Reset hit count if the window expires without enough hits.
-      if (
-        verifyStartedRef.current &&
-        Date.now() - verifyStartedRef.current > VERIFY_WINDOW_MS &&
-        verifyHitsRef.current < VERIFY_HITS_REQUIRED
-      ) {
-        verifyHitsRef.current = 0;
-        verifyStartedRef.current = Date.now();
-      }
+      if (state.verified) setVerified(true);
     });
     return () => unsub();
   }, [step, expectedKey, inRangeThreshold]);
