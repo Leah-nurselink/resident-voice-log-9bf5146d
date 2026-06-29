@@ -300,6 +300,33 @@ export function RegisterBeaconDialog({
             <Label>Notes</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
           </div>
+
+          <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <div className="mb-1 font-medium text-foreground">How sessions auto-start</div>
+            {type === "wearable_tag" && (
+              <p>
+                A care session opens for this resident whenever the wearable is heard at or above
+                the threshold. Room is set from the strongest room beacon nearby; staff is set
+                from the strongest staff badge nearby.
+              </p>
+            )}
+            {type === "room_beacon" && (
+              <p>
+                When this beacon clears the threshold and the assigned room has{" "}
+                <span className="font-medium">exactly one</span> active resident, a session opens
+                for that resident. If a wearable identifies someone else first, the wearable
+                wins. If the room has multiple residents and no wearable is present, no session
+                is opened and an <code>ambiguous_room_occupancy</code> event is logged.
+              </p>
+            )}
+            {type === "staff_badge" && (
+              <p>
+                Staff badges never open a session on their own — they mark which carer is
+                present. When this badge is the strongest in a room with an open session, the
+                session's staff member is set to this user.
+              </p>
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={saving}>
