@@ -772,3 +772,84 @@ function AddRoomInline({ onSaved }: { onSaved: () => void }) {
     </div>
   );
 }
+
+function PendingDecisionsList({
+  pending,
+  devices,
+  residentName,
+  roomName,
+  onResolved,
+}: {
+  pending: PendingDecision[];
+  devices: DeviceRow[];
+  residentName: (id: string | null) => string;
+  roomName: (id: string | null) => string;
+  onResolved: () => void;
+}) {
+  if (pending.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          No pending decisions. When a room beacon with the "Prompt" strategy detects multiple
+          possible residents, the choices appear here for a carer to confirm.
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {pending.map((p) => {
+        const dev = devices.find((d) => d.id === p.triggering_device_id);
+        return (
+          <Card key={p.id}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">
+                {dev?.label ?? "Beacon"} · {roomName(p.room_id)}
+              </CardTitle>
+              <div className="text-xs text-muted-foreground">
+                {p.rssi != null ? `${p.rssi} dBm · ` : ""}detected {relTime(p.created_at)} · expires{" "}
+                {relTime(p.expires_at)}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-sm">Which resident is this session for?</div>
+              <div className="flex flex-wrap gap-2">
+                {p.candidate_resident_ids.map((rid) => (
+                  <Button
+                    key={rid}
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      const r = await resolvePendingDecision(p.id, { residentId: rid });
+                      if (!r.ok) toast.error(r.error);
+                      else {
+                        toast.success(`Session started for ${residentName(rid)}`);
+                        onResolved();
+                      }
+                    }}
+                  >
+                    {residentName(rid)}
+                  </Button>
+                ))}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={async () => {
+                    const r = await resolvePendingDecision(p.id, { dismiss: true });
+                    if (!r.ok) toast.error(r.error);
+                    else {
+                      toast.message("Dismissed");
+                      onResolved();
+                    }
+                  }}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
