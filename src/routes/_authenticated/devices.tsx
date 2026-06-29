@@ -160,8 +160,23 @@ function DevicesPage() {
     setStaff((p.data ?? []) as StaffProfile[]);
   };
 
+  const loadPending = async () => {
+    const { data } = await supabase
+      .from("pending_session_decisions" as any)
+      .select(
+        "id, triggering_device_id, room_id, candidate_resident_ids, rssi, status, created_at, expires_at",
+      )
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+    setPending((data ?? []) as unknown as PendingDecision[]);
+  };
+
   useEffect(() => {
     void load();
+    void loadPending();
+    const t = setInterval(() => void loadPending(), 8_000);
+    return () => clearInterval(t);
   }, []);
 
   useEffect(() => subscribeObservations(setObservations), []);
