@@ -597,13 +597,15 @@ export async function resolvePendingDecision(
     uuid: device.beacon_uuid,
     major: device.beacon_major,
     minor: device.beacon_minor,
+    namespace: null,
+    instance: null,
     mac: null,
     rssi: p.rssi ?? device.rssi_threshold,
     txPower: null,
     name: device.label,
     firstSeen: new Date().toISOString(),
     lastSeen: new Date().toISOString(),
-    count: 1,
+    hits: 1,
   };
   const sessionId = await openSession(
     residentId,
