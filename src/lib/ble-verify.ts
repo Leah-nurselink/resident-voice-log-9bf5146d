@@ -65,9 +65,12 @@ export function createVerifyTracker(opts: VerifyTrackerOptions): VerifyTracker {
 
       if (!match) return snapshot();
 
-      // Only count a hit when the lastSeen advances (a *new* advertisement)
-      // and the signal is at/above the threshold. Once verified we lock.
-      if (!verified && match.lastSeen !== lastSeen && match.rssi >= opts.threshold) {
+      // Count any new advertisement on the matching key as a hit. The RSSI
+      // threshold gates session triggering downstream — verification only
+      // needs to confirm we're hearing the right beacon nearby. We still
+      // expose the threshold result via the snapshot so the UI can warn if
+      // the signal is weak.
+      if (!verified && match.lastSeen !== lastSeen) {
         if (windowStartedAt === null) windowStartedAt = now();
         hits += 1;
         if (hits >= hitsRequired) verified = true;

@@ -586,11 +586,11 @@ function VerifyPanel({
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             )}
             {verified
-              ? "Verified — signature matches and in range"
+              ? inRange
+                ? "Verified — signature matches and in range"
+                : "Verified — signature matches (signal weak, may not trigger sessions)"
               : liveObs
-                ? inRange
-                  ? `Matching · ${hits}/${hitsRequired} hits`
-                  : "Matching signature, but signal is weak"
+                ? `Matching · ${hits}/${hitsRequired} hits${inRange ? "" : " (weak signal)"}`
                 : "Scanning for matching advertisement…"}
           </div>
           <div className="font-mono text-xs text-muted-foreground">
@@ -625,8 +625,9 @@ function VerifyPanel({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Hold the beacon near this device until you see {hitsRequired} confirmed hits at or above the
-        threshold. Walk closer if the bar stays below the threshold marker.
+        Hold the beacon near this device until you see {hitsRequired} confirmed advertisements
+        with the matching signature. A care session will only auto-start later when the signal
+        clears the {threshold} dBm threshold.
       </p>
 
       <label className="flex items-center gap-2 text-xs text-muted-foreground">

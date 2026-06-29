@@ -510,12 +510,25 @@ async function tick() {
 export async function startSessionManager() {
   if (state.running) return;
   await reloadRegistered();
+  let tickInFlight = false;
+  const runTick = async () => {
+    if (tickInFlight) return;
+    tickInFlight = true;
+    try {
+      await tick();
+    } finally {
+      tickInFlight = false;
+    }
+  };
   unsubscribeScanner = subscribeObservations((obs) => {
     lastObservations = obs;
+    // React immediately to fresh advertisements so sessions open without
+    // waiting for the next interval tick.
+    void runTick();
   });
-  tickHandle = setInterval(() => void tick(), 4_000);
+  tickHandle = setInterval(() => void runTick(), 4_000);
   state.running = true;
-  void tick();
+  void runTick();
   emit();
 }
 

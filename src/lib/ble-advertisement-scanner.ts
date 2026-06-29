@@ -66,7 +66,7 @@ const status: ScannerStatus = {
   mode: "unavailable",
 };
 
-const OBSERVATION_TTL_MS = 30_000; // drop from "nearby" after 30 s with no hits
+const OBSERVATION_TTL_MS = 180_000; // keep in "nearby" for 3 min after last hit
 
 export function isLEScanAvailable(): boolean {
   if (typeof navigator === "undefined") return false;
