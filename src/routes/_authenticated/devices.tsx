@@ -665,8 +665,9 @@ function ActiveSessionsList({
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          No active sessions. Sessions start automatically when a registered beacon is detected
-          above its RSSI threshold.
+          No active sessions. Sessions start automatically when a registered beacon clears its
+          RSSI threshold and the system can identify a single resident (via wearable tag or a
+          room beacon whose room has one occupant).
         </CardContent>
       </Card>
     );
@@ -677,17 +678,17 @@ function ActiveSessionsList({
         <ul className="divide-y">
           {sessions.map((s) => {
             const dev = devices.find((d) => d.id === s.deviceId);
-            const subject = dev?.resident_id
-              ? residentName(dev.resident_id)
-              : dev?.room_id
-                ? `Room: ${roomName(dev.room_id)}`
-                : (dev?.label ?? "Beacon");
+            const subject = s.residentId ? residentName(s.residentId) : (dev?.label ?? "Beacon");
+            const ruleLabel =
+              s.rule === "wearable" ? "wearable tag" : "room beacon · single occupant";
             return (
-              <li key={s.deviceId} className="flex items-center justify-between gap-3 px-4 py-3">
+              <li key={s.residentId ?? s.deviceId} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div>
                   <div className="font-medium">{subject}</div>
                   <div className="text-xs text-muted-foreground">
-                    {dev?.label} · last RSSI {s.lastRssi} dBm · started {relTime(s.startedAt)}
+                    {dev?.label ?? "—"} · {ruleLabel}
+                    {s.roomId ? ` · ${roomName(s.roomId)}` : ""} · last RSSI {s.lastRssi} dBm ·
+                    started {relTime(s.startedAt)}
                   </div>
                 </div>
                 <Button size="sm" variant="ghost" onClick={() => void onEnd(s.deviceId)}>
