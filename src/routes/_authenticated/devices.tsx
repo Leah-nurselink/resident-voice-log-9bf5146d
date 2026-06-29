@@ -528,22 +528,34 @@ function TestConnectionButton({
   const run = async () => {
     setTesting(true);
     try {
-      // Simulated connection test: in a real BLE integration this would attempt
-      // a gatt.connect() and read a known characteristic. For now we record a
-      // test event and refresh last_seen so operators can verify the registry.
-      const rssi = -50 - Math.round(Math.random() * 30);
+      // Lazy-import so the route bundle still loads if Web Bluetooth is missing.
+      const { testConnectById, isWebBluetoothAvailable: avail } = await import(
+        "@/lib/ble-real"
+      );
+      if (!avail()) {
+        throw new Error(
+          "Web Bluetooth not available — open this app in Chrome/Edge on Android, Windows or macOS over HTTPS.",
+        );
+      }
+      const result = await testConnectById(device.ble_identifier);
+      const rssi = result.rssi;
       const now = new Date().toISOString();
       const [{ error: e1 }, { error: e2 }] = await Promise.all([
-        supabase
-          .from("device_events")
-          .insert({ device_id: device.id, event_type: "test", rssi, battery_level: device.battery_level }),
+        supabase.from("device_events").insert({
+          device_id: device.id,
+          event_type: "test",
+          rssi,
+          battery_level: device.battery_level,
+        }),
         supabase
           .from("devices")
           .update({ last_seen_at: now, last_rssi: rssi })
           .eq("id", device.id),
       ]);
       if (e1 || e2) throw e1 ?? e2;
-      toast.success(`Test OK · ${device.label} · ${rssi} dBm`);
+      toast.success(
+        `Reached ${device.label}${rssi != null ? ` · ${rssi} dBm` : result.connected ? " · connected" : ""}`,
+      );
       onTested();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Test failed");

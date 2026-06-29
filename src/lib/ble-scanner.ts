@@ -56,16 +56,15 @@ export async function scanOnce(opts: { simulate?: boolean } = {}): Promise<ScanH
   const useSimulator = opts.simulate ?? !isWebBluetoothAvailable();
   const now = new Date().toISOString();
 
+  // Real passive scanning: requires the experimental `requestLEScan` API
+  // (Chrome flag: experimental-web-platform-features) over HTTPS, and a
+  // user gesture. When available we return only the *registered* devices
+  // we actually heard from.
   if (!useSimulator) {
-    try {
-      // Web Bluetooth requires a user gesture and explicit service filters.
-      // We treat any matching advertisement as a hit. Without configured
-      // services we can't truly passively scan, so we still simulate but
-      // mark the source as live for telemetry.
-      // (Real BLE beacon scanning needs the experimental requestLEScan API.)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const bt: any = (navigator as any).bluetooth;
-      if (bt?.requestLEScan) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bt: any = (navigator as any).bluetooth;
+    if (bt?.requestLEScan) {
+      try {
         const hits: ScanHit[] = [];
         const scan = await bt.requestLEScan({ acceptAllAdvertisements: true });
         const handler = (e: { device: { id: string }; rssi: number }) => {
@@ -77,10 +76,13 @@ export async function scanOnce(opts: { simulate?: boolean } = {}): Promise<ScanH
         bt.removeEventListener("advertisementreceived", handler);
         scan.stop();
         return hits;
+      } catch {
+        // requestLEScan rejected — fall through to honest empty result.
       }
-    } catch {
-      // fall through to simulator
     }
+    // No passive scan API: report nothing rather than fabricate hits.
+    // Operators use the per-device "Test" button (real gatt.connect) instead.
+    return [];
   }
 
   // Simulator: ~70% of registered devices visible, RSSI weighted by type.

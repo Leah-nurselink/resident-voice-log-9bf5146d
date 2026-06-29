@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Radio, Tag, IdCard, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Plus, Radio, Tag, IdCard, ArrowLeft, ArrowRight, Check, BluetoothSearching } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { isWebBluetoothAvailable, requestAndPair } from "@/lib/ble-real";
+import { rememberPairedDevice } from "@/lib/ble-auto-connect";
 
 type DeviceType = "room_beacon" | "wearable_tag" | "staff_badge";
 type Room = { id: string; name: string; floor: string | null };
@@ -149,6 +151,11 @@ export function PairDeviceWizard({
       return;
     }
     toast.success(`${meta.label} paired and assigned to ${assignmentName()}`);
+    try {
+      rememberPairedDevice(bleId.trim());
+    } catch {
+      /* localStorage may be unavailable */
+    }
     reset();
     setOpen(false);
     onSaved();
@@ -233,6 +240,36 @@ export function PairDeviceWizard({
 
           {step === 1 && (
             <div className="space-y-3">
+              <div className="rounded-md border bg-muted/30 p-3">
+                <div className="mb-2 text-xs text-muted-foreground">
+                  {isWebBluetoothAvailable()
+                    ? "Put the device in pairing mode, then open the browser chooser."
+                    : "Web Bluetooth isn't available in this browser — use Chrome or Edge on Android/Windows/macOS over HTTPS, or enter the identifier manually below."}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!isWebBluetoothAvailable()}
+                  onClick={async () => {
+                    try {
+                      const handle = await requestAndPair();
+                      setBleId(handle.id);
+                      if (handle.name && !label) setLabel(handle.name);
+                      toast.success(`Picked ${handle.name ?? "device"}`);
+                    } catch (e) {
+                      if (e instanceof Error && e.name === "NotFoundError") {
+                        toast.message("No device selected");
+                      } else {
+                        toast.error(e instanceof Error ? e.message : "Pairing failed");
+                      }
+                    }
+                  }}
+                >
+                  <BluetoothSearching className="h-4 w-4" />
+                  Scan with browser
+                </Button>
+              </div>
               <div>
                 <Label>Label *</Label>
                 <Input
@@ -252,10 +289,11 @@ export function PairDeviceWizard({
                 <Input
                   value={bleId}
                   onChange={(e) => setBleId(e.target.value)}
-                  placeholder="UUID or device id reported during pairing"
+                  placeholder="Auto-filled by 'Scan with browser', or enter manually"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Captured automatically when scanning is integrated; enter manually for now.
+                  Only ids captured via 'Scan with browser' can later be reached for live Test /
+                  Auto-connect.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
