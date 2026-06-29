@@ -299,6 +299,9 @@ function DevicesPage() {
           <TabsTrigger value="sessions">
             Active sessions ({sessionState.activeSessions.length})
           </TabsTrigger>
+          <TabsTrigger value="pending">
+            Pending {pending.length > 0 ? `(${pending.length})` : ""}
+          </TabsTrigger>
           <TabsTrigger value="rooms">Rooms</TabsTrigger>
         </TabsList>
 
