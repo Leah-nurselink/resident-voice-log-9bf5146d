@@ -1,8 +1,8 @@
 // Register a detected (or manually entered) BLE beacon and assign it to a
 // room, resident, or staff member. No pairing — this is metadata only.
 
-import { useEffect, useState } from "react";
-import { Plus, Radio, Tag, IdCard } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Radio, Tag, IdCard, CheckCircle2, XCircle, Loader2, SignalHigh } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,10 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { BeaconObservation } from "@/lib/ble-advertisement-scanner";
+import { subscribe, type BeaconObservation } from "@/lib/ble-advertisement-scanner";
 import { refreshRegisteredDevices } from "@/lib/ble-session-manager";
+
+type Step = "details" | "verify" | "assign";
 
 type DeviceType = "room_beacon" | "wearable_tag" | "staff_badge";
 type Room = { id: string; name: string; floor: string | null };
