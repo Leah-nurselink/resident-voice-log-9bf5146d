@@ -128,6 +128,27 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
   const webBluetoothAvailable = isWebBluetoothAvailable();
   const leScanAvailable = isLEScanAvailable();
   const likelyWindows = /windows|win32|win64/i.test(`${platform} ${userAgent}`);
+  const nativeRuntime = getNativeRuntime();
+
+  if (nativeRuntime) {
+    const label =
+      nativeRuntime === "capacitor-android"
+        ? "Android native app"
+        : nativeRuntime === "electron-mac"
+          ? "macOS native app"
+          : "Native app";
+    return {
+      state: "ready",
+      webBluetoothAvailable,
+      leScanAvailable: true,
+      platform,
+      userAgent,
+      title: `Real beacon scanning is available (${label})`,
+      message: "This shell provides native BLE scanning — no Chrome flag needed.",
+      nextStep: "Click Start scan and allow Bluetooth permission to detect real beacons nearby.",
+    };
+  }
+
 
   if (leScanAvailable) {
     return {
