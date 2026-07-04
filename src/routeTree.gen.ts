@@ -22,6 +22,7 @@ import { Route as AuthenticatedIntelligenceRouteImport } from './routes/_authent
 import { Route as AuthenticatedIncidentReviewRouteImport } from './routes/_authenticated/incident-review'
 import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
+import { Route as AuthenticatedDownloadsRouteImport } from './routes/_authenticated/downloads'
 import { Route as AuthenticatedDevicesRouteImport } from './routes/_authenticated/devices'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCommunicationsRouteImport } from './routes/_authenticated/communications'
@@ -103,6 +104,11 @@ const AuthenticatedFeedbackRoute = AuthenticatedFeedbackRouteImport.update({
 const AuthenticatedFamilyRoute = AuthenticatedFamilyRouteImport.update({
   id: '/family',
   path: '/family',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDownloadsRoute = AuthenticatedDownloadsRouteImport.update({
+  id: '/downloads',
+  path: '/downloads',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDevicesRoute = AuthenticatedDevicesRouteImport.update({
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/communications': typeof AuthenticatedCommunicationsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/devices': typeof AuthenticatedDevicesRoute
+  '/downloads': typeof AuthenticatedDownloadsRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/feedback': typeof AuthenticatedFeedbackRoute
   '/incident-review': typeof AuthenticatedIncidentReviewRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/communications': typeof AuthenticatedCommunicationsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/devices': typeof AuthenticatedDevicesRoute
+  '/downloads': typeof AuthenticatedDownloadsRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/feedback': typeof AuthenticatedFeedbackRoute
   '/incident-review': typeof AuthenticatedIncidentReviewRoute
@@ -251,6 +259,7 @@ export interface FileRoutesById {
   '/_authenticated/communications': typeof AuthenticatedCommunicationsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/devices': typeof AuthenticatedDevicesRoute
+  '/_authenticated/downloads': typeof AuthenticatedDownloadsRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/feedback': typeof AuthenticatedFeedbackRoute
   '/_authenticated/incident-review': typeof AuthenticatedIncidentReviewRoute
@@ -281,6 +290,7 @@ export interface FileRouteTypes {
     | '/communications'
     | '/dashboard'
     | '/devices'
+    | '/downloads'
     | '/family'
     | '/feedback'
     | '/incident-review'
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/communications'
     | '/dashboard'
     | '/devices'
+    | '/downloads'
     | '/family'
     | '/feedback'
     | '/incident-review'
@@ -338,6 +349,7 @@ export interface FileRouteTypes {
     | '/_authenticated/communications'
     | '/_authenticated/dashboard'
     | '/_authenticated/devices'
+    | '/_authenticated/downloads'
     | '/_authenticated/family'
     | '/_authenticated/feedback'
     | '/_authenticated/incident-review'
@@ -453,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFamilyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/downloads': {
+      id: '/_authenticated/downloads'
+      path: '/downloads'
+      fullPath: '/downloads'
+      preLoaderRoute: typeof AuthenticatedDownloadsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/devices': {
       id: '/_authenticated/devices'
       path: '/devices'
@@ -566,6 +585,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCommunicationsRoute: typeof AuthenticatedCommunicationsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDevicesRoute: typeof AuthenticatedDevicesRoute
+  AuthenticatedDownloadsRoute: typeof AuthenticatedDownloadsRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedFeedbackRoute: typeof AuthenticatedFeedbackRoute
   AuthenticatedIncidentReviewRoute: typeof AuthenticatedIncidentReviewRoute
@@ -592,6 +612,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCommunicationsRoute: AuthenticatedCommunicationsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDevicesRoute: AuthenticatedDevicesRoute,
+  AuthenticatedDownloadsRoute: AuthenticatedDownloadsRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedFeedbackRoute: AuthenticatedFeedbackRoute,
   AuthenticatedIncidentReviewRoute: AuthenticatedIncidentReviewRoute,

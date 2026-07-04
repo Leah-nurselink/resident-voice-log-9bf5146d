@@ -6,6 +6,7 @@ import {
   Calendar,
   ClipboardList,
   ClipboardCheck,
+  Download,
   FileText,
   FileSearch,
   Heart,
@@ -54,6 +55,7 @@ const systemItems = [
   { title: "Reports", url: "/reports", icon: FileText },
   { title: "Devices", url: "/devices", icon: Bluetooth },
   { title: "Admin", url: "/admin", icon: ShieldCheck },
+  { title: "Downloads", url: "/downloads", icon: Download },
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
 
