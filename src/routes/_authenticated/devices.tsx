@@ -4,6 +4,7 @@ import {
   Bluetooth,
   BluetoothSearching,
   CheckCircle2,
+  CircleHelp,
   IdCard,
   Pause,
   Play,
@@ -31,6 +32,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   clearObservations,
+  getLEScanSupportDiagnostic,
   getNearby,
   isLEScanAvailable,
   isWebBluetoothAvailable,
@@ -39,6 +41,7 @@ import {
   subscribe as subscribeObservations,
   subscribeStatus,
   type BeaconObservation,
+  type LEScanSupportDiagnostic,
   type ScannerStatus,
 } from "@/lib/ble-advertisement-scanner";
 import {
@@ -135,6 +138,7 @@ function DevicesPage() {
     running: false,
     mode: isLEScanAvailable() ? "native" : "unavailable",
   });
+  const [supportDiagnostic, setSupportDiagnostic] = useState<LEScanSupportDiagnostic | null>(null);
   const [sessionState, setSessionState] = useState<SessionManagerState>({
     running: false,
     registeredCount: 0,
@@ -203,6 +207,16 @@ function DevicesPage() {
     }
   };
 
+  const checkRealBeaconSupport = () => {
+    const diagnostic = getLEScanSupportDiagnostic();
+    setSupportDiagnostic(diagnostic);
+    if (diagnostic.state === "ready") {
+      toast.success(diagnostic.title);
+    } else {
+      toast.warning(diagnostic.title);
+    }
+  };
+
   const residentName = (id: string | null) =>
     id ? (residents.find((x) => x.id === id)?.full_name ?? "—") : "—";
   const roomName = (id: string | null) =>
@@ -225,6 +239,10 @@ function DevicesPage() {
       subtitle="Live BLE advertisement scanning — no pairing required"
       action={
         <div className="flex gap-2">
+          <Button onClick={checkRealBeaconSupport} variant="secondary" size="sm">
+            <CircleHelp className="h-4 w-4" />
+            Check real beacon support
+          </Button>
           <Button onClick={() => clearObservations()} variant="ghost" size="sm">
             <Trash2 className="h-4 w-4" />
             Clear list
@@ -281,7 +299,34 @@ function DevicesPage() {
             <strong>Simulator mode.</strong> Passive BLE scanning requires the experimental Web
             Platform features flag (chrome://flags/#enable-experimental-web-platform-features).
             Beacons shown below with the <em>Simulated</em> badge are fake demo data, not your real
-            hardware.
+            hardware. If this is Windows, Chrome cannot scan real beacon advertisements from the
+            browser; use Android, ChromeOS, macOS, or Linux.
+          </CardContent>
+        </Card>
+      )}
+
+      {supportDiagnostic && (
+        <Card
+          className={
+            supportDiagnostic.state === "ready"
+              ? "mt-4 border-emerald-200 bg-emerald-50"
+              : "mt-4 border-amber-200 bg-amber-50"
+          }
+        >
+          <CardContent
+            className={
+              supportDiagnostic.state === "ready"
+                ? "py-3 text-sm text-emerald-900"
+                : "py-3 text-sm text-amber-900"
+            }
+          >
+            <div className="font-semibold">{supportDiagnostic.title}</div>
+            <div className="mt-1">{supportDiagnostic.message}</div>
+            <div className="mt-1 font-medium">{supportDiagnostic.nextStep}</div>
+            <div className="mt-2 text-xs opacity-80">
+              Web Bluetooth: {supportDiagnostic.webBluetoothAvailable ? "yes" : "no"} · Passive
+              scan API: {supportDiagnostic.leScanAvailable ? "yes" : "no"} · Device: {supportDiagnostic.platform}
+            </div>
           </CardContent>
         </Card>
       )}
