@@ -58,6 +58,23 @@ export interface ScannerStatus {
   startedAt?: string;
 }
 
+export type LEScanSupportState =
+  | "ready"
+  | "missing-web-bluetooth"
+  | "missing-passive-scan"
+  | "likely-unsupported-os";
+
+export interface LEScanSupportDiagnostic {
+  state: LEScanSupportState;
+  webBluetoothAvailable: boolean;
+  leScanAvailable: boolean;
+  platform: string;
+  userAgent: string;
+  title: string;
+  message: string;
+  nextStep: string;
+}
+
 const observations = new Map<string, BeaconObservation>();
 let listeners: Listener[] = [];
 let statusListeners: ((s: ScannerStatus) => void)[] = [];
@@ -81,6 +98,78 @@ export function isLEScanAvailable(): boolean {
 
 export function isWebBluetoothAvailable(): boolean {
   return typeof navigator !== "undefined" && "bluetooth" in navigator;
+}
+
+export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
+  if (typeof navigator === "undefined") {
+    return {
+      state: "missing-web-bluetooth",
+      webBluetoothAvailable: false,
+      leScanAvailable: false,
+      platform: "unknown",
+      userAgent: "",
+      title: "Real beacon scan unavailable",
+      message: "This page is not running in a browser context yet.",
+      nextStep: "Open the app in Chrome, then check again from the Devices page.",
+    };
+  }
+
+  const nav: any = navigator;
+  const userAgent = navigator.userAgent ?? "";
+  const platform = nav.userAgentData?.platform ?? navigator.platform ?? "unknown";
+  const webBluetoothAvailable = isWebBluetoothAvailable();
+  const leScanAvailable = isLEScanAvailable();
+  const likelyWindows = /windows|win32|win64/i.test(`${platform} ${userAgent}`);
+
+  if (leScanAvailable) {
+    return {
+      state: "ready",
+      webBluetoothAvailable,
+      leScanAvailable,
+      platform,
+      userAgent,
+      title: "Real beacon scanning is available",
+      message: "Chrome exposes passive BLE scanning on this device.",
+      nextStep: "Click Start scan and allow Bluetooth permission to detect real beacons nearby.",
+    };
+  }
+
+  if (!webBluetoothAvailable) {
+    return {
+      state: "missing-web-bluetooth",
+      webBluetoothAvailable,
+      leScanAvailable,
+      platform,
+      userAgent,
+      title: "Bluetooth scanning is not available in this browser",
+      message: "The browser does not expose Web Bluetooth, so the app can only show simulated demo beacons.",
+      nextStep: "Open the app in Chrome on Android, ChromeOS, macOS, or Linux, then check again.",
+    };
+  }
+
+  if (likelyWindows) {
+    return {
+      state: "likely-unsupported-os",
+      webBluetoothAvailable,
+      leScanAvailable,
+      platform,
+      userAgent,
+      title: "Chrome on this device cannot passively scan beacons",
+      message: "Chrome exposes basic Bluetooth here, but not the passive BLE scanning API needed for beacon advertisements.",
+      nextStep: "Use Chrome on Android, ChromeOS, macOS, or Linux for real beacon detection.",
+    };
+  }
+
+  return {
+    state: "missing-passive-scan",
+    webBluetoothAvailable,
+    leScanAvailable,
+    platform,
+    userAgent,
+    title: "Enable Chrome's experimental Web Platform features",
+    message: "Chrome is available, but passive BLE scanning is still off, so the app is using simulator mode.",
+    nextStep: "Search chrome://flags for “Experimental Web Platform features”, set it to Enabled, fully relaunch Chrome, then check again.",
+  };
 }
 
 function emit() {
