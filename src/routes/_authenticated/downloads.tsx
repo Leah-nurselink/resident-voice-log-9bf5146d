@@ -68,7 +68,7 @@ function CodeBlock({ code, id }: { code: string; id: string }) {
 
 function DownloadsPage() {
   return (
-    <AppShell>
+    <AppShell title="Downloads" subtitle="Install CareCore on Android or macOS">
       <div className="mx-auto max-w-4xl space-y-6 p-4 md:p-6">
         <header className="space-y-2">
           <h1 className="text-2xl font-semibold md:text-3xl">Download CareCore</h1>
