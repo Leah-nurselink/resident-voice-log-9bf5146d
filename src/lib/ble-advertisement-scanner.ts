@@ -18,6 +18,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getNativeAdapter,
+  getNativeRuntime,
+  installCapacitorBridgeIfNeeded,
+  type NativeAdvertisement,
+  type NativeRuntime,
+} from "./native-beacon-bridge";
 
 export type BeaconProtocol = "ibeacon" | "eddystone-uid" | "generic";
 
@@ -53,7 +60,8 @@ type Listener = (obs: BeaconObservation[]) => void;
 
 export interface ScannerStatus {
   running: boolean;
-  mode: "native" | "simulator" | "unavailable";
+  mode: "native-bridge" | "native" | "simulator" | "unavailable";
+  nativeRuntime?: NativeRuntime;
   lastError?: string;
   startedAt?: string;
 }
@@ -120,6 +128,27 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
   const webBluetoothAvailable = isWebBluetoothAvailable();
   const leScanAvailable = isLEScanAvailable();
   const likelyWindows = /windows|win32|win64/i.test(`${platform} ${userAgent}`);
+  const nativeRuntime = getNativeRuntime();
+
+  if (nativeRuntime) {
+    const label =
+      nativeRuntime === "capacitor-android"
+        ? "Android native app"
+        : nativeRuntime === "electron-mac"
+          ? "macOS native app"
+          : "Native app";
+    return {
+      state: "ready",
+      webBluetoothAvailable,
+      leScanAvailable: true,
+      platform,
+      userAgent,
+      title: `Real beacon scanning is available (${label})`,
+      message: "This shell provides native BLE scanning — no Chrome flag needed.",
+      nextStep: "Click Start scan and allow Bluetooth permission to detect real beacons nearby.",
+    };
+  }
+
 
   if (leScanAvailable) {
     return {
@@ -456,7 +485,24 @@ export async function startScanner(): Promise<void> {
   status.lastError = undefined;
   status.startedAt = new Date().toISOString();
 
-  if (isLEScanAvailable()) {
+  // 1. Native shell (Capacitor Android app or Electron macOS app) — real
+  //    hardware, no Chrome flag required.
+  await installCapacitorBridgeIfNeeded();
+  const nativeAdapter = getNativeAdapter();
+  if (nativeAdapter) {
+    try {
+      await nativeAdapter.start((adv) => handleAdvertisement(adv as NativeAdvertisement));
+      status.running = true;
+      status.mode = "native-bridge";
+      status.nativeRuntime = nativeAdapter.runtime;
+    } catch (e) {
+      status.lastError = e instanceof Error ? e.message : "Native BLE scan failed";
+      simHandle = setInterval(() => void simulatorTick(), 3_000);
+      void simulatorTick();
+      status.running = true;
+      status.mode = "simulator";
+    }
+  } else if (isLEScanAvailable()) {
     try {
       const bt: any = (navigator as any).bluetooth;
       advHandler = (e: any) => handleAdvertisement(e);
@@ -487,6 +533,14 @@ export async function startScanner(): Promise<void> {
 
 export function stopScanner(): void {
   if (!status.running) return;
+  const nativeAdapter = getNativeAdapter();
+  if (nativeAdapter) {
+    try {
+      void nativeAdapter.stop();
+    } catch {
+      /* noop */
+    }
+  }
   if (scanHandle) {
     try {
       scanHandle.stop();
@@ -513,7 +567,11 @@ export function stopScanner(): void {
     cleanupHandle = null;
   }
   status.running = false;
-  status.mode = isLEScanAvailable() ? "native" : "unavailable";
+  status.mode = nativeAdapter
+    ? "native-bridge"
+    : isLEScanAvailable()
+      ? "native"
+      : "unavailable";
   emitStatus();
 }
 
