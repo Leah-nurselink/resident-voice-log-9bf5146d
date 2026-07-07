@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { TasksList } from "@/components/dashboard/TasksList";
+import { LiveCareActivity } from "@/components/dashboard/LiveCareActivity";
 import { TrendArea, DonutChart } from "@/components/analytics/AnalyticsCharts";
 import careHero from "@/assets/care-hero.jpg";
 
@@ -113,6 +114,9 @@ function Dashboard() {
           <MetricCard title="Care Plans" value={carePlans.data ?? 0} description="Across all domains" icon={Heart} />
           <MetricCard title="High-risk Flags" value={highRisks.data ?? 0} description="Requiring attention" icon={AlertTriangle} />
         </div>
+
+        {/* Live feed from carer app */}
+        <LiveCareActivity />
 
         {/* Main grid */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
