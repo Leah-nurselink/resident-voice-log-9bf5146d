@@ -24,23 +24,30 @@ Prerequisites:
 - Android Studio Hedgehog+ with Android SDK Platform 34
 - JDK 17
 
-Steps:
+Fast path (debug APK, side-load onto a phone):
 
 ```bash
-# One-time: add the Android platform folder
+./scripts/build-android.sh
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Manual equivalent:
+
+```bash
+# One-time: add the Android platform folder (already committed in this repo)
 npx cap add android
 
 # Every build
-bun run build            # not strictly needed — webDir is a redirect stub
 npx cap sync android
-npx cap open android     # opens Android Studio
+(cd android && ./gradlew assembleDebug)
+# APK: android/app/build/outputs/apk/debug/app-debug.apk
+
+# Or, for a signed release build:
+npx cap open android     # Build → Generate Signed App Bundle / APK
 ```
 
-In Android Studio: **Build → Generate Signed App Bundle / APK**.
-
-The manifest at `android/app/src/main/AndroidManifest.xml` needs
-these permissions (Capacitor's BLE plugin usually adds them; add them
-manually if missing):
+The manifest at `android/app/src/main/AndroidManifest.xml` already declares
+the permissions the BLE plugin needs:
 
 ```xml
 <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
@@ -48,9 +55,24 @@ manually if missing):
 <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
                  android:maxSdkVersion="30" />
+<uses-feature android:name="android.hardware.bluetooth_le"
+              android:required="true" />
 ```
 
-Sideload the APK: `adb install app-release.apk`.
+### First launch on device
+
+1. Open CareCore, sign in, go to **Devices**.
+2. Tap **Start scan** — Android prompts for **Nearby devices** permission. Allow.
+3. If Bluetooth is off, the system enable dialog appears. Tap **Allow**.
+4. The Devices page shows a green **Native app mode** banner and real
+   beacons appear without the orange **Simulated** badge.
+
+If the banner stays amber ("Simulator mode"), the WebView is not running
+inside the Capacitor shell — reinstall the APK rather than opening the
+site in Chrome.
+
+Sideload the APK: `adb install -r app-debug.apk`.
+
 
 ---
 
