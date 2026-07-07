@@ -3,6 +3,10 @@ name: Build Android APK
 # Builds a debug APK on every push to main and every manual dispatch,
 # then publishes it as a GitHub Release named `android-latest` so users
 # can download it directly from the Downloads page in the app.
+#
+# Version numbers are derived automatically:
+#   versionCode = GitHub run number (monotonically increasing)
+#   versionName = 1.<run_number>.0+<short-sha>
 
 on:
   push:
@@ -19,11 +23,22 @@ on:
 permissions:
   contents: write   # required to create/update the Release
 
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Compute version
+        id: version
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "name=1.${GITHUB_RUN_NUMBER}.0+${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -46,18 +61,41 @@ jobs:
 
       - name: Build debug APK
         working-directory: android
+        env:
+          CARECORE_VERSION_CODE: ${{ steps.version.outputs.code }}
+          CARECORE_VERSION_NAME: ${{ steps.version.outputs.name }}
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Rename APK
+      - name: Extract signing cert SHA-256 for assetlinks.json
+        id: fingerprint
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          FP=$(keytool -printcert -jarfile "$APK" \
+            | grep -m1 'SHA256:' \
+            | awk '{print $2}')
+          echo "sha256=$FP" >> "$GITHUB_OUTPUT"
+          echo "Debug signing cert SHA-256: $FP"
+
+      - name: Write assetlinks.json
         run: |
           mkdir -p dist-apk
+          cat > dist-apk/assetlinks.json <<JSON
+          [{
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+              "namespace": "android_app",
+              "package_name": "app.lovable.residentvoicelog",
+              "sha256_cert_fingerprints": ["${{ steps.fingerprint.outputs.sha256 }}"]
+            }
+          }]
+          JSON
           cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/carecore.apk
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: carecore-android-debug
-          path: dist-apk/carecore.apk
+          path: dist-apk/
 
       - name: Publish/refresh `android-latest` release
         uses: softprops/action-gh-release@v2
@@ -65,15 +103,19 @@ jobs:
           tag_name: android-latest
           name: CareCore Android (latest debug build)
           body: |
-            Automatically built from commit ${{ github.sha }}.
+            **Version:** ${{ steps.version.outputs.name }} (code ${{ steps.version.outputs.code }})
+            **Commit:** ${{ github.sha }}
+            **Debug signing SHA-256:** `${{ steps.fingerprint.outputs.sha256 }}`
 
-            **Install on your phone**
-            1. On the phone, open this page and tap `carecore.apk` below.
+            ### Install on your phone
+            1. On the phone, open this page and tap `carecore.apk`.
             2. Allow install from unknown sources when Android asks.
             3. Open the CareCore app icon (NOT Chrome), sign in, go to Devices.
             4. Grant Nearby-devices permission — you should see the green
                "Native app mode" banner and real beacons.
-          files: dist-apk/carecore.apk
+          files: |
+            dist-apk/carecore.apk
+            dist-apk/assetlinks.json
           make_latest: "true"
           prerelease: false
         env:
