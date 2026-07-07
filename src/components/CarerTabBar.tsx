@@ -20,7 +20,7 @@ export function CarerTabBar() {
           return (
             <li key={t.to}>
               <Link
-                to={t.to}
+                to={t.to as string}
                 className={cn(
                   "flex flex-col items-center gap-1 py-2.5 text-[11px] transition-colors",
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground",
