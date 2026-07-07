@@ -82,8 +82,8 @@ export const getGitHubNotifications = createServerFn({ method: "GET" })
   });
 
 export const markGitHubNotificationRead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((data) => threadIdSchema.parse(data))
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data }) => {
     const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
     const GITHUB_API_KEY = process.env.GITHUB_API_KEY;
