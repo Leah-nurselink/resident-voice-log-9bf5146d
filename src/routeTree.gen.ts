@@ -26,6 +26,7 @@ import { Route as AuthenticatedDownloadsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDevicesRouteImport } from './routes/_authenticated/devices'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCommunicationsRouteImport } from './routes/_authenticated/communications'
+import { Route as AuthenticatedCarerRouteImport } from './routes/_authenticated/carer'
 import { Route as AuthenticatedCarePlansRouteImport } from './routes/_authenticated/care-plans'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedAuditsRouteImport } from './routes/_authenticated/audits'
@@ -35,6 +36,7 @@ import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedActionPlanRouteImport } from './routes/_authenticated/action-plan'
 import { Route as AuthenticatedResidentsIndexRouteImport } from './routes/_authenticated/residents/index'
+import { Route as AuthenticatedCarerIndexRouteImport } from './routes/_authenticated/carer.index'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound-email'
 import { Route as AuthenticatedResidentsIdRouteImport } from './routes/_authenticated/residents/$id'
 
@@ -127,6 +129,11 @@ const AuthenticatedCommunicationsRoute =
     path: '/communications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCarerRoute = AuthenticatedCarerRouteImport.update({
+  id: '/carer',
+  path: '/carer',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCarePlansRoute = AuthenticatedCarePlansRouteImport.update({
   id: '/care-plans',
   path: '/care-plans',
@@ -173,6 +180,11 @@ const AuthenticatedResidentsIndexRoute =
     path: '/residents/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCarerIndexRoute = AuthenticatedCarerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedCarerRoute,
+} as any)
 const ApiPublicInboundEmailRoute = ApiPublicInboundEmailRouteImport.update({
   id: '/api/public/inbound-email',
   path: '/api/public/inbound-email',
@@ -196,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/audits': typeof AuthenticatedAuditsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/care-plans': typeof AuthenticatedCarePlansRoute
+  '/carer': typeof AuthenticatedCarerRouteWithChildren
   '/communications': typeof AuthenticatedCommunicationsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/devices': typeof AuthenticatedDevicesRoute
@@ -212,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AuthenticatedTasksRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
+  '/carer/': typeof AuthenticatedCarerIndexRoute
   '/residents/': typeof AuthenticatedResidentsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -241,6 +255,7 @@ export interface FileRoutesByTo {
   '/tasks': typeof AuthenticatedTasksRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
+  '/carer': typeof AuthenticatedCarerIndexRoute
   '/residents': typeof AuthenticatedResidentsIndexRoute
 }
 export interface FileRoutesById {
@@ -256,6 +271,7 @@ export interface FileRoutesById {
   '/_authenticated/audits': typeof AuthenticatedAuditsRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/care-plans': typeof AuthenticatedCarePlansRoute
+  '/_authenticated/carer': typeof AuthenticatedCarerRouteWithChildren
   '/_authenticated/communications': typeof AuthenticatedCommunicationsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/devices': typeof AuthenticatedDevicesRoute
@@ -272,6 +288,7 @@ export interface FileRoutesById {
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
+  '/_authenticated/carer/': typeof AuthenticatedCarerIndexRoute
   '/_authenticated/residents/': typeof AuthenticatedResidentsIndexRoute
 }
 export interface FileRouteTypes {
@@ -287,6 +304,7 @@ export interface FileRouteTypes {
     | '/audits'
     | '/calendar'
     | '/care-plans'
+    | '/carer'
     | '/communications'
     | '/dashboard'
     | '/devices'
@@ -303,6 +321,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/residents/$id'
     | '/api/public/inbound-email'
+    | '/carer/'
     | '/residents/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -332,6 +351,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/residents/$id'
     | '/api/public/inbound-email'
+    | '/carer'
     | '/residents'
   id:
     | '__root__'
@@ -346,6 +366,7 @@ export interface FileRouteTypes {
     | '/_authenticated/audits'
     | '/_authenticated/calendar'
     | '/_authenticated/care-plans'
+    | '/_authenticated/carer'
     | '/_authenticated/communications'
     | '/_authenticated/dashboard'
     | '/_authenticated/devices'
@@ -362,6 +383,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks'
     | '/_authenticated/residents/$id'
     | '/api/public/inbound-email'
+    | '/_authenticated/carer/'
     | '/_authenticated/residents/'
   fileRoutesById: FileRoutesById
 }
@@ -493,6 +515,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCommunicationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/carer': {
+      id: '/_authenticated/carer'
+      path: '/carer'
+      fullPath: '/carer'
+      preLoaderRoute: typeof AuthenticatedCarerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/care-plans': {
       id: '/_authenticated/care-plans'
       path: '/care-plans'
@@ -556,6 +585,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedResidentsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/carer/': {
+      id: '/_authenticated/carer/'
+      path: '/'
+      fullPath: '/carer/'
+      preLoaderRoute: typeof AuthenticatedCarerIndexRouteImport
+      parentRoute: typeof AuthenticatedCarerRoute
+    }
     '/api/public/inbound-email': {
       id: '/api/public/inbound-email'
       path: '/api/public/inbound-email'
@@ -573,6 +609,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedCarerRouteChildren {
+  AuthenticatedCarerIndexRoute: typeof AuthenticatedCarerIndexRoute
+}
+
+const AuthenticatedCarerRouteChildren: AuthenticatedCarerRouteChildren = {
+  AuthenticatedCarerIndexRoute: AuthenticatedCarerIndexRoute,
+}
+
+const AuthenticatedCarerRouteWithChildren =
+  AuthenticatedCarerRoute._addFileChildren(AuthenticatedCarerRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedActionPlanRoute: typeof AuthenticatedActionPlanRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
@@ -582,6 +629,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAuditsRoute: typeof AuthenticatedAuditsRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedCarePlansRoute: typeof AuthenticatedCarePlansRoute
+  AuthenticatedCarerRoute: typeof AuthenticatedCarerRouteWithChildren
   AuthenticatedCommunicationsRoute: typeof AuthenticatedCommunicationsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDevicesRoute: typeof AuthenticatedDevicesRoute
@@ -609,6 +657,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAuditsRoute: AuthenticatedAuditsRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedCarePlansRoute: AuthenticatedCarePlansRoute,
+  AuthenticatedCarerRoute: AuthenticatedCarerRouteWithChildren,
   AuthenticatedCommunicationsRoute: AuthenticatedCommunicationsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDevicesRoute: AuthenticatedDevicesRoute,

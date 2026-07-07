@@ -2,12 +2,12 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, Mic, Users, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const tabs = [
+const tabs: { to: string; label: string; icon: typeof Home; exact?: boolean }[] = [
   { to: "/carer", label: "Today", icon: Home, exact: true },
   { to: "/carer/capture", label: "Capture", icon: Mic },
   { to: "/residents", label: "Residents", icon: Users },
   { to: "/alerts", label: "Alerts", icon: Bell },
-] as const;
+];
 
 export function CarerTabBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
