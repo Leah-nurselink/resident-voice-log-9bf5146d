@@ -73,12 +73,12 @@ export function NotificationBell() {
       await Promise.all(
         (gitHubNotifs.data ?? [])
           .filter((g) => !g.read_at)
-          .map((g) => markGitHubRead({ threadId: g.thread_id })),
+          .map((g) => markGitHubRead({ data: { threadId: g.thread_id } })),
       );
     } else if (n.source === "care") {
       await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", n.id);
     } else if (n.source === "github") {
-      await markGitHubRead({ threadId: n.thread_id });
+      await markGitHubRead({ data: { threadId: n.thread_id } });
     }
     qc.invalidateQueries({ queryKey: ["notifications"] });
   };
