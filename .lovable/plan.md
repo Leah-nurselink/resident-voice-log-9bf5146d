@@ -1,125 +1,50 @@
 ## Goal
+Make the BLE scanner work against **real beacons** (not the simulator) inside the actual Android app.
 
-Stop treating ForgeAI as "a website that also runs on phones." Restructure it as a proper healthcare product:
+## Current state
+- The JS bridge (`src/lib/native-beacon-bridge.ts`) already loads `@capacitor-community/bluetooth-le` and forwards real iBeacon / Eddystone / generic advertisements into the scanner.
+- `startScanner()` already prefers the native adapter and only falls back to the simulator when no `window.Capacitor` shell is present or the native call throws.
+- `capacitor.config.ts` points the WebView at the published site.
+- Missing: no `android/` project has been generated, no permissions manifest, no runtime permission prompt, and no built APK — so on device the code path never activates and users only ever see simulated beacons.
 
-- **Android app** (Capacitor) — the carer's tool. BLE, voice, camera, offline, AI notes.
-- **Web dashboard** — the manager's tool. Residents, care plans, audits, analytics, governance. No Bluetooth.
-- **One shared backend** — Lovable Cloud (Postgres + Auth + Storage + Realtime + RLS), which is already wired in.
+## What I'll do
 
-Then focus everything on **one end-to-end milestone** before adding more features:
+**1. Generate the Android project**
+- Run `npx cap add android` (produces `android/` with a Gradle project).
+- Run `npx cap sync android` so the BLE plugin is linked.
 
-> A carer opens the Android app in a resident's room. BLE identifies the room + wearable, a care session auto-starts, the carer speaks, AI transcribes and structures the note, and it appears on the manager's web dashboard in real time.
+**2. Android manifest permissions**
+Add to `android/app/src/main/AndroidManifest.xml`:
+- `BLUETOOTH_SCAN` (with `usesPermissionFlags="neverForLocation"`)
+- `BLUETOOTH_CONNECT`
+- `ACCESS_FINE_LOCATION` (needed on Android ≤11)
+- `<uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>`
 
-## What already exists (don't rebuild)
+**3. Runtime permission prompt**
+Update `installCapacitorBridgeIfNeeded()` / `start()` in `native-beacon-bridge.ts` to:
+- Call `BleClient.requestLEScan` behind a `requestPermissions()` / `isEnabled()` / `requestEnable()` preflight.
+- Surface a clear error into `ScannerStatus.lastError` when the user denies permission or Bluetooth is off, instead of silently falling back to the simulator.
 
-- Supabase/Cloud backend with residents, care_sessions, daily_notes, devices, alerts, RLS, roles.
-- BLE advertisement scanner + native bridge (`src/lib/ble-advertisement-scanner.ts`, `src/lib/native-beacon-bridge.ts`).
-- Capacitor shell config, Electron shell, downloads page, build scripts.
-- Voice capture + AI transcription + structured note generation (`SessionRecorder`, `ai.functions.ts`).
-- Devices page with beacon registration.
+**4. Devices page UX**
+- On `/devices`, when running in the native shell, hide the "simulator" fallback path and show a "Bluetooth off / permission denied" state with a Retry button that re-invokes the permission request.
+- Add a small badge showing `status.mode` (`native-bridge` vs `simulator`) so the user can confirm they're on the real radio.
 
-The pieces are there but scattered across one unified web UI. This plan **separates the audiences**, hardens the Android path, and stitches the milestone flow end-to-end.
+**5. Build & install docs**
+Update `docs/native-builds.md` and `scripts/build-android.sh` with the exact commands:
+```text
+bun install
+npx cap sync android
+cd android && ./gradlew assembleDebug
+# APK at android/app/build/outputs/apk/debug/app-debug.apk
+adb install -r app-debug.apk
+```
+Plus a note that a debug APK works for side-loading on a physical phone; Play Store signing is out of scope for this pass.
 
-## Plan
+## Not in scope
+- iOS build
+- Play Store release signing / upload
+- Changes to the beacon parser or session-start logic (already correct)
+- Electron/macOS shell (already wired via preload)
 
-### 1. Split the app into two audiences (same codebase, same backend)
-
-Introduce a runtime "surface" concept driven by platform detection:
-
-- `carer` surface — what the Android app (and small screens) shows: today's residents, quick session capture, alerts, tasks. Bluetooth-first.
-- `manager` surface — what the web shows: dashboards, care plans, audits, analytics, safeguarding, family portal. No Bluetooth UI.
-
-Implementation:
-- New `src/lib/surface.ts` — detects Capacitor native + role and returns `"carer" | "manager"`.
-- New route layout `src/routes/_authenticated/_carer/` (mobile-first shell) and `_authenticated/_manager/` (existing sidebar shell).
-- `_authenticated/route.tsx` redirects to the right surface on first load; users can still deep-link to the other side via a menu toggle (useful for admins on desktop).
-- Move existing routes into the correct subtree:
-  - Carer: `devices`, `notes` (capture), `alerts`, `tasks`, resident quick view, calendar (today only).
-  - Manager: `dashboard`, `residents`, `care-plans`, `audits`, `safeguarding`, `analytics`, `reports`, `admin`, `approvals`, `intelligence`, `regulatory`, `communications`, `family`, `feedback`, `professionals`, `action-plan`, `incident-review`.
-- Sidebar (`AppSidebar.tsx`) only renders on the manager surface. Carer surface gets a bottom tab bar (`CarerTabBar.tsx`): **Today · Capture · Residents · Alerts**.
-
-### 2. Nail the milestone flow (carer surface)
-
-New route `src/routes/_authenticated/_carer/capture.tsx` — the "walk into room" screen:
-
-1. On mount, start BLE scan via the native adapter (falls back to sim in browser).
-2. Live-rank nearby beacons by RSSI; resolve room + resident from the `devices` table.
-3. Show a confidence pill (room ✕ resident) and auto-start a `care_session` row once confidence ≥ threshold for N seconds.
-4. Mount the existing `SessionRecorder` with `autoStart` and `residentName` prefilled.
-5. On result, insert into `daily_notes` with `care_session_id`, `resident_id`, structured fields, transcript, audio metrics.
-6. Toast + "View note" link; session marked `completed` with `ended_at`.
-
-Backend touch (single migration):
-- Ensure `care_sessions` has `beacon_confidence`, `room_id`, `started_via` (`'ble' | 'manual'`), `ended_at`.
-- Ensure `daily_notes.care_session_id` FK exists.
-- Enable Realtime on `daily_notes` and `care_sessions` so the manager dashboard updates live.
-- Add missing indexes and GRANTs; policies stay scoped via `has_role`/`is_staff`.
-
-(Only add columns that aren't already there — verify first with `supabase--read_query`.)
-
-### 3. Manager dashboard: live feed of the milestone
-
-- On `_manager/dashboard`, add a "Live care activity" panel subscribed to `care_sessions` + `daily_notes` inserts/updates. Shows resident, carer, room, confidence, and the AI note as it lands.
-- Link each entry to the resident timeline.
-
-This closes the loop the user described: carer walks in → manager sees the note instantly.
-
-### 4. Android app hardening
-
-- `capacitor.config.ts`: confirm `server.url` points at the published site, `androidScheme: "https"`, `allowNavigation` locked to the Lovable domain.
-- Add `AndroidManifest.xml` guidance in `docs/native-builds.md` for `BLUETOOTH_SCAN` (with `neverForLocation`), `BLUETOOTH_CONNECT`, `ACCESS_FINE_LOCATION` (Android ≤11), `POST_NOTIFICATIONS`, `RECORD_AUDIO`, `CAMERA`.
-- On first launch of the carer surface, run a permissions preflight (BLE + mic + notifications) with a clear rationale screen; block Capture until granted.
-- Offline queue: wrap the note insert in a small IndexedDB-backed queue (`src/lib/offline-queue.ts`) that flushes when back online. Show a "queued" badge on the capture screen.
-
-### 5. Web dashboard cleanup
-
-- Remove Bluetooth/device UI from the manager surface (devices management stays for admins under `_manager/admin/devices`, but the daily "scan" UI is carer-only).
-- Keep the Downloads page — it's how managers get carers set up.
-- Add a "Get the Android app" prompt on first manager login pointing to Downloads.
-
-### 6. What we're deliberately NOT doing in this pass
-
-- iOS build (needs Apple Developer account).
-- Play Store publishing / signing pipeline (documented, not automated).
-- Predictive analytics changes.
-- Family portal changes.
-- Communications refactor.
-- Any new AI features beyond what's already wired.
-
-These stay untouched so the milestone lands cleanly.
-
-## Files touched (high level)
-
-**New**
-- `src/lib/surface.ts`
-- `src/lib/offline-queue.ts`
-- `src/components/CarerTabBar.tsx`
-- `src/routes/_authenticated/_carer/route.tsx`
-- `src/routes/_authenticated/_carer/index.tsx` (Today)
-- `src/routes/_authenticated/_carer/capture.tsx`
-- `src/routes/_authenticated/_carer/residents.tsx`
-- `src/routes/_authenticated/_carer/alerts.tsx`
-- `src/routes/_authenticated/_manager/route.tsx` (wraps existing AppShell)
-- `src/components/dashboard/LiveCareActivity.tsx`
-
-**Moved** (into `_manager/`)
-- All existing manager-only routes listed in step 1.
-
-**Edited**
-- `src/routes/_authenticated/route.tsx` — surface redirect.
-- `src/components/AppSidebar.tsx` — manager-only.
-- `src/routes/_authenticated/devices.tsx` — becomes admin-only under manager.
-- `capacitor.config.ts`, `docs/native-builds.md`, `scripts/build-android.sh` — permissions + build polish.
-- One migration adding session columns, FK, Realtime, indexes, GRANTs.
-
-## How we'll know it works
-
-1. `bun run build` passes.
-2. On desktop web (manager role), you land on `/dashboard`; no Bluetooth UI visible.
-3. On the Android APK (or Chrome mobile with the sim), you land on `/carer` with the bottom tab bar; Capture screen runs a BLE scan and shows detected beacons.
-4. With a registered beacon in range, Capture auto-starts a session, records, and writes a `daily_notes` row.
-5. A second browser open to `/dashboard` sees the note appear in the Live Care Activity panel within ~1s (Realtime).
-
----
-
-Reply **"go"** to proceed. If you'd rather I sequence it (e.g. do the surface split first, then the capture flow, then Realtime), say so and I'll break it into stages.
+## After this
+Sideload the debug APK, open the app, grant Bluetooth + Location permission on first launch, and the Devices page will show real nearby beacons with `mode: native-bridge` and no `simulated: true` flag.
