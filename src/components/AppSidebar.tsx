@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 
 const careItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home, exact: true },
+  { title: "Carer App", url: "/carer", icon: Bluetooth },
   { title: "Residents", url: "/residents", icon: Users },
   { title: "Care Plans", url: "/care-plans", icon: FileText },
   { title: "Tasks", url: "/tasks", icon: ClipboardList },
