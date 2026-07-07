@@ -7,8 +7,10 @@ android {
         applicationId "app.lovable.residentvoicelog"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // versionCode / versionName are injected by CI (see .github/workflows/android-apk.yml).
+        // Fall back to 1 / 1.0.0-dev for local builds so `./gradlew assembleDebug` still works.
+        versionCode (System.getenv("CARECORE_VERSION_CODE") ?: "1") as Integer
+        versionName System.getenv("CARECORE_VERSION_NAME") ?: "1.0.0-dev"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
