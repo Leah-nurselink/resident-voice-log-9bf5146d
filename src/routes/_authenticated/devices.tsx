@@ -197,9 +197,11 @@ function DevicesPage() {
         await startScanner();
         await startSessionManager();
         toast.success(
-          scannerStatus.mode === "native"
-            ? "Listening for BLE advertisements"
-            : "Scanning in simulator mode — registered beacons will appear",
+          scannerStatus.mode === "native-bridge"
+            ? "Listening for real BLE advertisements (native app)"
+            : scannerStatus.mode === "native"
+              ? "Listening for BLE advertisements"
+              : "Scanning in simulator mode — registered beacons will appear",
         );
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Failed to start scanner");

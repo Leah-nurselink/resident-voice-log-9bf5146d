@@ -68,33 +68,61 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
       runtime: cap.getPlatform?.() === "android" ? "capacitor-android" : "capacitor",
       async start(handler) {
         await BleClient.initialize({ androidNeverForLocation: true });
-        await BleClient.requestLEScan({ allowDuplicates: true }, (result: any) => {
-          const mfr = new Map<number, DataView>();
-          if (result.manufacturerData && numbersToDataView) {
-            for (const [k, v] of Object.entries(result.manufacturerData)) {
-              const id = Number(k);
-              if (Array.isArray(v)) mfr.set(id, numbersToDataView(v as number[]));
-              else if (v instanceof DataView) mfr.set(id, v);
+
+        // Preflight: ensure the Bluetooth radio is actually on. If it isn't,
+        // prompt the user to enable it (Android shows a system dialog).
+        try {
+          const enabled = await BleClient.isEnabled();
+          if (!enabled) {
+            try {
+              await BleClient.requestEnable();
+            } catch {
+              throw new Error(
+                "Bluetooth is off. Turn on Bluetooth to scan for beacons.",
+              );
             }
           }
-          const svc = new Map<string, DataView>();
-          if (result.serviceData && numbersToDataView) {
-            for (const [k, v] of Object.entries(result.serviceData)) {
-              if (Array.isArray(v)) svc.set(k.toLowerCase(), numbersToDataView(v as number[]));
-              else if (v instanceof DataView) svc.set(k.toLowerCase(), v);
+        } catch (err) {
+          // isEnabled() itself can reject on some OEMs — surface the raw error.
+          if (err instanceof Error && err.message.includes("Bluetooth is off")) throw err;
+        }
+
+        try {
+          await BleClient.requestLEScan({ allowDuplicates: true }, (result: any) => {
+            const mfr = new Map<number, DataView>();
+            if (result.manufacturerData && numbersToDataView) {
+              for (const [k, v] of Object.entries(result.manufacturerData)) {
+                const id = Number(k);
+                if (Array.isArray(v)) mfr.set(id, numbersToDataView(v as number[]));
+                else if (v instanceof DataView) mfr.set(id, v);
+              }
             }
-          }
-          handler({
-            rssi: result.rssi,
-            txPower: result.txPower ?? null,
-            device: {
-              id: result.device?.deviceId ?? result.device?.name ?? "unknown",
-              name: result.localName ?? result.device?.name ?? null,
-            },
-            manufacturerData: mfr,
-            serviceData: svc,
+            const svc = new Map<string, DataView>();
+            if (result.serviceData && numbersToDataView) {
+              for (const [k, v] of Object.entries(result.serviceData)) {
+                if (Array.isArray(v)) svc.set(k.toLowerCase(), numbersToDataView(v as number[]));
+                else if (v instanceof DataView) svc.set(k.toLowerCase(), v);
+              }
+            }
+            handler({
+              rssi: result.rssi,
+              txPower: result.txPower ?? null,
+              device: {
+                id: result.device?.deviceId ?? result.device?.name ?? "unknown",
+                name: result.localName ?? result.device?.name ?? null,
+              },
+              manufacturerData: mfr,
+              serviceData: svc,
+            });
           });
-        });
+        } catch (err) {
+          // Most commonly a denied BLUETOOTH_SCAN / location permission.
+          const message =
+            err instanceof Error && err.message
+              ? err.message
+              : "Bluetooth permission denied. Grant Nearby devices permission and try again.";
+          throw new Error(message);
+        }
         scanning = true;
       },
       async stop() {

@@ -496,11 +496,14 @@ export async function startScanner(): Promise<void> {
       status.mode = "native-bridge";
       status.nativeRuntime = nativeAdapter.runtime;
     } catch (e) {
+      // On a real device we do NOT silently fall back to the simulator —
+      // otherwise the user thinks their radio is working when it isn't.
       status.lastError = e instanceof Error ? e.message : "Native BLE scan failed";
-      simHandle = setInterval(() => void simulatorTick(), 3_000);
-      void simulatorTick();
-      status.running = true;
-      status.mode = "simulator";
+      status.running = false;
+      status.mode = "unavailable";
+      status.nativeRuntime = nativeAdapter.runtime;
+      emitStatus();
+      throw e;
     }
   } else if (isLEScanAvailable()) {
     try {
