@@ -39,6 +39,7 @@ import { Route as AuthenticatedResidentsIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedCarerIndexRouteImport } from './routes/_authenticated/carer.index'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound-email'
 import { Route as AuthenticatedResidentsIdRouteImport } from './routes/_authenticated/residents/$id'
+import { Route as AuthenticatedCarerCaptureRouteImport } from './routes/_authenticated/carer.capture'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -196,6 +197,12 @@ const AuthenticatedResidentsIdRoute =
     path: '/residents/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCarerCaptureRoute =
+  AuthenticatedCarerCaptureRouteImport.update({
+    id: '/capture',
+    path: '/capture',
+    getParentRoute: () => AuthenticatedCarerRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -223,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/carer/capture': typeof AuthenticatedCarerCaptureRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
   '/carer/': typeof AuthenticatedCarerIndexRoute
@@ -253,6 +261,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsRoute
   '/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/carer/capture': typeof AuthenticatedCarerCaptureRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
   '/carer': typeof AuthenticatedCarerIndexRoute
@@ -286,6 +295,7 @@ export interface FileRoutesById {
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
+  '/_authenticated/carer/capture': typeof AuthenticatedCarerCaptureRoute
   '/_authenticated/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
   '/_authenticated/carer/': typeof AuthenticatedCarerIndexRoute
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/safeguarding'
     | '/tasks'
+    | '/carer/capture'
     | '/residents/$id'
     | '/api/public/inbound-email'
     | '/carer/'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/safeguarding'
     | '/tasks'
+    | '/carer/capture'
     | '/residents/$id'
     | '/api/public/inbound-email'
     | '/carer'
@@ -381,6 +393,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports'
     | '/_authenticated/safeguarding'
     | '/_authenticated/tasks'
+    | '/_authenticated/carer/capture'
     | '/_authenticated/residents/$id'
     | '/api/public/inbound-email'
     | '/_authenticated/carer/'
@@ -606,14 +619,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedResidentsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/carer/capture': {
+      id: '/_authenticated/carer/capture'
+      path: '/capture'
+      fullPath: '/carer/capture'
+      preLoaderRoute: typeof AuthenticatedCarerCaptureRouteImport
+      parentRoute: typeof AuthenticatedCarerRoute
+    }
   }
 }
 
 interface AuthenticatedCarerRouteChildren {
+  AuthenticatedCarerCaptureRoute: typeof AuthenticatedCarerCaptureRoute
   AuthenticatedCarerIndexRoute: typeof AuthenticatedCarerIndexRoute
 }
 
 const AuthenticatedCarerRouteChildren: AuthenticatedCarerRouteChildren = {
+  AuthenticatedCarerCaptureRoute: AuthenticatedCarerCaptureRoute,
   AuthenticatedCarerIndexRoute: AuthenticatedCarerIndexRoute,
 }
 
