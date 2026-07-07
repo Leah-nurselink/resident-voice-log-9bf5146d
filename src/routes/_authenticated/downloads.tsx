@@ -25,10 +25,10 @@ export const Route = createFileRoute("/_authenticated/downloads")({
 // `.github/workflows/android-apk.yml` workflow. Configure the repo via
 // VITE_ANDROID_APK_REPO (e.g. "acme/carecore") in your env. Falls back to
 // undefined, in which case the page shows setup instructions instead.
-const APK_REPO = import.meta.env.VITE_ANDROID_APK_REPO as string | undefined;
-const APK_URL = APK_REPO
-  ? `https://github.com/${APK_REPO}/releases/download/android-latest/carecore.apk`
-  : undefined;
+const APK_REPO =
+  (import.meta.env.VITE_ANDROID_APK_REPO as string | undefined) ??
+  "lkampewu-ui/resident-voice-log";
+const APK_URL = `https://github.com/${APK_REPO}/releases/download/android-latest/carecore.apk`;
 
 const MAC_BUILD = `# One-time
 npm install --no-save electron@31 @electron/packager@18 \\
