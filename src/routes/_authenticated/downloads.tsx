@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Apple, Copy, Download, Smartphone, Globe, Check } from "lucide-react";
+import { Apple, Copy, Download, Smartphone, Globe, Check, ExternalLink } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,14 @@ export const Route = createFileRoute("/_authenticated/downloads")({
   component: DownloadsPage,
 });
 
-const ANDROID_BUILD = `# One-time setup
-npx cap add android
-
-# Every rebuild
-bun run build
-npx cap sync android
-npx cap open android      # Build → Generate Signed APK/Bundle in Android Studio`;
+// Direct link to the auto-built debug APK published by the
+// `.github/workflows/android-apk.yml` workflow. Configure the repo via
+// VITE_ANDROID_APK_REPO (e.g. "acme/carecore") in your env. Falls back to
+// undefined, in which case the page shows setup instructions instead.
+const APK_REPO = import.meta.env.VITE_ANDROID_APK_REPO as string | undefined;
+const APK_URL = APK_REPO
+  ? `https://github.com/${APK_REPO}/releases/download/android-latest/carecore.apk`
+  : undefined;
 
 const MAC_BUILD = `# One-time
 npm install --no-save electron@31 @electron/packager@18 \\
@@ -78,7 +79,7 @@ function DownloadsPage() {
           </p>
         </header>
 
-        {/* Android */}
+        {/* Android — one-tap install */}
         <Card>
           <CardHeader className="flex flex-row items-start gap-3 space-y-0">
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -87,37 +88,89 @@ function DownloadsPage() {
             <div className="flex-1">
               <CardTitle className="flex items-center gap-2">
                 Android APK
-                <Badge variant="secondary">Recommended</Badge>
+                <Badge variant="secondary">Recommended for carers</Badge>
               </CardTitle>
               <CardDescription>
-                Wraps CareCore in a Capacitor shell and uses Android's native BLE scanner.
+                Real BLE beacon scanning. Sideload — Google Play distribution comes later.
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border border-dashed p-4 text-sm">
-              <p className="font-medium">Build required</p>
-              <p className="mt-1 text-muted-foreground">
-                A signed APK needs Android Studio + your signing key, so we don't ship a prebuilt
-                binary. Run the commands below on a machine with Android Studio + JDK 17 installed,
-                then sideload the APK with <code className="rounded bg-muted px-1">adb install</code>{" "}
-                or transfer it to the device.
-              </p>
-            </div>
-            <CodeBlock id="android" code={ANDROID_BUILD} />
-            <div className="text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">On first launch</p>
-              <ul className="mt-1 list-disc space-y-1 pl-5">
-                <li>Grant Bluetooth &amp; Location permissions when prompted.</li>
-                <li>
-                  If Play Protect warns about "unknown app", tap <em>Install anyway</em> — the APK
-                  isn't Play-Store distributed.
-                </li>
-              </ul>
-            </div>
-            <Button asChild variant="outline">
+            {APK_URL ? (
+              <>
+                <div className="rounded-lg border bg-primary/5 p-4">
+                  <p className="text-sm">
+                    Latest build is published as a GitHub Release. Open this page{" "}
+                    <strong>on the Android phone</strong> and tap Download.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button asChild size="lg" className="gap-2">
+                      <a href={APK_URL}>
+                        <Download className="h-4 w-4" />
+                        Download carecore.apk
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" size="lg" className="gap-2">
+                      <a
+                        href={`https://github.com/${APK_REPO}/releases/tag/android-latest`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Release notes
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground">On first launch</p>
+                  <ol className="mt-1 list-decimal space-y-1 pl-5">
+                    <li>Tap the downloaded APK in Chrome / Files.</li>
+                    <li>
+                      Android will ask to allow installs from this source — tap{" "}
+                      <em>Settings → Allow</em>, then <em>Install</em>.
+                    </li>
+                    <li>
+                      Open <strong>CareCore</strong> from your app drawer (not Chrome), sign in, go
+                      to <em>Devices</em>.
+                    </li>
+                    <li>
+                      Tap <em>Start scan</em> and allow <em>Nearby devices</em>. You should see the
+                      green "Native app mode" banner.
+                    </li>
+                  </ol>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="rounded-lg border border-dashed p-4 text-sm">
+                  <p className="font-medium">One-time setup required</p>
+                  <p className="mt-1 text-muted-foreground">
+                    To enable one-tap downloads, push this repo to GitHub and set{" "}
+                    <code className="rounded bg-muted px-1">VITE_ANDROID_APK_REPO</code> to
+                    your <code>owner/repo</code> (e.g. <code>acme/carecore</code>) in your Lovable
+                    project env. The included workflow (
+                    <code>.github/workflows/android-apk.yml</code>) will build the APK on every push
+                    and publish it as the <code>android-latest</code> release. This button will then
+                    link straight to <code>carecore.apk</code>.
+                  </p>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground">Meanwhile — build it locally</p>
+                  <p className="mt-1">
+                    On a machine with Android Studio + JDK 17:{" "}
+                    <code className="rounded bg-muted px-1">./scripts/build-android.sh</code>, then{" "}
+                    <code className="rounded bg-muted px-1">
+                      adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+                    </code>
+                    .
+                  </p>
+                </div>
+              </>
+            )}
+            <Button asChild variant="ghost" size="sm">
               <a href="/docs/native-builds.md" target="_blank" rel="noreferrer">
-                Full Android build guide
+                Full Android build guide →
               </a>
             </Button>
           </CardContent>
@@ -166,8 +219,8 @@ function DownloadsPage() {
             <div className="flex-1">
               <CardTitle>Install from the browser (no build)</CardTitle>
               <CardDescription>
-                Zero-install option — works today, but real BLE scanning still needs one of the
-                shells above.
+                Zero-install option — works today, but real BLE scanning still needs the Android
+                app.
               </CardDescription>
             </div>
           </CardHeader>
@@ -186,15 +239,6 @@ function DownloadsPage() {
             </p>
           </CardContent>
         </Card>
-
-        <div className="flex justify-center">
-          <Button asChild size="lg" className="gap-2">
-            <a href="/docs/native-builds.md" target="_blank" rel="noreferrer">
-              <Download className="h-4 w-4" />
-              Full build documentation
-            </a>
-          </Button>
-        </div>
       </div>
     </AppShell>
   );
