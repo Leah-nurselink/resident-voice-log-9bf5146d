@@ -1,8 +1,9 @@
 name: Build Android APK
 
 # Builds a debug APK on every push to main and every manual dispatch,
-# then publishes it as a GitHub Release named `android-latest` so users
-# can download it directly from the Downloads page in the app.
+# then uploads it to the private `app-downloads` Supabase Storage bucket
+# as `carecore.apk`. The app serves it to phones via the public server
+# route /api/public/download-apk (which mints a signed URL each request).
 #
 # Version numbers are derived automatically:
 #   versionCode = GitHub run number (monotonically increasing)
@@ -21,7 +22,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # required to create/update the Release
+  contents: read
 
 concurrency:
   group: android-apk
@@ -69,7 +70,7 @@ jobs:
           CARECORE_VERSION_NAME: ${{ steps.version.outputs.name }}
         run: ./gradlew assembleDebug --no-daemon --stacktrace --info
 
-      - name: Extract signing cert SHA-256 for assetlinks.json
+      - name: Extract signing cert SHA-256
         id: fingerprint
         run: |
           APK=android/app/build/outputs/apk/debug/app-debug.apk
@@ -79,9 +80,10 @@ jobs:
           echo "sha256=$FP" >> "$GITHUB_OUTPUT"
           echo "Debug signing cert SHA-256: $FP"
 
-      - name: Write assetlinks.json
+      - name: Stage artifacts
         run: |
           mkdir -p dist-apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/carecore.apk
           cat > dist-apk/assetlinks.json <<JSON
           [{
             "relation": ["delegate_permission/common.handle_all_urls"],
@@ -92,34 +94,37 @@ jobs:
             }
           }]
           JSON
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/carecore.apk
 
-      - name: Upload workflow artifact
+      - name: Upload workflow artifact (for debugging)
         uses: actions/upload-artifact@v4
         with:
           name: carecore-android-debug
           path: dist-apk/
 
-      - name: Publish/refresh `android-latest` release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: android-latest
-          name: CareCore Android (latest debug build)
-          body: |
-            **Version:** ${{ steps.version.outputs.name }} (code ${{ steps.version.outputs.code }})
-            **Commit:** ${{ github.sha }}
-            **Debug signing SHA-256:** `${{ steps.fingerprint.outputs.sha256 }}`
-
-            ### Install on your phone
-            1. On the phone, open this page and tap `carecore.apk`.
-            2. Allow install from unknown sources when Android asks.
-            3. Open the CareCore app icon (NOT Chrome), sign in, go to Devices.
-            4. Grant Nearby-devices permission — you should see the green
-               "Native app mode" banner and real beacons.
-          files: |
-            dist-apk/carecore.apk
-            dist-apk/assetlinks.json
-          make_latest: "true"
-          prerelease: false
+      - name: Upload APK to Supabase Storage
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY GitHub Actions secrets are required"
+            exit 1
+          fi
+          echo "Uploading carecore.apk to app-downloads bucket..."
+          HTTP_CODE=$(curl -sS -o /tmp/upload-response.txt -w "%{http_code}" \
+            -X POST \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "x-upsert: true" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            -H "Cache-Control: no-cache" \
+            --data-binary @dist-apk/carecore.apk \
+            "$SUPABASE_URL/storage/v1/object/app-downloads/carecore.apk")
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/upload-response.txt
+          echo
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "201" ]; then
+            echo "::error::APK upload failed"
+            exit 1
+          fi
+          echo "✅ APK uploaded successfully"
