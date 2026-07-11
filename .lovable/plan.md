@@ -1,38 +1,27 @@
-## Diagnosis
+# Keep repo private, host APK in Lovable Cloud Storage
 
-The failing step is Gradle evaluating `android/app/build.gradle` line 12:
+Good call for a care app — resident data handling code shouldn't be public. Here's how we make downloads work without exposing the source.
 
-```groovy
-versionCode (System.getenv("CARECORE_VERSION_CODE") ?: "1") as Integer
-versionName System.getenv("CARECORE_VERSION_NAME") ?: "1.0.0-dev"
-```
+## The approach
 
-Error: `A problem occurred evaluating project ':app'. > Value is null`.
+Instead of GitHub Releases (which require login for private repos), the GitHub Actions workflow uploads the built `carecore.apk` to a **public Lovable Cloud Storage bucket**. The download arrow in the app points to that bucket URL — anonymous phones can fetch it, but the source code stays private.
 
-Two problems in that expression:
+## What I'll change
 
-1. **Groovy parsing ambiguity.** `versionCode (…)` with a leading space is parsed as the method call `versionCode(...)` — which returns `null` — and then `as Integer` is applied to that `null`. AGP's `versionCode` setter then sees `null` and throws "Value is null".
-2. **Fragile `as Integer` coercion.** Even without the ambiguity, `"1" as Integer` via Groovy's dynamic coerce is brittle; `Integer.parseInt` is the standard idiom AGP examples use.
+1. **Create a public storage bucket** `app-downloads` in Lovable Cloud (APK files only, public read).
+2. **Update the GitHub Actions workflow** (`.github/workflows/android-build.yml`) so after building the APK it uploads to the bucket via the Supabase Storage REST API using a service-role secret, replacing the "create GitHub Release" step.
+3. **Add two GitHub Actions secrets** you'll paste in (I'll give exact values): `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` — needed by the workflow to upload. These live in GitHub, not in the app.
+4. **Update the download prompt** (`AndroidDownloadPrompt.tsx` + `.env`) to point `VITE_ANDROID_APK_URL` at the stable public bucket URL (`https://<project>.supabase.co/storage/v1/object/public/app-downloads/carecore.apk`) instead of the GitHub release URL.
+5. **Remove** the now-unused `VITE_ANDROID_APK_REPO` env var.
 
-`versionName` on line 13 has the same "no parens" shape and will hit the same bug once line 12 is fixed.
+## Result
 
-## Fix
+- Repo stays private ✅
+- Carers tap the arrow → APK downloads immediately, no login ✅
+- Each new build overwrites `carecore.apk` in the bucket, so the download link never changes ✅
 
-Rewrite the two lines in `android/app/build.gradle` to unambiguous, null-safe form:
+## One thing you'll need to do
 
-```groovy
-def envVersionCode = System.getenv("CARECORE_VERSION_CODE")
-def envVersionName = System.getenv("CARECORE_VERSION_NAME")
-versionCode envVersionCode ? Integer.parseInt(envVersionCode) : 1
-versionName envVersionName ?: "1.0.0-dev"
-```
+After I set this up, you'll paste two values into **GitHub → your repo → Settings → Secrets and variables → Actions**. I'll give you both values and screenshots-worth of steps. That's it.
 
-That's the entire change. No workflow, Capacitor, or app-code changes needed.
-
-## After the fix
-
-1. Push (Lovable auto-syncs to `main`, which re-triggers the workflow via the `push` trigger).
-2. Watch the run — the `Build debug APK` step should now succeed.
-3. `carecore.apk` gets attached to the `android-latest` release, and the Downloads page's green button starts working.
-
-If the run fails at a later step, paste the new error and I'll take it from there.
+Approve and I'll build it.
