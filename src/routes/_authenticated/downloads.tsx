@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Apple, Copy, Download, Smartphone, Globe, Check, ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Apple, Copy, Download, Smartphone, Globe, Check, ExternalLink, AlertCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
