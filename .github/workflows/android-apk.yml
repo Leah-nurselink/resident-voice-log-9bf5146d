@@ -67,7 +67,7 @@ jobs:
         env:
           CARECORE_VERSION_CODE: ${{ steps.version.outputs.code }}
           CARECORE_VERSION_NAME: ${{ steps.version.outputs.name }}
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --stacktrace --info
 
       - name: Extract signing cert SHA-256 for assetlinks.json
         id: fingerprint
