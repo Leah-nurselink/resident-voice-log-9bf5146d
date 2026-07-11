@@ -101,29 +101,42 @@ jobs:
           name: carecore-android-debug
           path: dist-apk/
 
-      - name: Upload APK to Supabase Storage
+      - name: Upload APK via signed upload URL
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          APK_UPLOAD_ENDPOINT: https://resident-voice-log.lovable.app/api/public/upload-apk-url
+          APK_UPLOAD_TOKEN: ${{ secrets.APK_UPLOAD_TOKEN }}
         run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "::error::SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY GitHub Actions secrets are required"
+          if [ -z "$APK_UPLOAD_TOKEN" ]; then
+            echo "::error::APK_UPLOAD_TOKEN GitHub Actions secret is required"
             exit 1
           fi
-          echo "Uploading carecore.apk to app-downloads bucket..."
-          HTTP_CODE=$(curl -sS -o /tmp/upload-response.txt -w "%{http_code}" \
+          echo "Requesting signed upload URL..."
+          HTTP_CODE=$(curl -sS -o /tmp/sign-response.json -w "%{http_code}" \
             -X POST \
-            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "x-upsert: true" \
+            -H "Authorization: Bearer $APK_UPLOAD_TOKEN" \
+            "$APK_UPLOAD_ENDPOINT")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Failed to get signed upload URL (HTTP $HTTP_CODE)"
+            cat /tmp/sign-response.json
+            exit 1
+          fi
+          SIGNED_URL=$(jq -r '.url' /tmp/sign-response.json)
+          if [ -z "$SIGNED_URL" ] || [ "$SIGNED_URL" = "null" ]; then
+            echo "::error::Signed URL missing from response"
+            cat /tmp/sign-response.json
+            exit 1
+          fi
+          echo "Uploading carecore.apk..."
+          UP_CODE=$(curl -sS -o /tmp/upload-response.txt -w "%{http_code}" \
+            -X PUT \
             -H "Content-Type: application/vnd.android.package-archive" \
-            -H "Cache-Control: no-cache" \
+            -H "x-upsert: true" \
             --data-binary @dist-apk/carecore.apk \
-            "$SUPABASE_URL/storage/v1/object/app-downloads/carecore.apk")
-          echo "HTTP $HTTP_CODE"
+            "$SIGNED_URL")
+          echo "HTTP $UP_CODE"
           cat /tmp/upload-response.txt
           echo
-          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "201" ]; then
+          if [ "$UP_CODE" != "200" ] && [ "$UP_CODE" != "201" ]; then
             echo "::error::APK upload failed"
             exit 1
           fi

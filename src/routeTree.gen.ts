@@ -37,6 +37,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedActionPlanRouteImport } from './routes/_authenticated/action-plan'
 import { Route as AuthenticatedResidentsIndexRouteImport } from './routes/_authenticated/residents/index'
 import { Route as AuthenticatedCarerIndexRouteImport } from './routes/_authenticated/carer.index'
+import { Route as ApiPublicUploadApkUrlRouteImport } from './routes/api/public/upload-apk-url'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound-email'
 import { Route as ApiPublicDownloadApkRouteImport } from './routes/api/public/download-apk'
 import { Route as AuthenticatedResidentsIdRouteImport } from './routes/_authenticated/residents/$id'
@@ -187,6 +188,11 @@ const AuthenticatedCarerIndexRoute = AuthenticatedCarerIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedCarerRoute,
 } as any)
+const ApiPublicUploadApkUrlRoute = ApiPublicUploadApkUrlRouteImport.update({
+  id: '/api/public/upload-apk-url',
+  path: '/api/public/upload-apk-url',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicInboundEmailRoute = ApiPublicInboundEmailRouteImport.update({
   id: '/api/public/inbound-email',
   path: '/api/public/inbound-email',
@@ -240,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/download-apk': typeof ApiPublicDownloadApkRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
+  '/api/public/upload-apk-url': typeof ApiPublicUploadApkUrlRoute
   '/carer/': typeof AuthenticatedCarerIndexRoute
   '/residents/': typeof AuthenticatedResidentsIndexRoute
 }
@@ -272,6 +279,7 @@ export interface FileRoutesByTo {
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/download-apk': typeof ApiPublicDownloadApkRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
+  '/api/public/upload-apk-url': typeof ApiPublicUploadApkUrlRoute
   '/carer': typeof AuthenticatedCarerIndexRoute
   '/residents': typeof AuthenticatedResidentsIndexRoute
 }
@@ -307,6 +315,7 @@ export interface FileRoutesById {
   '/_authenticated/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/download-apk': typeof ApiPublicDownloadApkRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
+  '/api/public/upload-apk-url': typeof ApiPublicUploadApkUrlRoute
   '/_authenticated/carer/': typeof AuthenticatedCarerIndexRoute
   '/_authenticated/residents/': typeof AuthenticatedResidentsIndexRoute
 }
@@ -342,6 +351,7 @@ export interface FileRouteTypes {
     | '/residents/$id'
     | '/api/public/download-apk'
     | '/api/public/inbound-email'
+    | '/api/public/upload-apk-url'
     | '/carer/'
     | '/residents/'
   fileRoutesByTo: FileRoutesByTo
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/residents/$id'
     | '/api/public/download-apk'
     | '/api/public/inbound-email'
+    | '/api/public/upload-apk-url'
     | '/carer'
     | '/residents'
   id:
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/_authenticated/residents/$id'
     | '/api/public/download-apk'
     | '/api/public/inbound-email'
+    | '/api/public/upload-apk-url'
     | '/_authenticated/carer/'
     | '/_authenticated/residents/'
   fileRoutesById: FileRoutesById
@@ -418,6 +430,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiPublicDownloadApkRoute: typeof ApiPublicDownloadApkRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
+  ApiPublicUploadApkUrlRoute: typeof ApiPublicUploadApkUrlRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -618,6 +631,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCarerIndexRouteImport
       parentRoute: typeof AuthenticatedCarerRoute
     }
+    '/api/public/upload-apk-url': {
+      id: '/api/public/upload-apk-url'
+      path: '/api/public/upload-apk-url'
+      fullPath: '/api/public/upload-apk-url'
+      preLoaderRoute: typeof ApiPublicUploadApkUrlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/inbound-email': {
       id: '/api/public/inbound-email'
       path: '/api/public/inbound-email'
@@ -727,6 +747,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiPublicDownloadApkRoute: ApiPublicDownloadApkRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
+  ApiPublicUploadApkUrlRoute: ApiPublicUploadApkUrlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
