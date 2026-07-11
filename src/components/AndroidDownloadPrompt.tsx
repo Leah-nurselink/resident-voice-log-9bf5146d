@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { ArrowDown, X } from "lucide-react";
 
-const APK_REPO =
-  (import.meta.env.VITE_ANDROID_APK_REPO as string | undefined) ??
-  "Leah-nurselink/resident-voice-log-9bf5146d";
-const APK_URL = `https://github.com/${APK_REPO}/releases/download/android-latest/carecore.apk`;
+// Public download endpoint — server route redirects to a fresh signed URL
+// pointing at the APK in the private `app-downloads` Storage bucket.
+const APK_URL = "/api/public/download-apk";
 const DISMISS_KEY = "carecore.androidDownloadPrompt.dismissed";
 
 /**
