@@ -68,7 +68,35 @@ function CodeBlock({ code, id }: { code: string; id: string }) {
   );
 }
 
+type BuildStatus = "checking" | "ready" | "not-ready" | "error";
+
+function useApkBuildStatus() {
+  const [status, setStatus] = useState<BuildStatus>("checking");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(RELEASE_API_URL, {
+      method: "GET",
+      headers: { Accept: "application/vnd.github+json" },
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setStatus(res.ok ? "ready" : res.status === 404 ? "not-ready" : "error");
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return status;
+}
+
 function DownloadsPage() {
+  const buildStatus = useApkBuildStatus();
+
   return (
     <AppShell title="Downloads" subtitle="Install CareCore on Android or macOS">
       <div className="mx-auto max-w-4xl space-y-6 p-4 md:p-6">
@@ -97,7 +125,7 @@ function DownloadsPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {APK_URL ? (
+            {buildStatus === "ready" ? (
               <>
                 <div className="rounded-lg border bg-primary/5 p-4">
                   <p className="text-sm">
@@ -145,27 +173,53 @@ function DownloadsPage() {
             ) : (
               <>
                 <div className="rounded-lg border border-dashed p-4 text-sm">
-                  <p className="font-medium">One-time setup required</p>
-                  <p className="mt-1 text-muted-foreground">
-                    To enable one-tap downloads, push this repo to GitHub and set{" "}
-                    <code className="rounded bg-muted px-1">VITE_ANDROID_APK_REPO</code> to
-                    your <code>owner/repo</code> (e.g. <code>acme/carecore</code>) in your Lovable
-                    project env. The included workflow (
-                    <code>.github/workflows/android-apk.yml</code>) will build the APK on every push
-                    and publish it as the <code>android-latest</code> release. This button will then
-                    link straight to <code>carecore.apk</code>.
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                    <div>
+                      <p className="font-medium">
+                        {buildStatus === "checking"
+                          ? "Checking for a published build…"
+                          : "Build not ready yet"}
+                      </p>
+                      <p className="mt-1 text-muted-foreground">
+                        The APK is built by the GitHub Action in your repo. If this is your first
+                        time, push the project to GitHub and run the workflow.
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button asChild variant="outline" size="sm" className="gap-2">
+                          <a href={ACTIONS_URL} target="_blank" rel="noreferrer">
+                            <ExternalLink className="h-4 w-4" />
+                            Open GitHub Actions
+                          </a>
+                        </Button>
+                        <Button asChild variant="outline" size="sm" className="gap-2">
+                          <a href={APK_URL}>
+                            <Download className="h-4 w-4" />
+                            Try download anyway
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">Meanwhile — build it locally</p>
-                  <p className="mt-1">
-                    On a machine with Android Studio + JDK 17:{" "}
-                    <code className="rounded bg-muted px-1">./scripts/build-android.sh</code>, then{" "}
-                    <code className="rounded bg-muted px-1">
-                      adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-                    </code>
-                    .
-                  </p>
+                  <p className="font-medium text-foreground">Steps to publish the build</p>
+                  <ol className="mt-1 list-decimal space-y-1 pl-5">
+                    <li>
+                      In Lovable, make sure your project is synced to GitHub ({" "}
+                      <code className="rounded bg-muted px-1">{APK_REPO}</code> ).
+                    </li>
+                    <li>
+                      Go to the repo's <strong>Actions</strong> tab, choose{" "}
+                      <strong>Build Android APK</strong>, then click <strong>Run workflow</strong>.
+                    </li>
+                    <li>
+                      Wait 5–10 minutes. When it finishes, it creates the{" "}
+                      <code className="rounded bg-muted px-1">android-latest</code> release with{" "}
+                      <code className="rounded bg-muted px-1">carecore.apk</code> attached.
+                    </li>
+                    <li>Return here — the Download button will turn green and work.</li>
+                  </ol>
                 </div>
               </>
             )}
