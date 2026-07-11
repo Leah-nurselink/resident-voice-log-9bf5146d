@@ -1,19 +1,27 @@
-## What the screenshot tells us
-- Real repo (top breadcrumb): `Leah-nurselink/gh-repo-clone-lkampewu-ui-resident-voice-log-78cb0d8a`
-- Actions tab is empty ("Get started with GitHub Actions") → the workflow file `.github/workflows/android-apk.yml` hasn't reached GitHub yet.
+## What this screen is telling us
 
-My previous edit changed `APK_REPO` to `lkampewu-ui/resident-voice-log-78cb0d8a` — that was the wrong repo (it was the "Clone repository" panel from the earlier screenshot, not the actual connected repo). I need to revert it.
+You're on Lovable's **New GitHub connection** screen. "No installations available" means the Lovable GitHub App hasn't been installed on any of your GitHub accounts yet — that's why nothing shows up to pick from.
 
-## Fix in code (1 line)
-Revert `src/routes/_authenticated/downloads.tsx` `APK_REPO` back to:
-`Leah-nurselink/gh-repo-clone-lkampewu-ui-resident-voice-log-78cb0d8a`
+The repo `Leah-nurselink/gh-repo-clone-lkampewu-ui-resident-voice-log-78cb0d8a` exists on GitHub, but Lovable can't push to it until you give the Lovable app permission on that GitHub account.
 
-## Why Actions is empty — what you do
-The workflow file lives in your Lovable project at `.github/workflows/android-apk.yml`, but the connected GitHub repo doesn't have it yet. To get it there:
+## What you do (all in the browser, no code)
 
-1. In Lovable, open the Plus (+) menu → **GitHub** → make sure the project is synced/pushed to `Leah-nurselink/gh-repo-clone-lkampewu-ui-resident-voice-log-78cb0d8a`. If you see a "Push" or "Resync" option, use it.
-2. Once synced, refresh the GitHub Actions tab — you should now see **Build Android APK** listed on the left.
-3. Click **Build Android APK** → **Run workflow** → `main` → **Run workflow**.
-4. Wait 5–10 minutes. When it goes green, refresh the Downloads page in your app and the APK button will work.
+1. On this same screen, click **Add account** (bottom right).
+2. A GitHub window opens. Sign in as **Leah-nurselink** (the account that owns the repo).
+3. GitHub asks where to install the Lovable app — pick **Leah-nurselink**.
+4. Choose **"Only select repositories"** and pick `gh-repo-clone-lkampewu-ui-resident-voice-log-78cb0d8a`. (Or "All repositories" if you prefer — either works.)
+5. Click **Install**. You'll be sent back to Lovable.
+6. Back on the "Select installation" screen, click **Refresh**. `Leah-nurselink` should now appear. Select it, then pick the repo and finish the connection.
 
-If after step 1 the workflow still doesn't appear on the Actions tab, check the repo's file tree in GitHub — browse to `.github/workflows/`. If that folder is missing, the sync didn't include hidden dotfiles; tell me and I'll advise the next step (usually opening Lovable's Code Editor and forcing a fresh commit).
+## After it connects
+
+- Lovable will push the full project (including `.github/workflows/android-apk.yml`) to that repo automatically.
+- Go to the repo's **Actions** tab on GitHub — you should now see **Build Android APK** in the left sidebar.
+- Click it → **Run workflow** → `main` → **Run workflow**. Wait 5–10 min.
+- Refresh the Downloads page in your app — the green Download button will appear.
+
+## If step 3 doesn't show Leah-nurselink
+
+That means you're signed into GitHub as a different user in your browser. Open github.com in another tab, sign out, sign back in as Leah-nurselink, then click **Add account** again.
+
+No code changes needed for this step — it's purely the GitHub install handshake.
