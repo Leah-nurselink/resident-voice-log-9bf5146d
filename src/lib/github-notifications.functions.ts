@@ -37,6 +37,13 @@ export const getGitHubNotifications = createServerFn({ method: "GET" })
       },
     });
 
+    if (res.status === 401 || res.status === 403 || res.status === 404) {
+      // Token lacks `notifications` scope (or connection unavailable).
+      // Don't blank-screen the app — just return no GitHub notifications.
+      console.warn(`[github-notifications] disabled [${res.status}] — PAT likely missing 'notifications' scope`);
+      return [];
+    }
+
     if (!res.ok) {
       const text = await res.text();
       console.error(`[github-notifications] fetch failed [${res.status}]: ${text}`);
@@ -100,6 +107,11 @@ export const markGitHubNotificationRead = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({}),
     });
+
+    if (res.status === 401 || res.status === 403 || res.status === 404) {
+      console.warn(`[github-notifications] mark read skipped [${res.status}]`);
+      return { ok: false as const, skipped: true };
+    }
 
     if (!res.ok) {
       const text = await res.text();
