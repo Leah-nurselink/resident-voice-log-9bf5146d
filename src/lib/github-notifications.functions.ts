@@ -108,6 +108,11 @@ export const markGitHubNotificationRead = createServerFn({ method: "POST" })
       body: JSON.stringify({}),
     });
 
+    if (res.status === 401 || res.status === 403 || res.status === 404) {
+      console.warn(`[github-notifications] mark read skipped [${res.status}]`);
+      return { ok: false as const, skipped: true };
+    }
+
     if (!res.ok) {
       const text = await res.text();
       console.error(`[github-notifications] mark read failed [${res.status}]: ${text}`);
