@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/downloads")({
 // VITE_ANDROID_APK_REPO (e.g. "acme/carecore") in your env.
 const APK_REPO =
   (import.meta.env.VITE_ANDROID_APK_REPO as string | undefined) ??
-  "lkampewu-ui/resident-voice-log-78cb0d8a";
+  "Leah-nurselink/gh-repo-clone-lkampewu-ui-resident-voice-log-78cb0d8a";
 const APK_URL = `https://github.com/${APK_REPO}/releases/download/android-latest/carecore.apk`;
 const RELEASE_API_URL = `https://api.github.com/repos/${APK_REPO}/releases/tags/android-latest`;
 const ACTIONS_URL = `https://github.com/${APK_REPO}/actions/workflows/android-apk.yml`;
