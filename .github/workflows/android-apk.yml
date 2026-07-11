@@ -54,10 +54,13 @@ jobs:
           bun-version: latest
 
       - name: Install JS deps
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Sync Capacitor (Android)
         run: bunx cap sync android
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
 
       - name: Build debug APK
         working-directory: android
