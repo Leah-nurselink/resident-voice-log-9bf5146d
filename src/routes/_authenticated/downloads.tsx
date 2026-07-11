@@ -23,12 +23,13 @@ export const Route = createFileRoute("/_authenticated/downloads")({
 
 // Direct link to the auto-built debug APK published by the
 // `.github/workflows/android-apk.yml` workflow. Configure the repo via
-// VITE_ANDROID_APK_REPO (e.g. "acme/carecore") in your env. Falls back to
-// undefined, in which case the page shows setup instructions instead.
+// VITE_ANDROID_APK_REPO (e.g. "acme/carecore") in your env.
 const APK_REPO =
   (import.meta.env.VITE_ANDROID_APK_REPO as string | undefined) ??
-  "lkampewu-ui/resident-voice-log";
+  "Leah-nurselink/gh-repo-clone-lkampewu-ui-resident-voice-log-78cb0d8a";
 const APK_URL = `https://github.com/${APK_REPO}/releases/download/android-latest/carecore.apk`;
+const RELEASE_API_URL = `https://api.github.com/repos/${APK_REPO}/releases/tags/android-latest`;
+const ACTIONS_URL = `https://github.com/${APK_REPO}/actions/workflows/android-apk.yml`;
 
 const MAC_BUILD = `# One-time
 npm install --no-save electron@31 @electron/packager@18 \\
