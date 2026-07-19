@@ -56,6 +56,7 @@ import {
 } from "@/lib/ble-session-manager";
 import { RegisterBeaconDialog } from "@/components/devices/RegisterBeaconDialog";
 import { isNativeShell } from "@/lib/surface";
+import { installCapacitorBridgeIfNeeded } from "@/lib/native-beacon-bridge";
 
 export const Route = createFileRoute("/_authenticated/devices")({
   head: () => ({ meta: [{ title: "Nearby Devices · CareCore" }] }),
@@ -210,7 +211,8 @@ function DevicesPage() {
     }
   };
 
-  const checkRealBeaconSupport = () => {
+  const checkRealBeaconSupport = async () => {
+    await installCapacitorBridgeIfNeeded();
     const diagnostic = getLEScanSupportDiagnostic();
     setSupportDiagnostic(diagnostic);
     if (diagnostic.state === "ready") {
