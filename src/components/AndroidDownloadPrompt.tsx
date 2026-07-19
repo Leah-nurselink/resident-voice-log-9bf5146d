@@ -16,12 +16,8 @@ export function AndroidDownloadPrompt() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // Already running inside the native APK
+    // Already running inside the native APK — don't prompt to download it.
     if ((window as any).Capacitor?.isNativePlatform?.()) return;
-
-    const ua = navigator.userAgent || "";
-    const isAndroid = /Android/i.test(ua);
-    if (!isAndroid) return;
 
     if (window.localStorage.getItem(DISMISS_KEY) === "1") return;
     setVisible(true);
