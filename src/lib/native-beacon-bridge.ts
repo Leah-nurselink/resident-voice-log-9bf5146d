@@ -13,11 +13,31 @@ export type NativeRuntime = "capacitor-android" | "electron-mac" | "electron" | 
 export interface NativeAdvertisement {
   rssi?: number;
   txPower?: number | null;
+  /** Android exposes the BLE device address here; browsers may not. */
+  mac?: string | null;
   device?: { id?: string; name?: string | null };
   /** Map<companyId, DataView> — same shape as Web Bluetooth. */
   manufacturerData?: Map<number, DataView>;
   /** Map<uuid, DataView> — same shape as Web Bluetooth. */
   serviceData?: Map<string, DataView>;
+}
+
+export interface RawNativeAdvertisement {
+  deviceId: string;
+  name: string | null;
+  localName: string | null;
+  rssi: number | null;
+  txPower: number | null;
+  manufacturerData: Record<string, string>;
+  serviceData: Record<string, string>;
+  serviceUuids: string[];
+  rawAdvertisement: string | null;
+  uuid: string | null;
+  major: number | null;
+  minor: number | null;
+  firstSeen: string;
+  lastSeen: string;
+  hits: number;
 }
 
 export interface NativeBleAdapter {
@@ -34,6 +54,8 @@ export interface NativeBridgeDiagnostic {
 }
 
 let lastBridgeError: string | null = null;
+const rawAdvertisements = new Map<string, RawNativeAdvertisement>();
+let rawAdvertisementListeners: Array<(items: RawNativeAdvertisement[]) => void> = [];
 
 declare global {
   interface Window {
@@ -48,6 +70,92 @@ export function getNativeAdapter(): NativeBleAdapter | null {
 
 export function getNativeRuntime(): NativeRuntime {
   return getNativeAdapter()?.runtime ?? null;
+}
+
+export function getRawNativeAdvertisements(): RawNativeAdvertisement[] {
+  return Array.from(rawAdvertisements.values()).sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
+}
+
+export function subscribeRawNativeAdvertisements(
+  listener: (items: RawNativeAdvertisement[]) => void,
+): () => void {
+  rawAdvertisementListeners.push(listener);
+  listener(getRawNativeAdvertisements());
+  return () => {
+    rawAdvertisementListeners = rawAdvertisementListeners.filter((item) => item !== listener);
+  };
+}
+
+export function clearRawNativeAdvertisements(): void {
+  rawAdvertisements.clear();
+  emitRawAdvertisements();
+}
+
+function emitRawAdvertisements(): void {
+  const snapshot = getRawNativeAdvertisements();
+  for (const listener of rawAdvertisementListeners) listener(snapshot);
+}
+
+function dataViewToHex(value: unknown): string | null {
+  if (!(value instanceof DataView)) return null;
+  return Array.from(new Uint8Array(value.buffer, value.byteOffset, value.byteLength))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function dataObjectToHex(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object") return {};
+  const output: Record<string, string> = {};
+  for (const [key, bytes] of Object.entries(value)) {
+    const hex = dataViewToHex(bytes);
+    output[key] = hex ?? `[unreadable ${Object.prototype.toString.call(bytes)}]`;
+  }
+  return output;
+}
+
+function parseRawIBeacon(manufacturerData: Record<string, string>): {
+  uuid: string | null;
+  major: number | null;
+  minor: number | null;
+} {
+  const apple = manufacturerData["76"] ?? manufacturerData["0x004c"] ?? manufacturerData["004c"];
+  if (!apple || !apple.toLowerCase().startsWith("0215") || apple.length < 46) {
+    return { uuid: null, major: null, minor: null };
+  }
+  const payload = apple.toLowerCase();
+  const compactUuid = payload.slice(4, 36);
+  const uuid = `${compactUuid.slice(0, 8)}-${compactUuid.slice(8, 12)}-${compactUuid.slice(12, 16)}-${compactUuid.slice(16, 20)}-${compactUuid.slice(20, 32)}`;
+  return {
+    uuid,
+    major: Number.parseInt(payload.slice(36, 40), 16),
+    minor: Number.parseInt(payload.slice(40, 44), 16),
+  };
+}
+
+function recordRawNativeAdvertisement(result: any): void {
+  const now = new Date().toISOString();
+  const deviceId = result.device?.deviceId ?? result.device?.name ?? `unknown-${rawAdvertisements.size + 1}`;
+  const manufacturerData = dataObjectToHex(result.manufacturerData);
+  const parsed = parseRawIBeacon(manufacturerData);
+  const previous = rawAdvertisements.get(deviceId);
+  rawAdvertisements.set(deviceId, {
+    deviceId,
+    name: result.device?.name ?? null,
+    localName: result.localName ?? null,
+    rssi: typeof result.rssi === "number" ? result.rssi : null,
+    txPower: typeof result.txPower === "number" && result.txPower !== 127 ? result.txPower : null,
+    manufacturerData,
+    serviceData: dataObjectToHex(result.serviceData),
+    serviceUuids: Array.isArray(result.uuids) ? result.uuids : [],
+    rawAdvertisement: dataViewToHex(result.rawAdvertisement),
+    uuid: parsed.uuid,
+    major: parsed.major,
+    minor: parsed.minor,
+    firstSeen: previous?.firstSeen ?? now,
+    lastSeen: now,
+    hits: (previous?.hits ?? 0) + 1,
+  });
+  emitRawAdvertisements();
 }
 
 export function getNativeBridgeDiagnostic(): NativeBridgeDiagnostic {
@@ -129,6 +237,9 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
 
         try {
           await BleClient.requestLEScan({ allowDuplicates: true }, (result: any) => {
+            // Diagnostics tap: capture every native result before protocol
+            // parsing, registration matching, or any CareCore filtering.
+            recordRawNativeAdvertisement(result);
             const mfr = new Map<number, DataView>();
             if (result.manufacturerData) {
               for (const [k, v] of Object.entries(result.manufacturerData)) {
@@ -145,6 +256,7 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
             handler({
               rssi: result.rssi,
               txPower: result.txPower ?? null,
+              mac: result.device?.deviceId ?? null,
               device: {
                 id: result.device?.deviceId ?? result.device?.name ?? "unknown",
                 name: result.localName ?? result.device?.name ?? null,
