@@ -1,27 +1,19 @@
-# Keep repo private, host APK in Lovable Cloud Storage
+## What's happening
 
-Good call for a care app — resident data handling code shouldn't be public. Here's how we make downloads work without exposing the source.
+The floating "Download app" arrow only shows when the browser's user agent contains "Android". On the published site the component is mounted, but if the UA check fails (some Android browsers/webviews report differently), or if you previously tapped the ✕, the prompt stays hidden. It also hides inside the installed CareCore app itself.
 
-## The approach
+You also asked to show it to everyone, not just Android — so we'll drop the OS gate.
 
-Instead of GitHub Releases (which require login for private repos), the GitHub Actions workflow uploads the built `carecore.apk` to a **public Lovable Cloud Storage bucket**. The download arrow in the app points to that bucket URL — anonymous phones can fetch it, but the source code stays private.
+## Changes
 
-## What I'll change
-
-1. **Create a public storage bucket** `app-downloads` in Lovable Cloud (APK files only, public read).
-2. **Update the GitHub Actions workflow** (`.github/workflows/android-build.yml`) so after building the APK it uploads to the bucket via the Supabase Storage REST API using a service-role secret, replacing the "create GitHub Release" step.
-3. **Add two GitHub Actions secrets** you'll paste in (I'll give exact values): `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` — needed by the workflow to upload. These live in GitHub, not in the app.
-4. **Update the download prompt** (`AndroidDownloadPrompt.tsx` + `.env`) to point `VITE_ANDROID_APK_URL` at the stable public bucket URL (`https://<project>.supabase.co/storage/v1/object/public/app-downloads/carecore.apk`) instead of the GitHub release URL.
-5. **Remove** the now-unused `VITE_ANDROID_APK_REPO` env var.
+1. **`src/components/AndroidDownloadPrompt.tsx`** — remove the Android-only user-agent check. Keep the one guard that hides it inside the native Capacitor shell (so the installed app doesn't show a "download the app" button to itself). Everyone else — Android, iPhone, desktop — sees the arrow.
+2. **Dismiss behavior** — keep the ✕ + localStorage dismiss so users who close it don't see it again. If you want it to always reappear on every visit, say the word and I'll remove that too.
+3. No other files change. The `/api/public/download-apk` route already redirects to the signed APK URL, so tapping the arrow on any device triggers the APK download (iPhone/desktop users will get an `.apk` file they can't install — that's expected; the button label stays "Download app").
 
 ## Result
 
-- Repo stays private ✅
-- Carers tap the arrow → APK downloads immediately, no login ✅
-- Each new build overwrites `carecore.apk` in the bucket, so the download link never changes ✅
+- Published site on Android phone → arrow visible → tap → APK downloads. ✅
+- Published site on iPhone/desktop → arrow visible (per your request). ✅
+- Inside the installed CareCore Android app → arrow hidden. ✅
 
-## One thing you'll need to do
-
-After I set this up, you'll paste two values into **GitHub → your repo → Settings → Secrets and variables → Actions**. I'll give you both values and screenshots-worth of steps. That's it.
-
-Approve and I'll build it.
+Approve and I'll make the change, then you can republish.
