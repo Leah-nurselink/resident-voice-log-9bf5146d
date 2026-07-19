@@ -19,6 +19,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import {
+  getNativeBridgeDiagnostic,
   getNativeAdapter,
   getNativeRuntime,
   installCapacitorBridgeIfNeeded,
@@ -54,7 +55,6 @@ export interface BeaconObservation {
   lastSeen: string;
   hits: number;
 }
-
 
 type Listener = (obs: BeaconObservation[]) => void;
 
@@ -149,7 +149,6 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
     };
   }
 
-
   if (leScanAvailable) {
     return {
       state: "ready",
@@ -171,7 +170,8 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
       platform,
       userAgent,
       title: "Bluetooth scanning is not available in this browser",
-      message: "The browser does not expose Web Bluetooth, so the app can only show simulated demo beacons.",
+      message:
+        "The browser does not expose Web Bluetooth, so the app can only show simulated demo beacons.",
       nextStep: "Open the app in Chrome on Android, ChromeOS, macOS, or Linux, then check again.",
     };
   }
@@ -184,7 +184,8 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
       platform,
       userAgent,
       title: "Chrome on this device cannot passively scan beacons",
-      message: "Chrome exposes basic Bluetooth here, but not the passive BLE scanning API needed for beacon advertisements.",
+      message:
+        "Chrome exposes basic Bluetooth here, but not the passive BLE scanning API needed for beacon advertisements.",
       nextStep: "Use Chrome on Android, ChromeOS, macOS, or Linux for real beacon detection.",
     };
   }
@@ -196,8 +197,10 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
     platform,
     userAgent,
     title: "Enable Chrome's experimental Web Platform features",
-    message: "Chrome is available, but passive BLE scanning is still off, so the app is using simulator mode.",
-    nextStep: "Search chrome://flags for “Experimental Web Platform features”, set it to Enabled, fully relaunch Chrome, then check again.",
+    message:
+      "Chrome is available, but passive BLE scanning is still off, so the app is using simulator mode.",
+    nextStep:
+      "Search chrome://flags for “Experimental Web Platform features”, set it to Enabled, fully relaunch Chrome, then check again.",
   };
 }
 
@@ -298,7 +301,6 @@ function record(partial: Omit<BeaconObservation, "firstSeen" | "lastSeen" | "hit
       hits: 1,
     });
   }
-
 }
 
 function handleAdvertisement(e: any) {
@@ -420,7 +422,10 @@ async function simulatorTick() {
         name: d.label,
         simulated: true,
       });
-    } else if (d.beacon_protocol === "eddystone-uid" && d.ble_identifier?.startsWith("eddystone-uid:")) {
+    } else if (
+      d.beacon_protocol === "eddystone-uid" &&
+      d.ble_identifier?.startsWith("eddystone-uid:")
+    ) {
       const [, ns, inst] = d.ble_identifier.split(":");
       record({
         key: d.ble_identifier,
@@ -477,7 +482,6 @@ async function simulatorTick() {
   emit();
 }
 
-
 // ---------- Lifecycle ----------
 
 export async function startScanner(): Promise<void> {
@@ -487,7 +491,15 @@ export async function startScanner(): Promise<void> {
 
   // 1. Native shell (Capacitor Android app or Electron macOS app) — real
   //    hardware, no Chrome flag required.
-  await installCapacitorBridgeIfNeeded();
+  try {
+    await installCapacitorBridgeIfNeeded();
+  } catch (e) {
+    status.lastError = e instanceof Error ? e.message : "Native BLE bridge failed to initialize";
+    status.running = false;
+    status.mode = "unavailable";
+    emitStatus();
+    throw e;
+  }
   const nativeAdapter = getNativeAdapter();
   if (nativeAdapter) {
     try {
@@ -505,12 +517,24 @@ export async function startScanner(): Promise<void> {
       emitStatus();
       throw e;
     }
+  } else if (getNativeBridgeDiagnostic().detected) {
+    const message =
+      getNativeBridgeDiagnostic().lastError ??
+      "CareCore detected the Android app, but its native Bluetooth bridge is missing. Install the latest CareCore APK.";
+    status.lastError = message;
+    status.running = false;
+    status.mode = "unavailable";
+    emitStatus();
+    throw new Error(message);
   } else if (isLEScanAvailable()) {
     try {
       const bt: any = (navigator as any).bluetooth;
       advHandler = (e: any) => handleAdvertisement(e);
       bt.addEventListener("advertisementreceived", advHandler);
-      scanHandle = await bt.requestLEScan({ acceptAllAdvertisements: true, keepRepeatedDevices: true });
+      scanHandle = await bt.requestLEScan({
+        acceptAllAdvertisements: true,
+        keepRepeatedDevices: true,
+      });
       status.running = true;
       status.mode = "native";
     } catch (e) {
@@ -570,11 +594,7 @@ export function stopScanner(): void {
     cleanupHandle = null;
   }
   status.running = false;
-  status.mode = nativeAdapter
-    ? "native-bridge"
-    : isLEScanAvailable()
-      ? "native"
-      : "unavailable";
+  status.mode = nativeAdapter ? "native-bridge" : isLEScanAvailable() ? "native" : "unavailable";
   emitStatus();
 }
 

@@ -34,6 +34,7 @@ import {
   clearObservations,
   getLEScanSupportDiagnostic,
   getNearby,
+  getStatus,
   isLEScanAvailable,
   isWebBluetoothAvailable,
   startScanner,
@@ -198,10 +199,11 @@ function DevicesPage() {
       try {
         await startScanner();
         await startSessionManager();
+        const currentStatus = getStatus();
         toast.success(
-          scannerStatus.mode === "native-bridge"
+          currentStatus.mode === "native-bridge"
             ? "Listening for real BLE advertisements (native app)"
-            : scannerStatus.mode === "native"
+            : currentStatus.mode === "native"
               ? "Listening for BLE advertisements"
               : "Scanning in simulator mode — registered beacons will appear",
         );
@@ -291,7 +293,8 @@ function DevicesPage() {
         <Card className="mt-4 border-emerald-200 bg-emerald-50">
           <CardContent className="py-3 text-sm text-emerald-900">
             <strong>Native app mode.</strong> Real BLE beacon advertisements are being received
-            through the {scannerStatus.nativeRuntime === "capacitor-android"
+            through the{" "}
+            {scannerStatus.nativeRuntime === "capacitor-android"
               ? "Android"
               : scannerStatus.nativeRuntime === "electron-mac"
                 ? "macOS"
@@ -305,9 +308,9 @@ function DevicesPage() {
         <Card className="mt-4 border-destructive/30">
           <CardContent className="py-3 text-sm text-destructive">
             <strong>Native Bluetooth is not connected.</strong> This installed app will not use
-            simulator data. Press <em>Start scan</em> and allow Nearby devices and Location access.
-            If Android does not ask, enable both permissions in Settings → Apps → CareCore →
-            Permissions.
+            simulator data. {scannerStatus.lastError && <>{scannerStatus.lastError} </>}Press{" "}
+            <em>Start scan</em> and allow Nearby devices and Location access. If Android does not
+            ask, enable both permissions in Settings → Apps → CareCore → Permissions.
           </CardContent>
         </Card>
       )}
@@ -358,13 +361,13 @@ function DevicesPage() {
             <div className="mt-1">{supportDiagnostic.message}</div>
             <div className="mt-1 font-medium">{supportDiagnostic.nextStep}</div>
             <div className="mt-2 text-xs opacity-80">
-              Web Bluetooth: {supportDiagnostic.webBluetoothAvailable ? "yes" : "no"} · Passive
-              scan API: {supportDiagnostic.leScanAvailable ? "yes" : "no"} · Device: {supportDiagnostic.platform}
+              Web Bluetooth: {supportDiagnostic.webBluetoothAvailable ? "yes" : "no"} · Passive scan
+              API: {supportDiagnostic.leScanAvailable ? "yes" : "no"} · Device:{" "}
+              {supportDiagnostic.platform}
             </div>
           </CardContent>
         </Card>
       )}
-
 
       {scannerStatus.lastError && (
         <Card className="mt-4 border-destructive/30">
@@ -547,7 +550,10 @@ function NearbySection({
                     : staffName(dev.staff_user_id)
                 : null;
               return (
-                <li key={o.key} className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between">
+                <li
+                  key={o.key}
+                  className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between"
+                >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="font-mono text-[10px] uppercase">
@@ -558,7 +564,9 @@ function NearbySection({
                           Simulated
                         </Badge>
                       )}
-                      <span className="font-medium">{o.name ?? dev?.label ?? "Unknown beacon"}</span>
+                      <span className="font-medium">
+                        {o.name ?? dev?.label ?? "Unknown beacon"}
+                      </span>
                       {dev && (
                         <Badge variant="secondary">
                           {typeLabel(dev.device_type)} · {assigned}
@@ -577,10 +585,7 @@ function NearbySection({
                     <div className="flex flex-col items-end">
                       <div className="text-sm font-semibold">{o.rssi} dBm</div>
                       <div className="h-1.5 w-28 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full bg-primary"
-                          style={{ width: `${pct}%` }}
-                        />
+                        <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
                       </div>
                       <div className="text-[10px] text-muted-foreground">
                         {o.hits} hit{o.hits === 1 ? "" : "s"} · seen {relTime(o.lastSeen)}
@@ -693,10 +698,12 @@ function RegisteredList({
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                 <div>
-                  Threshold: <span className="font-medium text-foreground">{d.rssi_threshold} dBm</span>
+                  Threshold:{" "}
+                  <span className="font-medium text-foreground">{d.rssi_threshold} dBm</span>
                 </div>
                 <div>
-                  Timeout: <span className="font-medium text-foreground">{d.session_timeout_seconds}s</span>
+                  Timeout:{" "}
+                  <span className="font-medium text-foreground">{d.session_timeout_seconds}s</span>
                 </div>
               </div>
               <div className="mt-3 flex justify-end gap-2">
@@ -803,9 +810,9 @@ function ActiveSessionsList({
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          No active sessions. Sessions start automatically when a registered beacon clears its
-          RSSI threshold and the system can identify a single resident (via wearable tag or a
-          room beacon whose room has one occupant).
+          No active sessions. Sessions start automatically when a registered beacon clears its RSSI
+          threshold and the system can identify a single resident (via wearable tag or a room beacon
+          whose room has one occupant).
         </CardContent>
       </Card>
     );
@@ -820,7 +827,10 @@ function ActiveSessionsList({
             const ruleLabel =
               s.rule === "wearable" ? "wearable tag" : "room beacon · single occupant";
             return (
-              <li key={s.residentId ?? s.deviceId} className="flex items-center justify-between gap-3 px-4 py-3">
+              <li
+                key={s.residentId ?? s.deviceId}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+              >
                 <div>
                   <div className="font-medium">{subject}</div>
                   <div className="text-xs text-muted-foreground">

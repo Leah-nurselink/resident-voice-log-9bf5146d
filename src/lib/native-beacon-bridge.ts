@@ -26,6 +26,15 @@ export interface NativeBleAdapter {
   stop(): Promise<void> | void;
 }
 
+export interface NativeBridgeDiagnostic {
+  detected: boolean;
+  platform: string | null;
+  adapterInstalled: boolean;
+  lastError: string | null;
+}
+
+let lastBridgeError: string | null = null;
+
 declare global {
   interface Window {
     __nativeBleAdapter?: NativeBleAdapter;
@@ -39,6 +48,26 @@ export function getNativeAdapter(): NativeBleAdapter | null {
 
 export function getNativeRuntime(): NativeRuntime {
   return getNativeAdapter()?.runtime ?? null;
+}
+
+export function getNativeBridgeDiagnostic(): NativeBridgeDiagnostic {
+  if (typeof window === "undefined") {
+    return {
+      detected: false,
+      platform: null,
+      adapterInstalled: false,
+      lastError: lastBridgeError,
+    };
+  }
+
+  const cap: any = (window as any).Capacitor;
+  const platform = cap?.getPlatform?.() ?? null;
+  return {
+    detected: Boolean(cap?.isNativePlatform?.() || platform === "android" || platform === "ios"),
+    platform,
+    adapterInstalled: Boolean(window.__nativeBleAdapter),
+    lastError: lastBridgeError,
+  };
 }
 
 /**
@@ -62,13 +91,15 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
       Capacitor.isNativePlatform() ||
       injectedCap?.isNativePlatform?.() ||
       injectedCap?.getPlatform?.() === "android";
-    if (!isNative) return;
+    if (!isNative) {
+      lastBridgeError = null;
+      return;
+    }
 
     const mod = await import("@capacitor-community/bluetooth-le");
     const BleClient = (mod as any).BleClient;
-    const platform = Capacitor.getPlatform() !== "web"
-      ? Capacitor.getPlatform()
-      : injectedCap?.getPlatform?.();
+    const platform =
+      Capacitor.getPlatform() !== "web" ? Capacitor.getPlatform() : injectedCap?.getPlatform?.();
 
     let scanning = false;
 
@@ -88,9 +119,7 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
             try {
               await BleClient.requestEnable();
             } catch {
-              throw new Error(
-                "Bluetooth is off. Turn on Bluetooth to scan for beacons.",
-              );
+              throw new Error("Bluetooth is off. Turn on Bluetooth to scan for beacons.");
             }
           }
         } catch (err) {
@@ -146,7 +175,13 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
     };
 
     window.__nativeBleAdapter = adapter;
+    lastBridgeError = null;
   } catch (err) {
+    lastBridgeError =
+      err instanceof Error && err.message
+        ? err.message
+        : "The native Bluetooth bridge could not be initialized.";
     console.warn("[native-beacon-bridge] Capacitor BLE plugin unavailable:", err);
+    throw new Error(lastBridgeError);
   }
 }

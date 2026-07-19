@@ -2,7 +2,7 @@ name: Build Android APK
 
 # Builds a debug APK on every push to main and every manual dispatch,
 # then uploads it to the private `app-downloads` Supabase Storage bucket
-# as `carecore.apk`. The app serves it to phones via the public server
+# under an immutable versioned name and updates `latest.json`. The app serves
 # route /api/public/download-apk (which mints a signed URL each request).
 #
 # Version numbers are derived automatically:
@@ -84,6 +84,14 @@ jobs:
         run: |
           mkdir -p dist-apk
           cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/carecore.apk
+          cat > dist-apk/latest.json <<JSON
+          {
+            "object": "carecore-${{ github.sha }}.apk",
+            "versionCode": ${{ steps.version.outputs.code }},
+            "versionName": "${{ steps.version.outputs.name }}",
+            "commit": "${{ github.sha }}"
+          }
+          JSON
           cat > dist-apk/assetlinks.json <<JSON
           [{
             "relation": ["delegate_permission/common.handle_all_urls"],
@@ -101,7 +109,7 @@ jobs:
           name: carecore-android-debug
           path: dist-apk/
 
-      - name: Upload APK via signed upload URL
+      - name: Upload versioned APK and latest manifest
         env:
           APK_UPLOAD_ENDPOINT: https://resident-voice-log.lovable.app/api/public/upload-apk-url
           APK_UPLOAD_TOKEN: ${{ secrets.APK_UPLOAD_TOKEN }}
@@ -110,34 +118,53 @@ jobs:
             echo "::error::APK_UPLOAD_TOKEN GitHub Actions secret is required"
             exit 1
           fi
-          echo "Requesting signed upload URL..."
-          HTTP_CODE=$(curl -sS -o /tmp/sign-response.json -w "%{http_code}" \
-            -X POST \
-            -H "Authorization: Bearer $APK_UPLOAD_TOKEN" \
-            "$APK_UPLOAD_ENDPOINT")
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "::error::Failed to get signed upload URL (HTTP $HTTP_CODE)"
-            cat /tmp/sign-response.json
-            exit 1
-          fi
-          SIGNED_URL=$(jq -r '.url' /tmp/sign-response.json)
-          if [ -z "$SIGNED_URL" ] || [ "$SIGNED_URL" = "null" ]; then
-            echo "::error::Signed URL missing from response"
-            cat /tmp/sign-response.json
-            exit 1
-          fi
-          echo "Uploading carecore.apk..."
-          UP_CODE=$(curl -sS -o /tmp/upload-response.txt -w "%{http_code}" \
-            -X PUT \
-            -H "Content-Type: application/vnd.android.package-archive" \
-            -H "x-upsert: true" \
-            --data-binary @dist-apk/carecore.apk \
-            "$SIGNED_URL")
-          echo "HTTP $UP_CODE"
-          cat /tmp/upload-response.txt
-          echo
-          if [ "$UP_CODE" != "200" ] && [ "$UP_CODE" != "201" ]; then
-            echo "::error::APK upload failed"
-            exit 1
-          fi
-          echo "✅ APK uploaded successfully"
+          request_upload_url() {
+            local object_name="$1"
+            local response_file="$2"
+            local http_code
+            http_code=$(curl -sS -o "$response_file" -w "%{http_code}" \
+              -X POST \
+              -H "Authorization: Bearer $APK_UPLOAD_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "{\"object\":\"$object_name\"}" \
+              "$APK_UPLOAD_ENDPOINT")
+            if [ "$http_code" != "200" ]; then
+              echo "::error::Failed to get upload URL for $object_name (HTTP $http_code)"
+              cat "$response_file"
+              exit 1
+            fi
+            jq -r '.url' "$response_file"
+          }
+
+          upload_file() {
+            local object_name="$1"
+            local file_path="$2"
+            local content_type="$3"
+            local response_file="/tmp/sign-${object_name//[^a-zA-Z0-9]/_}.json"
+            local signed_url
+            signed_url=$(request_upload_url "$object_name" "$response_file")
+            if [ -z "$signed_url" ] || [ "$signed_url" = "null" ]; then
+              echo "::error::Signed URL missing for $object_name"
+              cat "$response_file"
+              exit 1
+            fi
+            echo "Uploading $object_name..."
+            local upload_code
+            upload_code=$(curl -sS -o /tmp/upload-response.txt -w "%{http_code}" \
+              -X PUT \
+              -H "Content-Type: $content_type" \
+              -H "x-upsert: true" \
+              --data-binary "@$file_path" \
+              "$signed_url")
+            if [ "$upload_code" != "200" ] && [ "$upload_code" != "201" ]; then
+              echo "::error::Upload failed for $object_name (HTTP $upload_code)"
+              cat /tmp/upload-response.txt
+              exit 1
+            fi
+          }
+
+          APK_OBJECT="carecore-${GITHUB_SHA}.apk"
+          upload_file "$APK_OBJECT" dist-apk/carecore.apk application/vnd.android.package-archive
+          # Upload the pointer last so users never receive a partly published build.
+          upload_file latest.json dist-apk/latest.json application/json
+          echo "✅ Versioned APK published successfully"

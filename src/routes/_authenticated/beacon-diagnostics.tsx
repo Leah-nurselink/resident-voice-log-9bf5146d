@@ -18,6 +18,7 @@ import {
   type ScannerStatus,
 } from "@/lib/ble-advertisement-scanner";
 import {
+  getNativeBridgeDiagnostic,
   getNativeAdapter,
   getNativeRuntime,
   installCapacitorBridgeIfNeeded,
@@ -32,11 +33,10 @@ export const Route = createFileRoute("/_authenticated/beacon-diagnostics")({
 function BeaconDiagnosticsPage() {
   const [status, setStatus] = useState<ScannerStatus>(() => getStatus());
   const [obs, setObs] = useState<BeaconObservation[]>(() => getNearby());
-  const [bridgeInstalled, setBridgeInstalled] = useState<boolean>(
-    () => !!getNativeAdapter(),
-  );
+  const [bridgeInstalled, setBridgeInstalled] = useState<boolean>(() => !!getNativeAdapter());
   const [nativeRuntime, setNativeRuntime] = useState(() => getNativeRuntime());
   const [now, setNow] = useState(() => Date.now());
+  const [bridgeDiagnostic, setBridgeDiagnostic] = useState(() => getNativeBridgeDiagnostic());
   const diag = getLEScanSupportDiagnostic();
 
   useEffect(() => subscribeStatus(setStatus), []);
@@ -46,6 +46,7 @@ function BeaconDiagnosticsPage() {
       setNow(Date.now());
       setBridgeInstalled(!!getNativeAdapter());
       setNativeRuntime(getNativeRuntime());
+      setBridgeDiagnostic(getNativeBridgeDiagnostic());
     }, 1000);
     return () => clearInterval(id);
   }, []);
@@ -124,6 +125,14 @@ function BeaconDiagnosticsPage() {
           <Row label="Native runtime">
             <code className="text-xs">{nativeRuntime ?? "none"}</code>
           </Row>
+          <Row label="Capacitor platform">
+            <code className="text-xs">{bridgeDiagnostic.platform ?? "none"}</code>
+          </Row>
+          {bridgeDiagnostic.lastError && (
+            <Row label="Bridge error">
+              <span className="text-xs text-destructive">{bridgeDiagnostic.lastError}</span>
+            </Row>
+          )}
           <Row label="Scanner mode">
             <Badge variant={modeVariant as never}>{modeLabel}</Badge>
           </Row>
@@ -134,9 +143,7 @@ function BeaconDiagnosticsPage() {
           </Row>
           {status.startedAt && (
             <Row label="Started">
-              <span className="text-xs">
-                {new Date(status.startedAt).toLocaleTimeString()}
-              </span>
+              <span className="text-xs">{new Date(status.startedAt).toLocaleTimeString()}</span>
             </Row>
           )}
           {status.lastError && (
@@ -168,31 +175,24 @@ function BeaconDiagnosticsPage() {
           <Row label="Platform">
             <code className="text-xs">{diag.platform || "?"}</code>
           </Row>
-          <div className="pt-1 text-xs text-muted-foreground break-all">
-            UA: {diag.userAgent}
-          </div>
+          <div className="pt-1 text-xs text-muted-foreground break-all">UA: {diag.userAgent}</div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            Detected beacons ({sorted.length})
-          </CardTitle>
+          <CardTitle className="text-base">Detected beacons ({sorted.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {sorted.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No advertisements yet. If the mode above is "Simulator", the phone
-              is not exposing real BLE to the app.
+              No advertisements yet. If the mode above is "Simulator", the phone is not exposing
+              real BLE to the app.
             </p>
           ) : (
             <ul className="divide-y">
               {sorted.map((o) => {
-                const age = Math.max(
-                  0,
-                  Math.round((now - new Date(o.lastSeen).getTime()) / 1000),
-                );
+                const age = Math.max(0, Math.round((now - new Date(o.lastSeen).getTime()) / 1000));
                 return (
                   <li key={o.key} className="space-y-1 py-2 text-sm">
                     <div className="flex items-center justify-between">
@@ -200,9 +200,7 @@ function BeaconDiagnosticsPage() {
                         <Badge variant="outline" className="text-[10px]">
                           {o.protocol}
                         </Badge>
-                        <span className="font-medium">
-                          {o.name ?? o.key.slice(0, 24)}
-                        </span>
+                        <span className="font-medium">{o.name ?? o.key.slice(0, 24)}</span>
                         {o.simulated && (
                           <Badge variant="secondary" className="text-[10px]">
                             sim
