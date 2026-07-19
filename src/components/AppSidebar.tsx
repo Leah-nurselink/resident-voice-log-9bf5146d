@@ -24,6 +24,7 @@ import {
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -34,6 +35,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { getAppVersion, getAppBuildTimeLocal } from "@/lib/app-version";
+
 
 const careItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home, exact: true },
@@ -146,6 +149,25 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t border-sidebar-border p-3">
+        {!collapsed ? (
+          <div
+            className="text-[10px] leading-tight text-muted-foreground"
+            title={`Built ${getAppBuildTimeLocal()}`}
+          >
+            <div className="font-medium">CareCore</div>
+            <div className="truncate">v{getAppVersion()}</div>
+          </div>
+        ) : (
+          <div
+            className="text-center text-[9px] text-muted-foreground"
+            title={`v${getAppVersion()} · ${getAppBuildTimeLocal()}`}
+          >
+            v
+          </div>
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }
+
