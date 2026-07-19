@@ -273,7 +273,8 @@ function RawAdvertisementRow({ advertisement }: { advertisement: RawNativeAdvert
           {advertisement.localName ?? advertisement.name ?? "Unnamed BLE device"}
         </span>
         <span className="tabular-nums">
-          {advertisement.rssi == null ? "RSSI unavailable" : `${advertisement.rssi} dBm`} · hits {advertisement.hits}
+          {advertisement.rssi == null ? "RSSI unavailable" : `${advertisement.rssi} dBm`} · hits{" "}
+          {advertisement.hits}
         </span>
       </div>
       <RawField label="MAC / device ID" value={advertisement.deviceId} />
@@ -282,14 +283,14 @@ function RawAdvertisementRow({ advertisement }: { advertisement: RawNativeAdvert
       <RawField label="UUID" value={advertisement.uuid} />
       <RawField label="Major" value={advertisement.major} />
       <RawField label="Minor" value={advertisement.minor} />
-      <RawField
-        label="Manufacturer data"
-        value={formatHexMap(advertisement.manufacturerData)}
-      />
+      <RawField label="Manufacturer data" value={formatHexMap(advertisement.manufacturerData)} />
       <RawField label="Service UUIDs" value={advertisement.serviceUuids.join(", ") || null} />
       <RawField label="Service data" value={formatHexMap(advertisement.serviceData)} />
       <RawField label="Raw advertisement" value={advertisement.rawAdvertisement} />
-      <RawField label="Last received" value={new Date(advertisement.lastSeen).toLocaleTimeString()} />
+      <RawField
+        label="Last received"
+        value={new Date(advertisement.lastSeen).toLocaleTimeString()}
+      />
     </li>
   );
 }

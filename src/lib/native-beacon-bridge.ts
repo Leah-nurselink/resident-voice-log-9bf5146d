@@ -73,7 +73,9 @@ export function getNativeRuntime(): NativeRuntime {
 }
 
 export function getRawNativeAdvertisements(): RawNativeAdvertisement[] {
-  return Array.from(rawAdvertisements.values()).sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
+  return Array.from(rawAdvertisements.values()).sort((a, b) =>
+    b.lastSeen.localeCompare(a.lastSeen),
+  );
 }
 
 export function subscribeRawNativeAdvertisements(
@@ -134,7 +136,8 @@ function parseRawIBeacon(manufacturerData: Record<string, string>): {
 
 function recordRawNativeAdvertisement(result: any): void {
   const now = new Date().toISOString();
-  const deviceId = result.device?.deviceId ?? result.device?.name ?? `unknown-${rawAdvertisements.size + 1}`;
+  const deviceId =
+    result.device?.deviceId ?? result.device?.name ?? `unknown-${rawAdvertisements.size + 1}`;
   const manufacturerData = dataObjectToHex(result.manufacturerData);
   const parsed = parseRawIBeacon(manufacturerData);
   const previous = rawAdvertisements.get(deviceId);
