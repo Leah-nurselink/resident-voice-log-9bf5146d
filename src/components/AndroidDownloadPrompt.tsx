@@ -42,6 +42,7 @@ export function AndroidDownloadPrompt() {
     >
       <a
         href={APK_URL}
+        download="carecore.apk"
         className="group flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
         aria-label="Download CareCore APK"
       >
