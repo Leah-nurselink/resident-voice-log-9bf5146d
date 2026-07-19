@@ -29,6 +29,7 @@ import { Route as AuthenticatedCommunicationsRouteImport } from './routes/_authe
 import { Route as AuthenticatedCarerRouteImport } from './routes/_authenticated/carer'
 import { Route as AuthenticatedCarePlansRouteImport } from './routes/_authenticated/care-plans'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
+import { Route as AuthenticatedBeaconDiagnosticsRouteImport } from './routes/_authenticated/beacon-diagnostics'
 import { Route as AuthenticatedAuditsRouteImport } from './routes/_authenticated/audits'
 import { Route as AuthenticatedApprovalsRouteImport } from './routes/_authenticated/approvals'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
@@ -147,6 +148,12 @@ const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBeaconDiagnosticsRoute =
+  AuthenticatedBeaconDiagnosticsRouteImport.update({
+    id: '/beacon-diagnostics',
+    path: '/beacon-diagnostics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAuditsRoute = AuthenticatedAuditsRouteImport.update({
   id: '/audits',
   path: '/audits',
@@ -225,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/approvals': typeof AuthenticatedApprovalsRoute
   '/audits': typeof AuthenticatedAuditsRoute
+  '/beacon-diagnostics': typeof AuthenticatedBeaconDiagnosticsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/care-plans': typeof AuthenticatedCarePlansRoute
   '/carer': typeof AuthenticatedCarerRouteWithChildren
@@ -259,6 +267,7 @@ export interface FileRoutesByTo {
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/approvals': typeof AuthenticatedApprovalsRoute
   '/audits': typeof AuthenticatedAuditsRoute
+  '/beacon-diagnostics': typeof AuthenticatedBeaconDiagnosticsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/care-plans': typeof AuthenticatedCarePlansRoute
   '/communications': typeof AuthenticatedCommunicationsRoute
@@ -294,6 +303,7 @@ export interface FileRoutesById {
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/approvals': typeof AuthenticatedApprovalsRoute
   '/_authenticated/audits': typeof AuthenticatedAuditsRoute
+  '/_authenticated/beacon-diagnostics': typeof AuthenticatedBeaconDiagnosticsRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/care-plans': typeof AuthenticatedCarePlansRoute
   '/_authenticated/carer': typeof AuthenticatedCarerRouteWithChildren
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/approvals'
     | '/audits'
+    | '/beacon-diagnostics'
     | '/calendar'
     | '/care-plans'
     | '/carer'
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/approvals'
     | '/audits'
+    | '/beacon-diagnostics'
     | '/calendar'
     | '/care-plans'
     | '/communications'
@@ -398,6 +410,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics'
     | '/_authenticated/approvals'
     | '/_authenticated/audits'
+    | '/_authenticated/beacon-diagnostics'
     | '/_authenticated/calendar'
     | '/_authenticated/care-plans'
     | '/_authenticated/carer'
@@ -575,6 +588,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCalendarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/beacon-diagnostics': {
+      id: '/_authenticated/beacon-diagnostics'
+      path: '/beacon-diagnostics'
+      fullPath: '/beacon-diagnostics'
+      preLoaderRoute: typeof AuthenticatedBeaconDiagnosticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/audits': {
       id: '/_authenticated/audits'
       path: '/audits'
@@ -689,6 +709,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedApprovalsRoute: typeof AuthenticatedApprovalsRoute
   AuthenticatedAuditsRoute: typeof AuthenticatedAuditsRoute
+  AuthenticatedBeaconDiagnosticsRoute: typeof AuthenticatedBeaconDiagnosticsRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedCarePlansRoute: typeof AuthenticatedCarePlansRoute
   AuthenticatedCarerRoute: typeof AuthenticatedCarerRouteWithChildren
@@ -717,6 +738,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedApprovalsRoute: AuthenticatedApprovalsRoute,
   AuthenticatedAuditsRoute: AuthenticatedAuditsRoute,
+  AuthenticatedBeaconDiagnosticsRoute: AuthenticatedBeaconDiagnosticsRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedCarePlansRoute: AuthenticatedCarePlansRoute,
   AuthenticatedCarerRoute: AuthenticatedCarerRouteWithChildren,
