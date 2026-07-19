@@ -98,9 +98,8 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
 
     const mod = await import("@capacitor-community/bluetooth-le");
     const BleClient = (mod as any).BleClient;
-    const platform = Capacitor.getPlatform() !== "web"
-      ? Capacitor.getPlatform()
-      : injectedCap?.getPlatform?.();
+    const platform =
+      Capacitor.getPlatform() !== "web" ? Capacitor.getPlatform() : injectedCap?.getPlatform?.();
 
     let scanning = false;
 
@@ -120,9 +119,7 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
             try {
               await BleClient.requestEnable();
             } catch {
-              throw new Error(
-                "Bluetooth is off. Turn on Bluetooth to scan for beacons.",
-              );
+              throw new Error("Bluetooth is off. Turn on Bluetooth to scan for beacons.");
             }
           }
         } catch (err) {

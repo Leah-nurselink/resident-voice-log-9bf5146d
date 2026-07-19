@@ -53,13 +53,8 @@ export const Route = createFileRoute("/api/public/download-apk")({
 
         if (!apkRes.ok) {
           const detail = await apkRes.text();
-          console.error(
-            `[download-apk] Fetch failed [${apkRes.status}]: ${detail}`,
-          );
-          return new Response(
-            "APK not available yet. Please try again shortly.",
-            { status: 404 },
-          );
+          console.error(`[download-apk] Fetch failed [${apkRes.status}]: ${detail}`);
+          return new Response("APK not available yet. Please try again shortly.", { status: 404 });
         }
 
         const headers = new Headers({

@@ -2,9 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 const uploadRequestSchema = z.object({
-  object: z
-    .string()
-    .regex(/^(?:carecore-[0-9a-f]{40}\.apk|latest\.json)$/),
+  object: z.string().regex(/^(?:carecore-[0-9a-f]{40}\.apk|latest\.json)$/),
 });
 
 /**
@@ -29,9 +27,7 @@ export const Route = createFileRoute("/api/public/upload-apk-url")({
         }
 
         const authHeader = request.headers.get("authorization") ?? "";
-        const provided = authHeader.startsWith("Bearer ")
-          ? authHeader.slice(7)
-          : "";
+        const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
         // Timing-safe compare
         const a = Buffer.from(provided);
@@ -70,9 +66,7 @@ export const Route = createFileRoute("/api/public/upload-apk-url")({
 
         if (!signRes.ok) {
           const detail = await signRes.text();
-          console.error(
-            `[upload-apk-url] Sign failed [${signRes.status}]: ${detail}`,
-          );
+          console.error(`[upload-apk-url] Sign failed [${signRes.status}]: ${detail}`);
           return new Response(`Failed to create upload URL: ${detail}`, {
             status: 502,
           });
