@@ -4,14 +4,14 @@ import { createFileRoute } from "@tanstack/react-router";
  * Public APK download endpoint.
  *
  * The `carecore.apk` file lives in a PRIVATE Supabase Storage bucket
- * (`app-downloads`). This route mints a short-lived signed URL and 302-redirects
- * the phone to it, so anonymous devices can download without exposing the
- * source repo or making the bucket public.
+ * (`app-downloads`). This route streams the file with an attachment header so
+ * Android browsers reliably download it without exposing the source repo or
+ * making the bucket public.
  */
 export const Route = createFileRoute("/api/public/download-apk")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
         const SUPABASE_URL = process.env.SUPABASE_URL;
         const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -19,24 +19,22 @@ export const Route = createFileRoute("/api/public/download-apk")({
           return new Response("Download service not configured", { status: 503 });
         }
 
-        // Ask Supabase Storage for a 5-minute signed URL to the APK.
-        const signRes = await fetch(
-          `${SUPABASE_URL}/storage/v1/object/sign/app-downloads/carecore.apk`,
+        const range = request.headers.get("range");
+        const apkRes = await fetch(
+          `${SUPABASE_URL}/storage/v1/object/app-downloads/carecore.apk`,
           {
-            method: "POST",
             headers: {
               apikey: SERVICE_ROLE_KEY,
               Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-              "Content-Type": "application/json",
+              ...(range ? { Range: range } : {}),
             },
-            body: JSON.stringify({ expiresIn: 300 }),
           },
         );
 
-        if (!signRes.ok) {
-          const detail = await signRes.text();
+        if (!apkRes.ok) {
+          const detail = await apkRes.text();
           console.error(
-            `[download-apk] Sign failed [${signRes.status}]: ${detail}`,
+            `[download-apk] Fetch failed [${apkRes.status}]: ${detail}`,
           );
           return new Response(
             "APK not available yet. Please try again shortly.",
@@ -44,16 +42,21 @@ export const Route = createFileRoute("/api/public/download-apk")({
           );
         }
 
-        const { signedURL } = (await signRes.json()) as { signedURL: string };
-        const absoluteUrl = signedURL.startsWith("http")
-          ? signedURL
-          : `${SUPABASE_URL}/storage/v1${signedURL}`;
+        const headers = new Headers({
+          "Content-Type": "application/vnd.android.package-archive",
+          "Content-Disposition": 'attachment; filename="carecore.apk"',
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        });
+        for (const name of ["content-length", "content-range", "accept-ranges", "etag"]) {
+          const value = apkRes.headers.get(name);
+          if (value) headers.set(name, value);
+        }
 
-        return new Response(null, {
-          status: 302,
+        return new Response(apkRes.body, {
+          status: apkRes.status,
           headers: {
-            Location: absoluteUrl,
-            "Cache-Control": "no-store",
+            ...Object.fromEntries(headers),
           },
         });
       },
