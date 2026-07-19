@@ -33,18 +33,18 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- BLE beacon scanning (Android 12+) -->
-    <uses-permission
-        android:name="android.permission.BLUETOOTH_SCAN"
-        android:usesPermissionFlags="neverForLocation"
-        tools:targetApi="s"
-    />
+    <!-- BLE beacon scanning (Android 12+). Beacon proximity is location-like,
+         so neverForLocation must not be set: Android can otherwise filter
+         beacon advertisements from scan results. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- Required because beacon observations infer room/resident proximity. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <!-- Legacy BLE permissions for Android 11 and below -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 </manifest>

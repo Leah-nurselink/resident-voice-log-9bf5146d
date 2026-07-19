@@ -51,23 +51,34 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
   if (typeof window === "undefined") return;
   if (window.__nativeBleAdapter) return; // already installed (Electron preload)
 
-  // Capacitor exposes `window.Capacitor` when running inside the shell.
-  const cap: any = (window as any).Capacitor;
-  if (!cap?.isNativePlatform?.()) return;
-
   try {
+    // Import Capacitor rather than depending only on window.Capacitor. The
+    // native bridge is injected into the remote page at document start, while
+    // this API also gives us a reliable platform check across Android WebView
+    // versions.
+    const { Capacitor } = await import("@capacitor/core");
+    const injectedCap: any = (window as any).Capacitor;
+    const isNative =
+      Capacitor.isNativePlatform() ||
+      injectedCap?.isNativePlatform?.() ||
+      injectedCap?.getPlatform?.() === "android";
+    if (!isNative) return;
+
     const mod = await import("@capacitor-community/bluetooth-le");
     const BleClient = (mod as any).BleClient;
-    const numbersToDataView = (mod as any).numbersToDataView as
-      | ((arr: number[]) => DataView)
-      | undefined;
+    const platform = Capacitor.getPlatform() !== "web"
+      ? Capacitor.getPlatform()
+      : injectedCap?.getPlatform?.();
 
     let scanning = false;
 
     const adapter: NativeBleAdapter = {
-      runtime: cap.getPlatform?.() === "android" ? "capacitor-android" : "capacitor",
+      runtime: platform === "android" ? "capacitor-android" : "capacitor",
       async start(handler) {
-        await BleClient.initialize({ androidNeverForLocation: true });
+        // Beacon observations are used to infer room/resident proximity, so
+        // do not assert neverForLocation: Android may otherwise filter beacon
+        // advertisements from scan results.
+        await BleClient.initialize({ androidNeverForLocation: false });
 
         // Preflight: ensure the Bluetooth radio is actually on. If it isn't,
         // prompt the user to enable it (Android shows a system dialog).
@@ -90,18 +101,16 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
         try {
           await BleClient.requestLEScan({ allowDuplicates: true }, (result: any) => {
             const mfr = new Map<number, DataView>();
-            if (result.manufacturerData && numbersToDataView) {
+            if (result.manufacturerData) {
               for (const [k, v] of Object.entries(result.manufacturerData)) {
                 const id = Number(k);
-                if (Array.isArray(v)) mfr.set(id, numbersToDataView(v as number[]));
-                else if (v instanceof DataView) mfr.set(id, v);
+                if (v instanceof DataView) mfr.set(id, v);
               }
             }
             const svc = new Map<string, DataView>();
-            if (result.serviceData && numbersToDataView) {
+            if (result.serviceData) {
               for (const [k, v] of Object.entries(result.serviceData)) {
-                if (Array.isArray(v)) svc.set(k.toLowerCase(), numbersToDataView(v as number[]));
-                else if (v instanceof DataView) svc.set(k.toLowerCase(), v);
+                if (v instanceof DataView) svc.set(k.toLowerCase(), v);
               }
             }
             handler({
