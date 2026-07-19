@@ -307,9 +307,8 @@ function handleAdvertisement(e: any) {
   const rssi: number = typeof e.rssi === "number" ? e.rssi : -100;
   const txPower: number | null = typeof e.txPower === "number" ? e.txPower : null;
   const name: string | null = e.device?.name ?? null;
-  // MAC isn't exposed on web — keep null. Some Chromium builds put a
-  // platform-issued opaque id on e.device.id, that's what we already use.
-  const mac: string | null = null;
+  // Android's native plugin exposes the BLE address. Web Bluetooth does not.
+  const mac: string | null = typeof e.mac === "string" ? e.mac : null;
 
   // iBeacon: manufacturer data 0x004C
   try {

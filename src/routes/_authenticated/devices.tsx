@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bluetooth,
@@ -246,6 +246,12 @@ function DevicesPage() {
       subtitle="Live BLE advertisement scanning — no pairing required"
       action={
         <div className="flex gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/beacon-diagnostics">
+              <Radio className="h-4 w-4" />
+              BLE diagnostics
+            </Link>
+          </Button>
           <Button onClick={checkRealBeaconSupport} variant="secondary" size="sm">
             <CircleHelp className="h-4 w-4" />
             Check real beacon support

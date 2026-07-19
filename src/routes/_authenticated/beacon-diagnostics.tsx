@@ -18,10 +18,14 @@ import {
   type ScannerStatus,
 } from "@/lib/ble-advertisement-scanner";
 import {
+  clearRawNativeAdvertisements,
   getNativeBridgeDiagnostic,
   getNativeAdapter,
   getNativeRuntime,
+  getRawNativeAdvertisements,
   installCapacitorBridgeIfNeeded,
+  subscribeRawNativeAdvertisements,
+  type RawNativeAdvertisement,
 } from "@/lib/native-beacon-bridge";
 import { isNativeShell } from "@/lib/surface";
 
@@ -37,10 +41,14 @@ function BeaconDiagnosticsPage() {
   const [nativeRuntime, setNativeRuntime] = useState(() => getNativeRuntime());
   const [now, setNow] = useState(() => Date.now());
   const [bridgeDiagnostic, setBridgeDiagnostic] = useState(() => getNativeBridgeDiagnostic());
+  const [rawAdvertisements, setRawAdvertisements] = useState<RawNativeAdvertisement[]>(() =>
+    getRawNativeAdvertisements(),
+  );
   const diag = getLEScanSupportDiagnostic();
 
   useEffect(() => subscribeStatus(setStatus), []);
   useEffect(() => subscribeObs(setObs), []);
+  useEffect(() => subscribeRawNativeAdvertisements(setRawAdvertisements), []);
   useEffect(() => {
     const id = setInterval(() => {
       setNow(Date.now());
@@ -99,6 +107,7 @@ function BeaconDiagnosticsPage() {
             variant="ghost"
             onClick={() => {
               clearObservations();
+              clearRawNativeAdvertisements();
               setObs([]);
             }}
           >
@@ -150,6 +159,31 @@ function BeaconDiagnosticsPage() {
             <Row label="Last error">
               <span className="text-xs text-destructive">{status.lastError}</span>
             </Row>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base">
+              Raw native advertisements ({rawAdvertisements.length})
+            </CardTitle>
+            <Badge variant="outline">before filtering</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {rawAdvertisements.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No native scan callbacks received. Press Start in the installed Android app and keep
+              this screen open near a transmitting beacon.
+            </p>
+          ) : (
+            <ul className="divide-y">
+              {rawAdvertisements.map((advertisement) => (
+                <RawAdvertisementRow key={advertisement.deviceId} advertisement={advertisement} />
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>
@@ -227,6 +261,51 @@ function BeaconDiagnosticsPage() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function RawAdvertisementRow({ advertisement }: { advertisement: RawNativeAdvertisement }) {
+  return (
+    <li className="space-y-2 py-3 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm font-medium">
+          {advertisement.localName ?? advertisement.name ?? "Unnamed BLE device"}
+        </span>
+        <span className="tabular-nums">
+          {advertisement.rssi == null ? "RSSI unavailable" : `${advertisement.rssi} dBm`} · hits{" "}
+          {advertisement.hits}
+        </span>
+      </div>
+      <RawField label="MAC / device ID" value={advertisement.deviceId} />
+      <RawField label="Device name" value={advertisement.name} />
+      <RawField label="Local name" value={advertisement.localName} />
+      <RawField label="UUID" value={advertisement.uuid} />
+      <RawField label="Major" value={advertisement.major} />
+      <RawField label="Minor" value={advertisement.minor} />
+      <RawField label="Manufacturer data" value={formatHexMap(advertisement.manufacturerData)} />
+      <RawField label="Service UUIDs" value={advertisement.serviceUuids.join(", ") || null} />
+      <RawField label="Service data" value={formatHexMap(advertisement.serviceData)} />
+      <RawField label="Raw advertisement" value={advertisement.rawAdvertisement} />
+      <RawField
+        label="Last received"
+        value={new Date(advertisement.lastSeen).toLocaleTimeString()}
+      />
+    </li>
+  );
+}
+
+function formatHexMap(value: Record<string, string>): string | null {
+  const entries = Object.entries(value);
+  if (entries.length === 0) return null;
+  return entries.map(([key, bytes]) => `${key}: ${bytes}`).join(" · ");
+}
+
+function RawField({ label, value }: { label: string; value: string | number | null }) {
+  return (
+    <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2">
+      <span className="text-muted-foreground">{label}</span>
+      <code className="break-all">{value == null || value === "" ? "—" : value}</code>
     </div>
   );
 }
