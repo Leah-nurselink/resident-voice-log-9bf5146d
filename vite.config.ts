@@ -5,20 +5,28 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { execSync } from "node:child_process";
+
+let commit = "dev";
+try {
+  commit = execSync("git rev-parse --short HEAD").toString().trim();
+} catch {
+  /* ignore */
+}
+const buildTime = new Date().toISOString();
 
 export default defineConfig({
   tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
     server: { entry: "server" },
   },
   vite: {
-    // Exclude native-only optional deps from the web bundle. Capacitor's
-    // BLE plugin is loaded via dynamic import at runtime only when the
-    // page runs inside the Android shell, so Vite doesn't need to
-    // pre-bundle it (which would try to resolve @capacitor/core natives).
+    define: {
+      __APP_COMMIT__: JSON.stringify(commit),
+      __APP_BUILD_TIME__: JSON.stringify(buildTime),
+    },
     optimizeDeps: {
       exclude: ["@capacitor-community/bluetooth-le"],
     },
   },
 });
+
