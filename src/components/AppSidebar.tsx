@@ -37,6 +37,8 @@ import { cn } from "@/lib/utils";
 
 const careItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home, exact: true },
+  { title: "Devices", url: "/devices", icon: Bluetooth },
+  { title: "Beacon Diagnostics", url: "/beacon-diagnostics", icon: Bluetooth },
   { title: "Carer App", url: "/carer", icon: Bluetooth },
   { title: "Residents", url: "/residents", icon: Users },
   { title: "Care Plans", url: "/care-plans", icon: FileText },
@@ -54,11 +56,11 @@ const systemItems = [
   { title: "Family", url: "/family", icon: Heart },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Reports", url: "/reports", icon: FileText },
-  { title: "Devices", url: "/devices", icon: Bluetooth },
   { title: "Admin", url: "/admin", icon: ShieldCheck },
   { title: "Downloads", url: "/downloads", icon: Download },
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
+
 
 
 const governanceItems = [
