@@ -1,4 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
+
+const uploadRequestSchema = z.object({
+  object: z
+    .string()
+    .regex(/^(?:carecore-[0-9a-f]{40}\.apk|latest\.json)$/),
+});
 
 /**
  * Mints a short-lived signed upload URL for `carecore.apk` in the private
@@ -38,8 +45,18 @@ export const Route = createFileRoute("/api/public/upload-apk-url")({
           return new Response("Unauthorized", { status: 401 });
         }
 
+        let objectName = "carecore.apk";
+        const contentType = request.headers.get("content-type") ?? "";
+        if (contentType.includes("application/json")) {
+          const parsed = uploadRequestSchema.safeParse(await request.json());
+          if (!parsed.success) {
+            return new Response("Invalid upload object", { status: 400 });
+          }
+          objectName = parsed.data.object;
+        }
+
         const signRes = await fetch(
-          `${SUPABASE_URL}/storage/v1/object/upload/sign/app-downloads/carecore.apk`,
+          `${SUPABASE_URL}/storage/v1/object/upload/sign/app-downloads/${objectName}`,
           {
             method: "POST",
             headers: {

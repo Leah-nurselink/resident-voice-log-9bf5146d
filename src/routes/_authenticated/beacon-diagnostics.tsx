@@ -18,6 +18,7 @@ import {
   type ScannerStatus,
 } from "@/lib/ble-advertisement-scanner";
 import {
+  getNativeBridgeDiagnostic,
   getNativeAdapter,
   getNativeRuntime,
   installCapacitorBridgeIfNeeded,
@@ -37,6 +38,9 @@ function BeaconDiagnosticsPage() {
   );
   const [nativeRuntime, setNativeRuntime] = useState(() => getNativeRuntime());
   const [now, setNow] = useState(() => Date.now());
+  const [bridgeDiagnostic, setBridgeDiagnostic] = useState(() =>
+    getNativeBridgeDiagnostic(),
+  );
   const diag = getLEScanSupportDiagnostic();
 
   useEffect(() => subscribeStatus(setStatus), []);
@@ -46,6 +50,7 @@ function BeaconDiagnosticsPage() {
       setNow(Date.now());
       setBridgeInstalled(!!getNativeAdapter());
       setNativeRuntime(getNativeRuntime());
+      setBridgeDiagnostic(getNativeBridgeDiagnostic());
     }, 1000);
     return () => clearInterval(id);
   }, []);
@@ -124,6 +129,16 @@ function BeaconDiagnosticsPage() {
           <Row label="Native runtime">
             <code className="text-xs">{nativeRuntime ?? "none"}</code>
           </Row>
+          <Row label="Capacitor platform">
+            <code className="text-xs">{bridgeDiagnostic.platform ?? "none"}</code>
+          </Row>
+          {bridgeDiagnostic.lastError && (
+            <Row label="Bridge error">
+              <span className="text-xs text-destructive">
+                {bridgeDiagnostic.lastError}
+              </span>
+            </Row>
+          )}
           <Row label="Scanner mode">
             <Badge variant={modeVariant as never}>{modeLabel}</Badge>
           </Row>

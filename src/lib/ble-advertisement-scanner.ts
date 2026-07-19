@@ -19,6 +19,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import {
+  getNativeBridgeDiagnostic,
   getNativeAdapter,
   getNativeRuntime,
   installCapacitorBridgeIfNeeded,
@@ -487,7 +488,15 @@ export async function startScanner(): Promise<void> {
 
   // 1. Native shell (Capacitor Android app or Electron macOS app) — real
   //    hardware, no Chrome flag required.
-  await installCapacitorBridgeIfNeeded();
+  try {
+    await installCapacitorBridgeIfNeeded();
+  } catch (e) {
+    status.lastError = e instanceof Error ? e.message : "Native BLE bridge failed to initialize";
+    status.running = false;
+    status.mode = "unavailable";
+    emitStatus();
+    throw e;
+  }
   const nativeAdapter = getNativeAdapter();
   if (nativeAdapter) {
     try {
@@ -505,6 +514,15 @@ export async function startScanner(): Promise<void> {
       emitStatus();
       throw e;
     }
+  } else if (getNativeBridgeDiagnostic().detected) {
+    const message =
+      getNativeBridgeDiagnostic().lastError ??
+      "CareCore detected the Android app, but its native Bluetooth bridge is missing. Install the latest CareCore APK.";
+    status.lastError = message;
+    status.running = false;
+    status.mode = "unavailable";
+    emitStatus();
+    throw new Error(message);
   } else if (isLEScanAvailable()) {
     try {
       const bt: any = (navigator as any).bluetooth;

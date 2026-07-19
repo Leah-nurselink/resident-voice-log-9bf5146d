@@ -34,6 +34,7 @@ import {
   clearObservations,
   getLEScanSupportDiagnostic,
   getNearby,
+  getStatus,
   isLEScanAvailable,
   isWebBluetoothAvailable,
   startScanner,
@@ -198,10 +199,11 @@ function DevicesPage() {
       try {
         await startScanner();
         await startSessionManager();
+        const currentStatus = getStatus();
         toast.success(
-          scannerStatus.mode === "native-bridge"
+          currentStatus.mode === "native-bridge"
             ? "Listening for real BLE advertisements (native app)"
-            : scannerStatus.mode === "native"
+            : currentStatus.mode === "native"
               ? "Listening for BLE advertisements"
               : "Scanning in simulator mode — registered beacons will appear",
         );
@@ -305,7 +307,7 @@ function DevicesPage() {
         <Card className="mt-4 border-destructive/30">
           <CardContent className="py-3 text-sm text-destructive">
             <strong>Native Bluetooth is not connected.</strong> This installed app will not use
-            simulator data. Press <em>Start scan</em> and allow Nearby devices and Location access.
+            simulator data. {scannerStatus.lastError && <>{scannerStatus.lastError} </>}Press <em>Start scan</em> and allow Nearby devices and Location access.
             If Android does not ask, enable both permissions in Settings → Apps → CareCore →
             Permissions.
           </CardContent>
