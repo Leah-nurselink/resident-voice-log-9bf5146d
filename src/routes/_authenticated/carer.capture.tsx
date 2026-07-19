@@ -25,6 +25,7 @@ import {
 } from "@/lib/ble-session-manager";
 import type { CarePlanDomain, RiskType } from "@/lib/care-domains";
 import { Link } from "@tanstack/react-router";
+import { isNativeShell } from "@/lib/surface";
 
 export const Route = createFileRoute("/_authenticated/carer/capture")({
   head: () => ({ meta: [{ title: "Capture · ForgeAI" }] }),
@@ -198,8 +199,10 @@ function CapturePage() {
 
           {scanner.mode === "simulator" && (
             <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
-              <WifiOff className="mr-1 inline h-3 w-3" /> No real Bluetooth available here.
-              Install the Android app for live scanning.
+              <WifiOff className="mr-1 inline h-3 w-3" />
+              {isNativeShell()
+                ? "Native Bluetooth did not connect. Allow Nearby devices and Location permissions, then reopen CareCore."
+                : "No real Bluetooth available here. Install the Android app for live scanning."}
             </div>
           )}
         </CardContent>

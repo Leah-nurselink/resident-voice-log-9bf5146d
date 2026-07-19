@@ -55,6 +55,8 @@ import {
   type SessionManagerState,
 } from "@/lib/ble-session-manager";
 import { RegisterBeaconDialog } from "@/components/devices/RegisterBeaconDialog";
+import { isNativeShell } from "@/lib/surface";
+import { installCapacitorBridgeIfNeeded } from "@/lib/native-beacon-bridge";
 
 export const Route = createFileRoute("/_authenticated/devices")({
   head: () => ({ meta: [{ title: "Nearby Devices · CareCore" }] }),
@@ -209,7 +211,8 @@ function DevicesPage() {
     }
   };
 
-  const checkRealBeaconSupport = () => {
+  const checkRealBeaconSupport = async () => {
+    await installCapacitorBridgeIfNeeded();
     const diagnostic = getLEScanSupportDiagnostic();
     setSupportDiagnostic(diagnostic);
     if (diagnostic.state === "ready") {
@@ -298,7 +301,18 @@ function DevicesPage() {
         </Card>
       )}
 
-      {scannerStatus.mode !== "native-bridge" && !isWebBluetoothAvailable() && (
+      {scannerStatus.mode !== "native-bridge" && isNativeShell() && (
+        <Card className="mt-4 border-destructive/30">
+          <CardContent className="py-3 text-sm text-destructive">
+            <strong>Native Bluetooth is not connected.</strong> This installed app will not use
+            simulator data. Press <em>Start scan</em> and allow Nearby devices and Location access.
+            If Android does not ask, enable both permissions in Settings → Apps → CareCore →
+            Permissions.
+          </CardContent>
+        </Card>
+      )}
+
+      {scannerStatus.mode !== "native-bridge" && !isNativeShell() && !isWebBluetoothAvailable() && (
         <Card className="mt-4 border-amber-200 bg-amber-50">
           <CardContent className="py-3 text-sm text-amber-900">
             <strong>Simulator mode.</strong> Web Bluetooth isn't available in this browser, so any
@@ -311,6 +325,7 @@ function DevicesPage() {
       )}
 
       {scannerStatus.mode !== "native-bridge" &&
+        !isNativeShell() &&
         isWebBluetoothAvailable() &&
         !isLEScanAvailable() && (
           <Card className="mt-4 border-amber-200 bg-amber-50">
