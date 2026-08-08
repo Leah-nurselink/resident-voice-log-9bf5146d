@@ -68,6 +68,7 @@ function BeaconDiagnosticsPage() {
       setBridgeInstalled(!!getNativeAdapter());
       setNativeRuntime(getNativeRuntime());
       setBridgeDiagnostic(getNativeBridgeDiagnostic());
+      setInstallAttempt(getLastInstallAttempt());
     }, 1000);
     return () => clearInterval(id);
   }, []);
