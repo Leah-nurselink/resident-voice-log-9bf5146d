@@ -45,7 +45,19 @@ function BeaconDiagnosticsPage() {
   const [rawAdvertisements, setRawAdvertisements] = useState<RawNativeAdvertisement[]>(() =>
     getRawNativeAdvertisements(),
   );
+  const [installAttempt, setInstallAttempt] = useState(() => getLastInstallAttempt());
   const diag = getLEScanSupportDiagnostic();
+
+  useEffect(() => {
+    // Try to install the bridge as soon as the diagnostics page mounts, so the
+    // user can see whether the native shell is actually detected.
+    void installCapacitorBridgeIfNeeded().then(() => {
+      setBridgeInstalled(!!getNativeAdapter());
+      setNativeRuntime(getNativeRuntime());
+      setBridgeDiagnostic(getNativeBridgeDiagnostic());
+      setInstallAttempt(getLastInstallAttempt());
+    });
+  }, []);
 
   useEffect(() => subscribeStatus(setStatus), []);
   useEffect(() => subscribeObs(setObs), []);
