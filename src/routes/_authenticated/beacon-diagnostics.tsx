@@ -23,6 +23,7 @@ import {
   getNativeAdapter,
   getNativeRuntime,
   getRawNativeAdvertisements,
+  getLastInstallAttempt,
   installCapacitorBridgeIfNeeded,
   subscribeRawNativeAdvertisements,
   type RawNativeAdvertisement,
