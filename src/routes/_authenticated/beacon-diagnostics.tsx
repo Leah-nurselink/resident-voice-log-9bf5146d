@@ -151,6 +151,13 @@ function BeaconDiagnosticsPage() {
           <Row label="Capacitor platform">
             <code className="text-xs">{bridgeDiagnostic.platform ?? "none"}</code>
           </Row>
+          <Row label="Install attempt">
+            <span className="text-xs">
+              {installAttempt
+                ? `${installAttempt.result} — ${installAttempt.detail}`
+                : "none yet"}
+            </span>
+          </Row>
           {bridgeDiagnostic.lastError && (
             <Row label="Bridge error">
               <span className="text-xs text-destructive">{bridgeDiagnostic.lastError}</span>
