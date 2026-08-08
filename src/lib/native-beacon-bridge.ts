@@ -57,6 +57,9 @@ let lastBridgeError: string | null = null;
 const rawAdvertisements = new Map<string, RawNativeAdvertisement>();
 let rawAdvertisementListeners: Array<(items: RawNativeAdvertisement[]) => void> = [];
 
+// Track the last install attempt so diagnostics can show whether we even tried.
+let lastInstallAttempt: { at: string; result: "installed" | "skipped" | "error"; detail: string } | null = null;
+
 declare global {
   interface Window {
     __nativeBleAdapter?: NativeBleAdapter;
@@ -93,9 +96,26 @@ export function clearRawNativeAdvertisements(): void {
   emitRawAdvertisements();
 }
 
+export function getLastInstallAttempt(): { at: string; result: "installed" | "skipped" | "error"; detail: string } | null {
+  return lastInstallAttempt;
+}
+
 function emitRawAdvertisements(): void {
   const snapshot = getRawNativeAdvertisements();
   for (const listener of rawAdvertisementListeners) listener(snapshot);
+}
+
+function getInjectedCapacitor(): any {
+  if (typeof window === "undefined") return null;
+  return (window as any).Capacitor ?? null;
+}
+
+function isNativeCapacitorDetected(): boolean {
+  const cap = getInjectedCapacitor();
+  if (!cap) return false;
+  if (cap.isNativePlatform?.()) return true;
+  const platform = cap.getPlatform?.() ?? null;
+  return platform === "android" || platform === "ios";
 }
 
 function dataViewToHex(value: unknown): string | null {
@@ -105,11 +125,38 @@ function dataViewToHex(value: unknown): string | null {
     .join("");
 }
 
+function byteSourceToHex(value: unknown): string | null {
+  if (value instanceof DataView) return dataViewToHex(value);
+  if (value instanceof ArrayBuffer) {
+    return Array.from(new Uint8Array(value))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+  if (value instanceof Uint8Array || value instanceof Int8Array) {
+    return Array.from(value as Uint8Array)
+      .map((b) => (b & 0xff).toString(16).padStart(2, "0"))
+      .join("");
+  }
+  if (typeof value === "string") {
+    // Could be base64 or already hex. Try base64 decode first, then keep as-is if it looks hex.
+    try {
+      const decoded = atob(value);
+      return Array.from(decoded)
+        .map((c) => c.charCodeAt(0).toString(16).padStart(2, "0"))
+        .join("");
+    } catch {
+      if (/^[0-9a-fA-F]+$/.test(value) && value.length % 2 === 0) return value.toLowerCase();
+      return null;
+    }
+  }
+  return null;
+}
+
 function dataObjectToHex(value: unknown): Record<string, string> {
   if (!value || typeof value !== "object") return {};
   const output: Record<string, string> = {};
   for (const [key, bytes] of Object.entries(value)) {
-    const hex = dataViewToHex(bytes);
+    const hex = byteSourceToHex(bytes);
     output[key] = hex ?? `[unreadable ${Object.prototype.toString.call(bytes)}]`;
   }
   return output;
@@ -137,7 +184,7 @@ function parseRawIBeacon(manufacturerData: Record<string, string>): {
 function recordRawNativeAdvertisement(result: any): void {
   const now = new Date().toISOString();
   const deviceId =
-    result.device?.deviceId ?? result.device?.name ?? `unknown-${rawAdvertisements.size + 1}`;
+    result.device?.deviceId ?? result.device?.id ?? result.device?.name ?? `unknown-${rawAdvertisements.size + 1}`;
   const manufacturerData = dataObjectToHex(result.manufacturerData);
   const parsed = parseRawIBeacon(manufacturerData);
   const previous = rawAdvertisements.get(deviceId);
@@ -150,7 +197,7 @@ function recordRawNativeAdvertisement(result: any): void {
     manufacturerData,
     serviceData: dataObjectToHex(result.serviceData),
     serviceUuids: Array.isArray(result.uuids) ? result.uuids : [],
-    rawAdvertisement: dataViewToHex(result.rawAdvertisement),
+    rawAdvertisement: byteSourceToHex(result.rawAdvertisement),
     uuid: parsed.uuid,
     major: parsed.major,
     minor: parsed.minor,
@@ -171,13 +218,123 @@ export function getNativeBridgeDiagnostic(): NativeBridgeDiagnostic {
     };
   }
 
-  const cap: any = (window as any).Capacitor;
+  const cap = getInjectedCapacitor();
   const platform = cap?.getPlatform?.() ?? null;
   return {
-    detected: Boolean(cap?.isNativePlatform?.() || platform === "android" || platform === "ios"),
+    detected: isNativeCapacitorDetected(),
     platform,
     adapterInstalled: Boolean(window.__nativeBleAdapter),
     lastError: lastBridgeError,
+  };
+}
+
+function setBridgeError(message: string): void {
+  lastBridgeError = message;
+  console.warn("[native-beacon-bridge]", message);
+}
+
+/**
+ * Build a native BLE adapter using the global `window.Capacitor.Plugins.BluetoothLe`
+ * plugin object. This bypasses any bundling or platform-detection issues with the
+ * `BleClient` wrapper and should work as long as the Capacitor native shell injected
+ * the bridge and the BluetoothLe plugin was registered in the Android project.
+ */
+async function buildDirectCapacitorAdapter(platform: string): Promise<NativeBleAdapter> {
+  const cap = getInjectedCapacitor();
+  if (!cap) throw new Error("window.Capacitor is not available");
+
+  const plugin = (window as any).Capacitor?.Plugins?.BluetoothLe;
+  if (!plugin) {
+    throw new Error(
+      "BluetoothLe plugin is not registered. Ensure 'npx cap sync android' ran and the APK was rebuilt.",
+    );
+  }
+
+  let listenerHandle: any = null;
+  let scanning = false;
+
+  return {
+    runtime: platform === "android" ? "capacitor-android" : "capacitor",
+    async start(handler) {
+      await plugin.initialize({ androidNeverForLocation: false });
+
+      try {
+        const enabled = await plugin.isEnabled();
+        if (!enabled) {
+          try {
+            await plugin.requestEnable();
+          } catch {
+            throw new Error("Bluetooth is off. Turn on Bluetooth to scan for beacons.");
+          }
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("Bluetooth is off")) throw err;
+        // isEnabled can fail on some OEMs — continue and let the scan fail loudly.
+      }
+
+      listenerHandle = await plugin.addListener("onScanResult", (result: any) => {
+        recordRawNativeAdvertisement(result);
+        const mfr = new Map<number, DataView>();
+        if (result.manufacturerData) {
+          for (const [k, v] of Object.entries(result.manufacturerData)) {
+            const id = Number(k);
+            if (v instanceof DataView) mfr.set(id, v);
+          }
+        }
+        const svc = new Map<string, DataView>();
+        if (result.serviceData) {
+          for (const [k, v] of Object.entries(result.serviceData)) {
+            if (v instanceof DataView) svc.set(k.toLowerCase(), v);
+          }
+        }
+        handler({
+          rssi: result.rssi,
+          txPower: result.txPower ?? null,
+          mac: result.device?.deviceId ?? result.device?.id ?? null,
+          device: {
+            id: result.device?.deviceId ?? result.device?.id ?? result.device?.name ?? "unknown",
+            name: result.localName ?? result.device?.name ?? null,
+          },
+          manufacturerData: mfr,
+          serviceData: svc,
+        });
+      });
+
+      try {
+        await plugin.requestLEScan({ allowDuplicates: true });
+      } catch (err) {
+        if (listenerHandle) {
+          try {
+            await listenerHandle.remove();
+          } catch {
+            /* noop */
+          }
+        }
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "Bluetooth permission denied. Grant Nearby devices permission and try again.";
+        throw new Error(message);
+      }
+      scanning = true;
+    },
+    async stop() {
+      if (listenerHandle) {
+        try {
+          await listenerHandle.remove();
+        } catch {
+          /* noop */
+        }
+        listenerHandle = null;
+      }
+      if (!scanning) return;
+      try {
+        await plugin.stopLEScan();
+      } catch {
+        /* noop */
+      }
+      scanning = false;
+    },
   };
 }
 
@@ -188,8 +345,30 @@ export function getNativeBridgeDiagnostic(): NativeBridgeDiagnostic {
  * Electron (Electron installs its own bridge via preload script).
  */
 export async function installCapacitorBridgeIfNeeded(): Promise<void> {
-  if (typeof window === "undefined") return;
-  if (window.__nativeBleAdapter) return; // already installed (Electron preload)
+  if (typeof window === "undefined") {
+    lastInstallAttempt = { at: new Date().toISOString(), result: "skipped", detail: "window undefined" };
+    return;
+  }
+  if (window.__nativeBleAdapter) {
+    lastInstallAttempt = {
+      at: new Date().toISOString(),
+      result: "installed",
+      detail: "adapter already present",
+    };
+    return; // already installed (Electron preload)
+  }
+
+  const cap = getInjectedCapacitor();
+  const platform = cap?.getPlatform?.() ?? null;
+
+  if (!isNativeCapacitorDetected()) {
+    lastInstallAttempt = {
+      at: new Date().toISOString(),
+      result: "skipped",
+      detail: `not a native Capacitor shell (platform=${platform ?? "null"})`,
+    };
+    return;
+  }
 
   try {
     // Import Capacitor rather than depending only on window.Capacitor. The
@@ -197,25 +376,15 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
     // this API also gives us a reliable platform check across Android WebView
     // versions.
     const { Capacitor } = await import("@capacitor/core");
-    const injectedCap: any = (window as any).Capacitor;
-    const isNative =
-      Capacitor.isNativePlatform() ||
-      injectedCap?.isNativePlatform?.() ||
-      injectedCap?.getPlatform?.() === "android";
-    if (!isNative) {
-      lastBridgeError = null;
-      return;
-    }
-
     const mod = await import("@capacitor-community/bluetooth-le");
     const BleClient = (mod as any).BleClient;
-    const platform =
-      Capacitor.getPlatform() !== "web" ? Capacitor.getPlatform() : injectedCap?.getPlatform?.();
+    const runtimePlatform =
+      Capacitor.getPlatform() !== "web" ? Capacitor.getPlatform() : platform;
 
     let scanning = false;
 
     const adapter: NativeBleAdapter = {
-      runtime: platform === "android" ? "capacitor-android" : "capacitor",
+      runtime: runtimePlatform === "android" ? "capacitor-android" : "capacitor",
       async start(handler) {
         // Beacon observations are used to infer room/resident proximity, so
         // do not assert neverForLocation: Android may otherwise filter beacon
@@ -291,12 +460,37 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
 
     window.__nativeBleAdapter = adapter;
     lastBridgeError = null;
+    lastInstallAttempt = {
+      at: new Date().toISOString(),
+      result: "installed",
+      detail: `BleClient adapter installed (${adapter.runtime})`,
+    };
   } catch (err) {
-    lastBridgeError =
-      err instanceof Error && err.message
-        ? err.message
-        : "The native Bluetooth bridge could not be initialized.";
-    console.warn("[native-beacon-bridge] Capacitor BLE plugin unavailable:", err);
-    throw new Error(lastBridgeError);
+    // The BleClient wrapper can fail if the module bundle doesn't match the
+    // native shell (e.g. remote web build with a Capacitor WebView). Fall back
+    // to calling the plugin directly through the global bridge.
+    const detail = err instanceof Error ? err.message : String(err);
+    console.warn("[native-beacon-bridge] BleClient install failed, trying direct plugin:", detail);
+
+    try {
+      const directAdapter = await buildDirectCapacitorAdapter(platform);
+      window.__nativeBleAdapter = directAdapter;
+      lastBridgeError = null;
+      lastInstallAttempt = {
+        at: new Date().toISOString(),
+        result: "installed",
+        detail: `Direct plugin adapter installed (${directAdapter.runtime})`,
+      };
+    } catch (directErr) {
+      const directDetail = directErr instanceof Error ? directErr.message : String(directErr);
+      lastBridgeError = `BleClient: ${detail}; Direct plugin: ${directDetail}`;
+      lastInstallAttempt = {
+        at: new Date().toISOString(),
+        result: "error",
+        detail: lastBridgeError,
+      };
+      console.warn("[native-beacon-bridge] Direct plugin install failed:", directDetail);
+      throw new Error(lastBridgeError);
+    }
   }
 }
