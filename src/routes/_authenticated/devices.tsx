@@ -190,6 +190,13 @@ function DevicesPage() {
   useEffect(() => subscribeStatus(setScannerStatus), []);
   useEffect(() => subscribeSessionManager(setSessionState), []);
 
+  useEffect(() => {
+    // Eagerly install the native bridge so the first scan can use it. If it
+    // fails we still fall back to simulator mode, but the diagnostics will
+    // capture why.
+    void installCapacitorBridgeIfNeeded();
+  }, []);
+
   const toggleScanner = async () => {
     if (scannerStatus.running) {
       stopScanner();
