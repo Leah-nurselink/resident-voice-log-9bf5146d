@@ -23,6 +23,7 @@ import {
   getNativeAdapter,
   getNativeRuntime,
   getRawNativeAdvertisements,
+  getLastInstallAttempt,
   installCapacitorBridgeIfNeeded,
   subscribeRawNativeAdvertisements,
   type RawNativeAdvertisement,
@@ -44,7 +45,19 @@ function BeaconDiagnosticsPage() {
   const [rawAdvertisements, setRawAdvertisements] = useState<RawNativeAdvertisement[]>(() =>
     getRawNativeAdvertisements(),
   );
+  const [installAttempt, setInstallAttempt] = useState(() => getLastInstallAttempt());
   const diag = getLEScanSupportDiagnostic();
+
+  useEffect(() => {
+    // Try to install the bridge as soon as the diagnostics page mounts, so the
+    // user can see whether the native shell is actually detected.
+    void installCapacitorBridgeIfNeeded().then(() => {
+      setBridgeInstalled(!!getNativeAdapter());
+      setNativeRuntime(getNativeRuntime());
+      setBridgeDiagnostic(getNativeBridgeDiagnostic());
+      setInstallAttempt(getLastInstallAttempt());
+    });
+  }, []);
 
   useEffect(() => subscribeStatus(setStatus), []);
   useEffect(() => subscribeObs(setObs), []);
@@ -55,6 +68,7 @@ function BeaconDiagnosticsPage() {
       setBridgeInstalled(!!getNativeAdapter());
       setNativeRuntime(getNativeRuntime());
       setBridgeDiagnostic(getNativeBridgeDiagnostic());
+      setInstallAttempt(getLastInstallAttempt());
     }, 1000);
     return () => clearInterval(id);
   }, []);
@@ -136,6 +150,13 @@ function BeaconDiagnosticsPage() {
           </Row>
           <Row label="Capacitor platform">
             <code className="text-xs">{bridgeDiagnostic.platform ?? "none"}</code>
+          </Row>
+          <Row label="Install attempt">
+            <span className="text-xs">
+              {installAttempt
+                ? `${installAttempt.result} — ${installAttempt.detail}`
+                : "none yet"}
+            </span>
           </Row>
           {bridgeDiagnostic.lastError && (
             <Row label="Bridge error">
