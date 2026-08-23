@@ -23,6 +23,7 @@ import {
   getNativeAdapter,
   getNativeRuntime,
   installCapacitorBridgeIfNeeded,
+  recordRawWebBluetoothAdvertisement,
   type NativeAdvertisement,
   type NativeRuntime,
 } from "./native-beacon-bridge";
@@ -528,7 +529,12 @@ export async function startScanner(): Promise<void> {
   } else if (isLEScanAvailable()) {
     try {
       const bt: any = (navigator as any).bluetooth;
-      advHandler = (e: any) => handleAdvertisement(e);
+      advHandler = (e: any) => {
+        // Diagnostics tap: capture every Web Bluetooth advertisement before
+        // protocol parsing or any CareCore filtering (laptop Chrome path).
+        recordRawWebBluetoothAdvertisement(e);
+        handleAdvertisement(e);
+      };
       bt.addEventListener("advertisementreceived", advHandler);
       scanHandle = await bt.requestLEScan({
         acceptAllAdvertisements: true,
