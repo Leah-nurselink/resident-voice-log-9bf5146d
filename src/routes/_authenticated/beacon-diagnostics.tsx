@@ -151,6 +151,27 @@ function BeaconDiagnosticsPage() {
           <Row label="Capacitor platform">
             <code className="text-xs">{bridgeDiagnostic.platform ?? "none"}</code>
           </Row>
+          <Row label="Bluetooth enabled">
+            <Badge variant={bridgeDiagnostic.bluetoothEnabled === false ? "destructive" : "outline"}>
+              {bridgeDiagnostic.bluetoothEnabled == null
+                ? "not checked"
+                : bridgeDiagnostic.bluetoothEnabled
+                  ? "yes"
+                  : "no"}
+            </Badge>
+          </Row>
+          <Row label="Android Location enabled">
+            <Badge variant={bridgeDiagnostic.locationEnabled === false ? "destructive" : "outline"}>
+              {bridgeDiagnostic.locationEnabled == null
+                ? "not checked"
+                : bridgeDiagnostic.locationEnabled
+                  ? "yes"
+                  : "no"}
+            </Badge>
+          </Row>
+          <Row label="Native scan callbacks">
+            <code className="text-xs">{bridgeDiagnostic.scanCallbacksReceived}</code>
+          </Row>
           <Row label="Install attempt">
             <span className="text-xs">
               {installAttempt
