@@ -35,6 +35,8 @@ export interface RawNativeAdvertisement {
   uuid: string | null;
   major: number | null;
   minor: number | null;
+  /** Which radio path produced this advertisement. */
+  source: "capacitor" | "web-bluetooth";
   firstSeen: string;
   lastSeen: string;
   hits: number;
@@ -219,6 +221,56 @@ function recordRawNativeAdvertisement(result: any): void {
     uuid: parsed.uuid,
     major: parsed.major,
     minor: parsed.minor,
+    source: "capacitor",
+    firstSeen: previous?.firstSeen ?? now,
+    lastSeen: now,
+    hits: (previous?.hits ?? 0) + 1,
+  });
+  emitRawAdvertisements();
+}
+
+/**
+ * Record an advertisement received through the browser's Web Bluetooth
+ * `advertisementreceived` event (e.g. laptop Chrome with the experimental
+ * web platform flag enabled). Web Bluetooth hides the MAC address for
+ * privacy, so the opaque per-origin `device.id` is used as the key instead.
+ */
+export function recordRawWebBluetoothAdvertisement(event: any): void {
+  scanCallbacksReceived += 1;
+  const now = new Date().toISOString();
+  const deviceId = event.device?.id ?? `web-${rawAdvertisements.size + 1}`;
+
+  const manufacturerData: Record<string, string> = {};
+  const mfrMap: Map<number, DataView> | undefined = event.manufacturerData;
+  if (mfrMap && typeof mfrMap.forEach === "function") {
+    mfrMap.forEach((value, key) => {
+      manufacturerData[String(key)] = byteSourceToHex(value) ?? "[unreadable]";
+    });
+  }
+  const serviceData: Record<string, string> = {};
+  const svcMap: Map<string, DataView> | undefined = event.serviceData;
+  if (svcMap && typeof svcMap.forEach === "function") {
+    svcMap.forEach((value, key) => {
+      serviceData[key] = byteSourceToHex(value) ?? "[unreadable]";
+    });
+  }
+
+  const parsed = parseRawIBeacon(manufacturerData);
+  const previous = rawAdvertisements.get(deviceId);
+  rawAdvertisements.set(deviceId, {
+    deviceId,
+    name: event.device?.name ?? null,
+    localName: event.device?.name ?? null,
+    rssi: typeof event.rssi === "number" ? event.rssi : null,
+    txPower: typeof event.txPower === "number" ? event.txPower : null,
+    manufacturerData,
+    serviceData,
+    serviceUuids: Array.isArray(event.uuids) ? event.uuids : [],
+    rawAdvertisement: null, // Web Bluetooth does not expose the raw PDU
+    uuid: parsed.uuid,
+    major: parsed.major,
+    minor: parsed.minor,
+    source: "web-bluetooth",
     firstSeen: previous?.firstSeen ?? now,
     lastSeen: now,
     hits: (previous?.hits ?? 0) + 1,
