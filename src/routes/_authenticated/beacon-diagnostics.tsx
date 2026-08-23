@@ -209,7 +209,7 @@ function BeaconDiagnosticsPage() {
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="text-base">
-              Raw native advertisements ({rawAdvertisements.length})
+              Raw advertisements ({rawAdvertisements.length})
             </CardTitle>
             <Badge variant="outline">before filtering</Badge>
           </div>
@@ -217,8 +217,9 @@ function BeaconDiagnosticsPage() {
         <CardContent>
           {rawAdvertisements.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No native scan callbacks received. Press Start in the installed Android app and keep
-              this screen open near a transmitting beacon.
+              No scan callbacks received yet. Press Start scan — on a laptop use Chrome with the
+              experimental web platform flag enabled, on the phone use the installed Android app —
+              and keep this screen open near a transmitting beacon.
             </p>
           ) : (
             <ul className="divide-y">
@@ -311,15 +312,21 @@ function RawAdvertisementRow({ advertisement }: { advertisement: RawNativeAdvert
   return (
     <li className="space-y-2 py-3 text-xs">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-medium">
+        <span className="flex items-center gap-2 text-sm font-medium">
           {advertisement.localName ?? advertisement.name ?? "Unnamed BLE device"}
+          <Badge variant="secondary" className="text-[10px]">
+            {advertisement.source === "web-bluetooth" ? "laptop web bluetooth" : "android native"}
+          </Badge>
         </span>
         <span className="tabular-nums">
           {advertisement.rssi == null ? "RSSI unavailable" : `${advertisement.rssi} dBm`} · hits{" "}
           {advertisement.hits}
         </span>
       </div>
-      <RawField label="MAC / device ID" value={advertisement.deviceId} />
+      <RawField
+        label={advertisement.source === "web-bluetooth" ? "Device ID (no MAC)" : "MAC / device ID"}
+        value={advertisement.deviceId}
+      />
       <RawField label="Device name" value={advertisement.name} />
       <RawField label="Local name" value={advertisement.localName} />
       <RawField label="UUID" value={advertisement.uuid} />
