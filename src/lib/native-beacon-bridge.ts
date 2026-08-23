@@ -51,9 +51,15 @@ export interface NativeBridgeDiagnostic {
   platform: string | null;
   adapterInstalled: boolean;
   lastError: string | null;
+  bluetoothEnabled: boolean | null;
+  locationEnabled: boolean | null;
+  scanCallbacksReceived: number;
 }
 
 let lastBridgeError: string | null = null;
+let bluetoothEnabled: boolean | null = null;
+let locationEnabled: boolean | null = null;
+let scanCallbacksReceived = 0;
 const rawAdvertisements = new Map<string, RawNativeAdvertisement>();
 let rawAdvertisementListeners: Array<(items: RawNativeAdvertisement[]) => void> = [];
 
@@ -138,18 +144,29 @@ function byteSourceToHex(value: unknown): string | null {
       .join("");
   }
   if (typeof value === "string") {
-    // Could be base64 or already hex. Try base64 decode first, then keep as-is if it looks hex.
+    // Native plugin payloads are base64, but diagnostics may already supply hex.
+    if (/^[0-9a-fA-F]+$/.test(value) && value.length % 2 === 0) return value.toLowerCase();
     try {
       const decoded = atob(value);
       return Array.from(decoded)
         .map((c) => c.charCodeAt(0).toString(16).padStart(2, "0"))
         .join("");
     } catch {
-      if (/^[0-9a-fA-F]+$/.test(value) && value.length % 2 === 0) return value.toLowerCase();
       return null;
     }
   }
   return null;
+}
+
+function byteSourceToDataView(value: unknown): DataView | null {
+  if (value instanceof DataView) return value;
+  const hex = byteSourceToHex(value);
+  if (!hex || hex.length % 2 !== 0) return null;
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < bytes.length; index += 1) {
+    bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+  return new DataView(bytes.buffer);
 }
 
 function dataObjectToHex(value: unknown): Record<string, string> {
@@ -182,6 +199,7 @@ function parseRawIBeacon(manufacturerData: Record<string, string>): {
 }
 
 function recordRawNativeAdvertisement(result: any): void {
+  scanCallbacksReceived += 1;
   const now = new Date().toISOString();
   const deviceId =
     result.device?.deviceId ?? result.device?.id ?? result.device?.name ?? `unknown-${rawAdvertisements.size + 1}`;
@@ -215,6 +233,9 @@ export function getNativeBridgeDiagnostic(): NativeBridgeDiagnostic {
       platform: null,
       adapterInstalled: false,
       lastError: lastBridgeError,
+      bluetoothEnabled,
+      locationEnabled,
+      scanCallbacksReceived,
     };
   }
 
@@ -225,7 +246,19 @@ export function getNativeBridgeDiagnostic(): NativeBridgeDiagnostic {
     platform,
     adapterInstalled: Boolean(window.__nativeBleAdapter),
     lastError: lastBridgeError,
+    bluetoothEnabled,
+    locationEnabled,
+    scanCallbacksReceived,
   };
+}
+
+function booleanPluginResult(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (value && typeof value === "object" && "value" in value) {
+    const result = (value as { value?: unknown }).value;
+    return typeof result === "boolean" ? result : null;
+  }
+  return null;
 }
 
 function setBridgeError(message: string): void {
@@ -259,10 +292,11 @@ async function buildDirectCapacitorAdapter(platform: string): Promise<NativeBleA
       await plugin.initialize({ androidNeverForLocation: false });
 
       try {
-        const enabled = await plugin.isEnabled();
-        if (!enabled) {
+        bluetoothEnabled = booleanPluginResult(await plugin.isEnabled());
+        if (bluetoothEnabled === false) {
           try {
             await plugin.requestEnable();
+            bluetoothEnabled = true;
           } catch {
             throw new Error("Bluetooth is off. Turn on Bluetooth to scan for beacons.");
           }
@@ -272,19 +306,35 @@ async function buildDirectCapacitorAdapter(platform: string): Promise<NativeBleA
         // isEnabled can fail on some OEMs — continue and let the scan fail loudly.
       }
 
+      if (platform === "android" && typeof plugin.isLocationEnabled === "function") {
+        try {
+          locationEnabled = booleanPluginResult(await plugin.isLocationEnabled());
+          if (locationEnabled === false) {
+            if (typeof plugin.openLocationSettings === "function") await plugin.openLocationSettings();
+            throw new Error(
+              "Android Location is off. Turn Location on in the screen that opened, then return and press Start again.",
+            );
+          }
+        } catch (err) {
+          if (err instanceof Error && err.message.startsWith("Android Location is off")) throw err;
+        }
+      }
+
       listenerHandle = await plugin.addListener("onScanResult", (result: any) => {
         recordRawNativeAdvertisement(result);
         const mfr = new Map<number, DataView>();
         if (result.manufacturerData) {
           for (const [k, v] of Object.entries(result.manufacturerData)) {
             const id = Number(k);
-            if (v instanceof DataView) mfr.set(id, v);
+            const bytes = byteSourceToDataView(v);
+            if (bytes) mfr.set(id, bytes);
           }
         }
         const svc = new Map<string, DataView>();
         if (result.serviceData) {
           for (const [k, v] of Object.entries(result.serviceData)) {
-            if (v instanceof DataView) svc.set(k.toLowerCase(), v);
+            const bytes = byteSourceToDataView(v);
+            if (bytes) svc.set(k.toLowerCase(), bytes);
           }
         }
         handler({
@@ -301,7 +351,7 @@ async function buildDirectCapacitorAdapter(platform: string): Promise<NativeBleA
       });
 
       try {
-        await plugin.requestLEScan({ allowDuplicates: true });
+        await plugin.requestLEScan({ allowDuplicates: true, scanMode: 2 });
       } catch (err) {
         if (listenerHandle) {
           try {
@@ -391,13 +441,29 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
         // advertisements from scan results.
         await BleClient.initialize({ androidNeverForLocation: false });
 
+        if (runtimePlatform === "android") {
+          try {
+            locationEnabled = await BleClient.isLocationEnabled();
+            if (!locationEnabled) {
+              await BleClient.openLocationSettings();
+              throw new Error(
+                "Android Location is off. Turn Location on in the screen that opened, then return and press Start again.",
+              );
+            }
+          } catch (err) {
+            if (err instanceof Error && err.message.startsWith("Android Location is off")) throw err;
+            locationEnabled = null;
+          }
+        }
+
         // Preflight: ensure the Bluetooth radio is actually on. If it isn't,
         // prompt the user to enable it (Android shows a system dialog).
         try {
-          const enabled = await BleClient.isEnabled();
-          if (!enabled) {
+          bluetoothEnabled = await BleClient.isEnabled();
+          if (!bluetoothEnabled) {
             try {
               await BleClient.requestEnable();
+              bluetoothEnabled = true;
             } catch {
               throw new Error("Bluetooth is off. Turn on Bluetooth to scan for beacons.");
             }
@@ -408,7 +474,7 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
         }
 
         try {
-          await BleClient.requestLEScan({ allowDuplicates: true }, (result: any) => {
+          await BleClient.requestLEScan({ allowDuplicates: true, scanMode: 2 }, (result: any) => {
             // Diagnostics tap: capture every native result before protocol
             // parsing, registration matching, or any CareCore filtering.
             recordRawNativeAdvertisement(result);
