@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -228,6 +228,11 @@ function BeaconDiagnosticsPage() {
               <p className="font-semibold">{diag.title}</p>
               <p>{diag.message}</p>
               <p>{diag.nextStep}</p>
+              <p>
+                <Link to="/downloads" className="font-semibold underline">
+                  Download the CareCore Windows companion app →
+                </Link>
+              </p>
             </div>
           )}
         </CardContent>

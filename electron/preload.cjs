@@ -29,7 +29,12 @@ ipcRenderer.on("ble:advertisement", (_evt, raw) => {
 });
 
 contextBridge.exposeInMainWorld("__nativeBleAdapter", {
-  runtime: process.platform === "darwin" ? "electron-mac" : "electron",
+  runtime:
+    process.platform === "darwin"
+      ? "electron-mac"
+      : process.platform === "win32"
+        ? "electron-win"
+        : "electron",
   async start(cb) {
     handler = cb;
     await ipcRenderer.invoke("ble:start");

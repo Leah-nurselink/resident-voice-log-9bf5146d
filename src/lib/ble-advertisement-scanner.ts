@@ -137,7 +137,9 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
         ? "Android native app"
         : nativeRuntime === "electron-mac"
           ? "macOS native app"
-          : "Native app";
+          : nativeRuntime === "electron-win"
+            ? "Windows native app"
+            : "Native app";
     return {
       state: "ready",
       webBluetoothAvailable,
@@ -164,7 +166,7 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
       message:
         "Chrome exposes the experimental scan button on this laptop, but Windows does not deliver the beacon advertisement stream that CareCore needs.",
       nextStep:
-        "To scan on a laptop, use the CareCore macOS native app or a Linux/ChromeOS device with compatible Bluetooth hardware. Windows requires a native desktop BLE scanner, which this web build does not include.",
+        "Install the CareCore Windows companion app from the Downloads page — it scans natively on Windows with no Chrome flags. Alternatively use the macOS app or an Android/ChromeOS/Linux device.",
     };
   }
 

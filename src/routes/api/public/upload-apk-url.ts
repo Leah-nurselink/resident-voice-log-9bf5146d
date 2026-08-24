@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 const uploadRequestSchema = z.object({
-  object: z.string().regex(/^(?:carecore-[0-9a-f]{40}\.apk|latest\.json)$/),
+  object: z
+    .string()
+    .regex(
+      /^(?:carecore-[0-9a-f]{40}\.apk|carecore-win-[0-9a-f]{40}\.zip|latest\.json|latest-win\.json)$/,
+    ),
 });
 
 /**

@@ -1,0 +1,105 @@
+name: Build Windows companion app
+
+# Builds the Electron Windows companion app (real BLE scanning via noble) on
+# every push to main that touches the shell, and every manual dispatch, then
+# uploads the zip to the private `app-downloads` Supabase Storage bucket under
+# an immutable versioned name and updates `latest-win.json`. The app serves
+# route /api/public/download-windows which streams the current zip.
+#
+# windows-latest is required: the noble native Bluetooth module compiles with
+# MSVC and only produces a Windows binary on a Windows runner.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "electron/**"
+      - "src/**"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/windows-companion.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-companion
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install desktop-only deps
+        run: npm install --no-save electron@31 @electron/packager@18 @abandonware/noble@1 electron-rebuild@3
+
+      - name: Rebuild native BLE module for Electron
+        run: npx electron-rebuild -f -w @abandonware/noble
+
+      - name: Package Windows app
+        shell: pwsh
+        run: |
+          npx @electron/packager . "CareCore" `
+            --platform=win32 --arch=x64 `
+            --out=release --overwrite `
+            --ignore='^/src' --ignore='^/public' --ignore='^/android' --ignore='^/release'
+
+      - name: Stage artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist-win | Out-Null
+          Compress-Archive -Path "release/CareCore-win32-x64/*" -DestinationPath "dist-win/carecore-windows.zip" -Force
+          $manifest = @{
+            object = "carecore-win-${{ github.sha }}.zip"
+            commit = "${{ github.sha }}"
+            runNumber = "${{ github.run_number }}"
+          } | ConvertTo-Json -Compress
+          Set-Content -Path "dist-win/latest-win.json" -Value $manifest
+
+      - name: Upload workflow artifact (for debugging)
+        uses: actions/upload-artifact@v4
+        with:
+          name: carecore-windows-companion
+          path: dist-win/
+
+      - name: Upload versioned zip and latest manifest
+        shell: pwsh
+        env:
+          APK_UPLOAD_ENDPOINT: https://resident-voice-log.lovable.app/api/public/upload-apk-url
+          APK_UPLOAD_TOKEN: ${{ secrets.APK_UPLOAD_TOKEN }}
+        run: |
+          if (-not $env:APK_UPLOAD_TOKEN) {
+            Write-Error "APK_UPLOAD_TOKEN GitHub Actions secret is required"
+            exit 1
+          }
+
+          function Upload-File($objectName, $filePath, $contentType) {
+            Write-Host "Requesting signed URL for $objectName..."
+            $body = @{ object = $objectName } | ConvertTo-Json -Compress
+            $resp = Invoke-RestMethod -Method Post -Uri $env:APK_UPLOAD_ENDPOINT `
+              -Headers @{ Authorization = "Bearer $env:APK_UPLOAD_TOKEN" } `
+              -ContentType "application/json" -Body $body
+            if (-not $resp.url) {
+              Write-Error "Signed URL missing for $objectName"
+              exit 1
+            }
+            Write-Host "Uploading $objectName to signed URL..."
+            curl.exe -sS -X PUT -H "Content-Type: $contentType" -H "x-upsert: true" `
+              --data-binary "@$filePath" $resp.url
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Upload failed for $objectName"
+              exit 1
+            }
+          }
+
+          Upload-File "carecore-win-${{ github.sha }}.zip" "dist-win/carecore-windows.zip" "application/zip"
+          # Upload the pointer last so users never receive a partly published build.
+          Upload-File "latest-win.json" "dist-win/latest-win.json" "application/json"
+          Write-Host "Versioned Windows app published successfully"
