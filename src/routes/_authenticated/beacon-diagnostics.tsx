@@ -107,6 +107,7 @@ function BeaconDiagnosticsPage() {
           <Button
             size="sm"
             variant="outline"
+            disabled={diag.state === "likely-unsupported-os"}
             onClick={async () => {
               try {
                 await startScanner();
@@ -222,6 +223,13 @@ function BeaconDiagnosticsPage() {
               version cannot passively scan — use Chrome on Android, macOS, ChromeOS or Linux.
             </p>
           )}
+          {diag.state === "likely-unsupported-os" && (
+            <div className="space-y-1 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+              <p className="font-semibold">{diag.title}</p>
+              <p>{diag.message}</p>
+              <p>{diag.nextStep}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -268,6 +276,11 @@ function BeaconDiagnosticsPage() {
           </Row>
           <Row label="Support state">
             <code className="text-xs">{diag.state}</code>
+          </Row>
+          <Row label="Usable for passive beacon scans">
+            <Badge variant={diag.state === "ready" ? "default" : "destructive"}>
+              {diag.state === "ready" ? "yes" : "no"}
+            </Badge>
           </Row>
           <Row label="Platform">
             <code className="text-xs">{diag.platform || "?"}</code>

@@ -150,6 +150,24 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
     };
   }
 
+  // Chromium can expose requestLEScan behind its experimental-features flag on
+  // Windows even though the Windows backend does not deliver passive BLE
+  // advertisements. Do not present API presence as working scanner support.
+  if (likelyWindows) {
+    return {
+      state: "likely-unsupported-os",
+      webBluetoothAvailable,
+      leScanAvailable,
+      platform,
+      userAgent,
+      title: "Passive beacon scanning is unavailable in Windows Chrome",
+      message:
+        "Chrome exposes the experimental scan button on this laptop, but Windows does not deliver the beacon advertisement stream that CareCore needs.",
+      nextStep:
+        "To scan on a laptop, use the CareCore macOS native app or a Linux/ChromeOS device with compatible Bluetooth hardware. Windows requires a native desktop BLE scanner, which this web build does not include.",
+    };
+  }
+
   if (leScanAvailable) {
     return {
       state: "ready",
@@ -174,20 +192,6 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
       message:
         "The browser does not expose Web Bluetooth, so the app can only show simulated demo beacons.",
       nextStep: "Open the app in Chrome on Android, ChromeOS, macOS, or Linux, then check again.",
-    };
-  }
-
-  if (likelyWindows) {
-    return {
-      state: "likely-unsupported-os",
-      webBluetoothAvailable,
-      leScanAvailable,
-      platform,
-      userAgent,
-      title: "Chrome on this device cannot passively scan beacons",
-      message:
-        "Chrome exposes basic Bluetooth here, but not the passive BLE scanning API needed for beacon advertisements.",
-      nextStep: "Use Chrome on Android, ChromeOS, macOS, or Linux for real beacon detection.",
     };
   }
 
