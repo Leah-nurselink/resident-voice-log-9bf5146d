@@ -8,7 +8,13 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export type NativeRuntime = "capacitor-android" | "electron-mac" | "electron" | "capacitor" | null;
+export type NativeRuntime =
+  | "capacitor-android"
+  | "electron-mac"
+  | "electron-win"
+  | "electron"
+  | "capacitor"
+  | null;
 
 export interface NativeAdvertisement {
   rssi?: number;

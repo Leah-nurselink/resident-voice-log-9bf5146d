@@ -11,6 +11,24 @@ const path = require("node:path");
 
 const APP_URL = process.env.CARECORE_APP_URL || "https://resident-voice-log.lovable.app";
 
+// Windows: stable app identity for taskbar pinning and notifications.
+if (process.platform === "win32") {
+  app.setAppUserModelId("app.lovable.residentvoicelog");
+}
+
+// Keep a single instance — relaunching CareCore focuses the open window.
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
 let noble = null;
 function getNoble() {
   if (noble) return noble;
