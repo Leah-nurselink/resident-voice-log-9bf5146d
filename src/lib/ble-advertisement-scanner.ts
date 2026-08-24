@@ -547,7 +547,12 @@ export async function startScanner(): Promise<void> {
       status.running = true;
       status.mode = "native";
     } catch (e) {
-      status.lastError = e instanceof Error ? e.message : "requestLEScan failed";
+      // Keep the DOMException name (NotAllowedError / NotSupportedError /
+      // SecurityError) — it tells us whether the user denied the Chrome
+      // permission prompt or the platform (e.g. Windows) rejected the scan.
+      const name = (e as { name?: string } | null)?.name;
+      const msg = e instanceof Error ? e.message : "requestLEScan failed";
+      status.lastError = name && name !== "Error" ? `${name}: ${msg}` : msg;
       // Fall back to simulator so the workflow still runs.
       simHandle = setInterval(() => void simulatorTick(), 3_000);
       void simulatorTick();
