@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   isLEScanAvailable,
   isWebBluetoothAvailable,
@@ -205,6 +206,21 @@ function BeaconDiagnosticsPage() {
             <Row label="Last error">
               <span className="text-xs text-destructive">{status.lastError}</span>
             </Row>
+          )}
+          {!status.running && diag.state === "ready" && (
+            <p className="rounded-md border border-blue-200 bg-blue-50 p-2 text-xs text-blue-900">
+              Press <strong>Start</strong> above — Chrome will pop up a Bluetooth permission
+              request. You must click <strong>Allow</strong> in that prompt, or the scan cannot
+              begin. If you previously blocked it, reset it via the padlock icon in the address
+              bar → Site settings → Bluetooth.
+            </p>
+          )}
+          {status.mode === "simulator" && status.lastError && (
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+              Chrome refused the real scan (see "Last error" above), so demo beacons are shown.
+              "NotAllowedError" = permission denied; "NotSupportedError" = this laptop/Chrome
+              version cannot passively scan — use Chrome on Android, macOS, ChromeOS or Linux.
+            </p>
           )}
         </CardContent>
       </Card>
