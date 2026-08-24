@@ -107,8 +107,12 @@ function BeaconDiagnosticsPage() {
             size="sm"
             variant="outline"
             onClick={async () => {
-              await installCapacitorBridgeIfNeeded();
-              await startScanner();
+              try {
+                await startScanner();
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Scan failed to start");
+              }
+              setBridgeDiagnostic(getNativeBridgeDiagnostic());
             }}
           >
             Start
