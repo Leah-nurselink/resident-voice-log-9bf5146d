@@ -76,6 +76,37 @@ Sideload the APK: `adb install -r app-debug.apk`.
 
 ---
 
+## Windows companion app (Electron)
+
+Windows Chrome exposes `requestLEScan` behind the experimental flag but never
+delivers advertisement events, so real scanning on Windows needs this native
+Electron shell. It loads the published site and injects
+`window.__nativeBleAdapter` (runtime label `electron-win`) powered by
+`@abandonware/noble` — the same adapter the web scanner auto-detects.
+
+Automated build (recommended): the GitHub workflow
+`.github/workflows/windows-companion.yml` runs on `windows-latest`, compiles
+the noble native module with MSVC, packages `CareCore.exe` (win32 x64), zips
+it, and uploads it to the private `app-downloads` bucket as a versioned
+`carecore-win-<sha>.zip` plus a `latest-win.json` pointer. Users download it
+from `/api/public/download-windows` (linked on the Downloads page). It uses the
+same `APK_UPLOAD_TOKEN` secret as the Android workflow.
+
+Local build on a Windows machine (Node 20+, Visual Studio Build Tools with the
+Desktop C++ workload):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build-windows.ps1
+# Output: dist-win/carecore-windows.zip
+# Test directly: release/CareCore-win32-x64/CareCore.exe
+```
+
+First launch: Windows SmartScreen may warn because the build is unsigned —
+click **More info → Run anyway**. Windows asks for Bluetooth permission the
+first time the app scans.
+
+---
+
 ## macOS app (Electron)
 
 Prerequisites:

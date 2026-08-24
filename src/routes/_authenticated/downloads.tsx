@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Apple, Copy, Download, Smartphone, Globe, Check, ExternalLink, AlertCircle } from "lucide-react";
+import { Apple, Copy, Download, Monitor, Smartphone, Globe, Check, ExternalLink, AlertCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,11 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/downloads")({
   head: () => ({
     meta: [
-      { title: "Download CareCore · Android & macOS" },
+      { title: "Download CareCore · Android, Windows & macOS" },
       {
         name: "description",
         content:
-          "Install CareCore on Android or macOS for real BLE beacon scanning without browser flags.",
+          "Install CareCore on Android, Windows or macOS for real BLE beacon scanning without browser flags.",
       },
     ],
   }),
@@ -30,6 +30,10 @@ const APK_REPO =
 const APK_URL = `https://github.com/${APK_REPO}/releases/download/android-latest/carecore.apk`;
 const RELEASE_API_URL = `https://api.github.com/repos/${APK_REPO}/releases/tags/android-latest`;
 const ACTIONS_URL = `https://github.com/${APK_REPO}/actions/workflows/android-apk.yml`;
+// Windows companion zip is streamed from private storage by the published app —
+// built and uploaded by `.github/workflows/windows-companion.yml`.
+const WINDOWS_ZIP_URL = "/api/public/download-windows";
+const WINDOWS_ACTIONS_URL = `https://github.com/${APK_REPO}/actions/workflows/windows-companion.yml`;
 
 const MAC_BUILD = `# One-time
 npm install --no-save electron@31 @electron/packager@18 \\
@@ -228,6 +232,67 @@ function DownloadsPage() {
                 Full Android build guide →
               </a>
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Windows companion */}
+        <Card>
+          <CardHeader className="flex flex-row items-start gap-3 space-y-0">
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
+              <Monitor className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="flex items-center gap-2">
+                Windows companion app
+                <Badge variant="secondary">For Windows laptops</Badge>
+              </CardTitle>
+              <CardDescription>
+                Real BLE beacon scanning on Windows — Chrome cannot passively scan there, so this
+                native Electron app does it instead. No Chrome flags needed.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border bg-primary/5 p-4">
+              <p className="text-sm">
+                Download the zip <strong>on the Windows laptop</strong>, extract it, and run{" "}
+                <code className="rounded bg-muted px-1">CareCore.exe</code>.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild size="lg" className="gap-2">
+                  <a href={WINDOWS_ZIP_URL} download="carecore-windows.zip">
+                    <Download className="h-4 w-4" />
+                    Download carecore-windows.zip
+                  </a>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="gap-2">
+                  <a href={WINDOWS_ACTIONS_URL} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    Build status
+                  </a>
+                </Button>
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">On first launch</p>
+              <ol className="mt-1 list-decimal space-y-1 pl-5">
+                <li>Extract the zip (right-click → Extract All), then open CareCore.exe.</li>
+                <li>
+                  Windows SmartScreen may warn because the app is unsigned — click{" "}
+                  <em>More info → Run anyway</em>.
+                </li>
+                <li>
+                  Sign in, go to <em>Beacon Diagnostics</em> or <em>Devices</em>, and press{" "}
+                  <em>Start scan</em>. The badge shows <strong>Native BLE</strong> and real beacons
+                  appear.
+                </li>
+              </ol>
+              <p className="mt-2">
+                If the download says "not available yet", the GitHub workflow hasn't uploaded a
+                build — open <em>Build status</em> and run{" "}
+                <strong>Build Windows companion app</strong> on <code className="rounded bg-muted px-1">main</code>.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

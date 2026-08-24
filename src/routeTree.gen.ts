@@ -41,6 +41,7 @@ import { Route as AuthenticatedCarerCaptureRouteImport } from './routes/_authent
 import { Route as AuthenticatedResidentsIndexRouteImport } from './routes/_authenticated/residents/index'
 import { Route as AuthenticatedResidentsIdRouteImport } from './routes/_authenticated/residents/$id'
 import { Route as ApiPublicDownloadApkRouteImport } from './routes/api/public/download-apk'
+import { Route as ApiPublicDownloadWindowsRouteImport } from './routes/api/public/download-windows'
 import { Route as ApiPublicInboundEmailRouteImport } from './routes/api/public/inbound-email'
 import { Route as ApiPublicUploadApkUrlRouteImport } from './routes/api/public/upload-apk-url'
 
@@ -212,6 +213,12 @@ const ApiPublicDownloadApkRoute = ApiPublicDownloadApkRouteImport.update({
   path: '/api/public/download-apk',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDownloadWindowsRoute =
+  ApiPublicDownloadWindowsRouteImport.update({
+    id: '/api/public/download-windows',
+    path: '/api/public/download-windows',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInboundEmailRoute = ApiPublicInboundEmailRouteImport.update({
   id: '/api/public/inbound-email',
   path: '/api/public/inbound-email',
@@ -253,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/carer/capture': typeof AuthenticatedCarerCaptureRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/download-apk': typeof ApiPublicDownloadApkRoute
+  '/api/public/download-windows': typeof ApiPublicDownloadWindowsRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
   '/api/public/upload-apk-url': typeof ApiPublicUploadApkUrlRoute
   '/carer/': typeof AuthenticatedCarerIndexRoute
@@ -287,6 +295,7 @@ export interface FileRoutesByTo {
   '/carer/capture': typeof AuthenticatedCarerCaptureRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/download-apk': typeof ApiPublicDownloadApkRoute
+  '/api/public/download-windows': typeof ApiPublicDownloadWindowsRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
   '/api/public/upload-apk-url': typeof ApiPublicUploadApkUrlRoute
   '/carer': typeof AuthenticatedCarerIndexRoute
@@ -324,6 +333,7 @@ export interface FileRoutesById {
   '/_authenticated/carer/capture': typeof AuthenticatedCarerCaptureRoute
   '/_authenticated/residents/$id': typeof AuthenticatedResidentsIdRoute
   '/api/public/download-apk': typeof ApiPublicDownloadApkRoute
+  '/api/public/download-windows': typeof ApiPublicDownloadWindowsRoute
   '/api/public/inbound-email': typeof ApiPublicInboundEmailRoute
   '/api/public/upload-apk-url': typeof ApiPublicUploadApkUrlRoute
   '/_authenticated/carer/': typeof AuthenticatedCarerIndexRoute
@@ -361,6 +371,7 @@ export interface FileRouteTypes {
     | '/carer/capture'
     | '/residents/$id'
     | '/api/public/download-apk'
+    | '/api/public/download-windows'
     | '/api/public/inbound-email'
     | '/api/public/upload-apk-url'
     | '/carer/'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/carer/capture'
     | '/residents/$id'
     | '/api/public/download-apk'
+    | '/api/public/download-windows'
     | '/api/public/inbound-email'
     | '/api/public/upload-apk-url'
     | '/carer'
@@ -431,6 +443,7 @@ export interface FileRouteTypes {
     | '/_authenticated/carer/capture'
     | '/_authenticated/residents/$id'
     | '/api/public/download-apk'
+    | '/api/public/download-windows'
     | '/api/public/inbound-email'
     | '/api/public/upload-apk-url'
     | '/_authenticated/carer/'
@@ -442,6 +455,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicDownloadApkRoute: typeof ApiPublicDownloadApkRoute
+  ApiPublicDownloadWindowsRoute: typeof ApiPublicDownloadWindowsRoute
   ApiPublicInboundEmailRoute: typeof ApiPublicInboundEmailRoute
   ApiPublicUploadApkUrlRoute: typeof ApiPublicUploadApkUrlRoute
 }
@@ -672,6 +686,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicDownloadApkRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/download-windows': {
+      id: '/api/public/download-windows'
+      path: '/api/public/download-windows'
+      fullPath: '/api/public/download-windows'
+      preLoaderRoute: typeof ApiPublicDownloadWindowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/inbound-email': {
       id: '/api/public/inbound-email'
       path: '/api/public/inbound-email'
@@ -768,6 +789,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicDownloadApkRoute: ApiPublicDownloadApkRoute,
+  ApiPublicDownloadWindowsRoute: ApiPublicDownloadWindowsRoute,
   ApiPublicInboundEmailRoute: ApiPublicInboundEmailRoute,
   ApiPublicUploadApkUrlRoute: ApiPublicUploadApkUrlRoute,
 }
