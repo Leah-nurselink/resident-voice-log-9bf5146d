@@ -494,11 +494,15 @@ export async function startScanner(): Promise<void> {
   try {
     await installCapacitorBridgeIfNeeded();
   } catch (e) {
-    status.lastError = e instanceof Error ? e.message : "Native BLE bridge failed to initialize";
-    status.running = false;
-    status.mode = "unavailable";
-    emitStatus();
-    throw e;
+    // Only fatal when a native shell was actually detected. On a plain
+    // laptop browser a bridge hiccup must not block the Web Bluetooth path.
+    if (getNativeBridgeDiagnostic().detected) {
+      status.lastError = e instanceof Error ? e.message : "Native BLE bridge failed to initialize";
+      status.running = false;
+      status.mode = "unavailable";
+      emitStatus();
+      throw e;
+    }
   }
   const nativeAdapter = getNativeAdapter();
   if (nativeAdapter) {
