@@ -18,6 +18,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { supabase } from "@/integrations/supabase/client";
+import { traceBleDiagnostic } from "./ble-diagnostics";
 import {
   getNativeBridgeDiagnostic,
   getNativeAdapter,
@@ -310,7 +311,11 @@ function record(partial: Omit<BeaconObservation, "firstSeen" | "lastSeen" | "hit
   }
 }
 
-function handleAdvertisement(e: any) {
+export function handleAdvertisement(e: any) {
+  traceBleDiagnostic("bridge", "passed", "Resident Voice Log received an advertisement", {
+    deviceId: e.device?.id ?? "unknown",
+    rssi: typeof e.rssi === "number" ? e.rssi : null,
+  });
   const rssi: number = typeof e.rssi === "number" ? e.rssi : -100;
   const txPower: number | null = typeof e.txPower === "number" ? e.txPower : null;
   const name: string | null = e.device?.name ?? null;
@@ -323,8 +328,9 @@ function handleAdvertisement(e: any) {
     if (apple) {
       const ib = parseIBeacon(apple);
       if (ib) {
+        const key = `ibeacon:${ib.uuid}:${ib.major}:${ib.minor}`;
         record({
-          key: `ibeacon:${ib.uuid}:${ib.major}:${ib.minor}`,
+          key,
           protocol: "ibeacon",
           uuid: ib.uuid,
           major: ib.major,
@@ -335,6 +341,13 @@ function handleAdvertisement(e: any) {
           rssi,
           txPower: ib.txPower,
           name,
+        });
+        traceBleDiagnostic("parser", "passed", "Parsed iBeacon advertisement", {
+          beaconKey: key,
+          uuid: ib.uuid,
+          major: ib.major,
+          minor: ib.minor,
+          rssi,
         });
         emit();
         return;
@@ -353,8 +366,9 @@ function handleAdvertisement(e: any) {
     if (eddy) {
       const u = parseEddystoneUid(eddy);
       if (u) {
+        const key = `eddystone-uid:${u.namespace}:${u.instance}`;
         record({
-          key: `eddystone-uid:${u.namespace}:${u.instance}`,
+          key,
           protocol: "eddystone-uid",
           uuid: null,
           major: null,
@@ -365,6 +379,12 @@ function handleAdvertisement(e: any) {
           rssi,
           txPower: u.txPower,
           name,
+        });
+        traceBleDiagnostic("parser", "passed", "Parsed Eddystone UID advertisement", {
+          beaconKey: key,
+          namespace: u.namespace,
+          instance: u.instance,
+          rssi,
         });
         emit();
         return;
@@ -378,8 +398,9 @@ function handleAdvertisement(e: any) {
   // hardware (e.g. for staff badges that don't transmit iBeacon).
   const id: string | undefined = e.device?.id;
   if (id) {
+    const key = `generic:${id}`;
     record({
-      key: `generic:${id}`,
+      key,
       protocol: "generic",
       uuid: null,
       major: null,
@@ -391,7 +412,13 @@ function handleAdvertisement(e: any) {
       txPower,
       name,
     });
+    traceBleDiagnostic("parser", "passed", "Processed generic BLE advertisement", {
+      beaconKey: key,
+      rssi,
+    });
     emit();
+  } else {
+    traceBleDiagnostic("parser", "failed", "Advertisement had no usable device identifier", { rssi });
   }
 }
 
@@ -492,6 +519,7 @@ async function simulatorTick() {
 
 export async function startScanner(): Promise<void> {
   if (status.running) return;
+  traceBleDiagnostic("scan", "waiting", "Starting BLE scan");
   status.lastError = undefined;
   status.startedAt = new Date().toISOString();
 

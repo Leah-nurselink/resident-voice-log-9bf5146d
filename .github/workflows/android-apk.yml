@@ -60,6 +60,9 @@ jobs:
       - name: Sync Capacitor (Android)
         run: bunx cap sync android
 
+      - name: Add Android BLE diagnostic logging
+        run: node scripts/instrument-android-ble.mjs
+
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 

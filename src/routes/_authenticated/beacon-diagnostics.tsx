@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { CheckCircle2, CircleDashed, Clipboard, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,10 +30,34 @@ import {
   subscribeRawNativeAdvertisements,
   type RawNativeAdvertisement,
 } from "@/lib/native-beacon-bridge";
+import {
+  clearBleDiagnosticEvents,
+  formatBleDiagnosticReport,
+  getBleDiagnosticEvents,
+  subscribeBleDiagnostics,
+  summarizeBleDiagnosticStages,
+  type BleDiagnosticEvent,
+} from "@/lib/ble-diagnostics";
+import { startSessionManager, stopSessionManager } from "@/lib/ble-session-manager";
 import { isNativeShell } from "@/lib/surface";
 
 export const Route = createFileRoute("/_authenticated/beacon-diagnostics")({
-  head: () => ({ meta: [{ title: "Beacon diagnostics · CareCore" }] }),
+  head: () => ({
+    meta: [
+      { title: "Beacon diagnostics · CareCore" },
+      {
+        name: "description",
+        content: "Diagnose Android BLE scanning, beacon matching, and resident identification.",
+      },
+      { property: "og:title", content: "Beacon diagnostics · CareCore" },
+      {
+        property: "og:description",
+        content: "Diagnose Android BLE scanning, beacon matching, and resident identification.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: BeaconDiagnosticsPage,
 });
 
@@ -47,6 +72,7 @@ function BeaconDiagnosticsPage() {
     getRawNativeAdvertisements(),
   );
   const [installAttempt, setInstallAttempt] = useState(() => getLastInstallAttempt());
+  const [events, setEvents] = useState<BleDiagnosticEvent[]>(() => getBleDiagnosticEvents());
   const diag = getLEScanSupportDiagnostic();
 
   useEffect(() => {
@@ -63,6 +89,7 @@ function BeaconDiagnosticsPage() {
   useEffect(() => subscribeStatus(setStatus), []);
   useEffect(() => subscribeObs(setObs), []);
   useEffect(() => subscribeRawNativeAdvertisements(setRawAdvertisements), []);
+  useEffect(() => subscribeBleDiagnostics(setEvents), []);
   useEffect(() => {
     const id = setInterval(() => {
       setNow(Date.now());
@@ -93,6 +120,7 @@ function BeaconDiagnosticsPage() {
           : "destructive";
 
   const sorted = [...obs].sort((a, b) => b.rssi - a.rssi);
+  const stages = summarizeBleDiagnosticStages(events);
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
@@ -103,7 +131,7 @@ function BeaconDiagnosticsPage() {
             Live BLE bridge status and detected advertisements.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Button
             size="sm"
             variant="outline"
@@ -111,6 +139,7 @@ function BeaconDiagnosticsPage() {
             onClick={async () => {
               try {
                 await startScanner();
+                await startSessionManager();
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : "Scan failed to start");
               }
@@ -119,7 +148,14 @@ function BeaconDiagnosticsPage() {
           >
             Start
           </Button>
-          <Button size="sm" variant="outline" onClick={() => stopScanner()}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              stopScanner();
+              void stopSessionManager();
+            }}
+          >
             Stop
           </Button>
           <Button
@@ -128,6 +164,7 @@ function BeaconDiagnosticsPage() {
             onClick={() => {
               clearObservations();
               clearRawNativeAdvertisements();
+              clearBleDiagnosticEvents();
               setObs([]);
             }}
           >
@@ -135,6 +172,74 @@ function BeaconDiagnosticsPage() {
           </Button>
         </div>
       </header>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base">End-to-end BLE check</CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(formatBleDiagnosticReport(events));
+                  toast.success("Diagnostic report copied");
+                } catch {
+                  toast.error("Could not copy the diagnostic report");
+                }
+              }}
+            >
+              <Clipboard className="h-4 w-4" />
+              Copy report
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ol className="divide-y">
+            {stages.map((stage, index) => (
+              <li key={stage.stage} className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto] gap-3 py-3">
+                <div className="pt-0.5">
+                  {stage.outcome === "passed" ? (
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-label="Passed" />
+                  ) : stage.outcome === "failed" ? (
+                    <XCircle className="h-5 w-5 text-destructive" aria-label="Failed" />
+                  ) : (
+                    <CircleDashed className="h-5 w-5 text-muted-foreground" aria-label="Waiting" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">
+                    {index + 1}. {stage.message}
+                  </div>
+                  {stage.details && (
+                    <div className="mt-1 break-all font-mono text-[11px] text-muted-foreground">
+                      {Object.entries(stage.details)
+                        .map(([key, value]) => `${key}: ${String(value)}`)
+                        .join(" · ")}
+                    </div>
+                  )}
+                </div>
+                <Badge
+                  variant={
+                    stage.outcome === "passed"
+                      ? "default"
+                      : stage.outcome === "failed"
+                        ? "destructive"
+                        : "outline"
+                  }
+                >
+                  {stage.outcome}
+                </Badge>
+              </li>
+            ))}
+          </ol>
+          {status.running && bridgeDiagnostic.scanCallbacksReceived === 0 && status.startedAt && now - new Date(status.startedAt).getTime() > 10_000 && (
+            <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+              Android accepted the scan, but no advertisement has arrived after 10 seconds. Keep the known beacon close; if this remains unchanged, the earliest failing point is the native Android scan.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

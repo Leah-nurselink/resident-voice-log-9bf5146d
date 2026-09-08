@@ -13,6 +13,7 @@ fi
 
 echo "==> Syncing Capacitor (links @capacitor-community/bluetooth-le)"
 npx cap sync android
+node scripts/instrument-android-ble.mjs
 
 echo "==> Building debug APK with Gradle"
 (cd android && ./gradlew assembleDebug)

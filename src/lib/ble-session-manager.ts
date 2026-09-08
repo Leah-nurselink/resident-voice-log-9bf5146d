@@ -31,6 +31,7 @@
 // the room-beacon session for the same resident is annotated, not duplicated.
 
 import { supabase } from "@/integrations/supabase/client";
+import { traceBleDiagnostic } from "./ble-diagnostics";
 import {
   subscribe as subscribeObservations,
   type BeaconObservation,
@@ -128,9 +129,15 @@ async function reloadRegistered() {
     .eq("status", "active");
   if (error) {
     state.lastError = error.message;
+    traceBleDiagnostic("match", "failed", `Could not load registered beacons: ${error.message}`);
     return;
   }
   registered = (data ?? []) as RegisteredBeacon[];
+  if (registered.length === 0) {
+    traceBleDiagnostic("match", "failed", "No active beacons are registered yet");
+  } else {
+    traceBleDiagnostic("match", "waiting", `${registered.length} active beacon registration(s) loaded`);
+  }
   state.registeredCount = registered.length;
 
   // Build room -> residents map (residents.room_number stores the room name).
@@ -214,8 +221,17 @@ async function openSession(
     .single();
   if (error) {
     state.lastError = error.message;
+    traceBleDiagnostic("save", "failed", `Care session could not be saved: ${error.message}`, {
+      beaconKey: obs.key,
+      residentId,
+    });
     return null;
   }
+  traceBleDiagnostic("save", "passed", "Authenticated care session saved", {
+    beaconKey: obs.key,
+    residentId,
+    sessionId: data.id,
+  });
   await supabase.from("device_events").insert({
     device_id: triggeringDevice.id,
     event_type: `session_started:${rule}`,
@@ -362,9 +378,22 @@ async function tick() {
   const badgesInRange: InRange[] = [];
 
   for (const d of registered) {
-    const obs = obsByKey.get(keyForDevice(d));
-    if (!obs || obs.rssi < d.rssi_threshold) continue;
+    const expectedKey = keyForDevice(d);
+    const obs = obsByKey.get(expectedKey);
+    if (!obs) continue;
+    const inRange = obs.rssi >= d.rssi_threshold;
+    traceBleDiagnostic(
+      "match",
+      inRange ? "passed" : "failed",
+      inRange ? "Live beacon matched an active registration" : "Beacon matched, but its signal is below the threshold",
+      { beaconKey: obs.key, expectedKey, rssi: obs.rssi, threshold: d.rssi_threshold },
+    );
+    if (!inRange) continue;
     if (d.device_type === "wearable_tag" && d.resident_id) {
+      traceBleDiagnostic("resident", "passed", "Matched wearable is assigned to a resident", {
+        beaconKey: obs.key,
+        residentId: d.resident_id,
+      });
       wearablesInRange.push({ device: d, obs });
     } else if (d.device_type === "room_beacon" && d.room_id) {
       roomsInRange.push({ device: d, obs });
