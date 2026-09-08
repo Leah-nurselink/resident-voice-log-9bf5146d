@@ -38,7 +38,7 @@ jobs:
           node-version: "20"
 
       - name: Install desktop-only deps
-        run: npm install --no-save electron@31 @electron/packager@18 @abandonware/noble@1 electron-rebuild@3
+        run: npm install --no-save electron@31 @electron/packager@18 @abandonware/noble@1.9.2-26 electron-rebuild@3
 
       - name: Rebuild native BLE module for Electron
         run: npx electron-rebuild -f -w @abandonware/noble

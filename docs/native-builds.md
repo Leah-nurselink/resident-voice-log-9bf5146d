@@ -119,7 +119,7 @@ keep the web install lean):
 
 ```bash
 npm install --no-save electron@31 @electron/packager@18 \
-  @abandonware/noble@1 electron-rebuild@3
+  @abandonware/noble@1.9.2-26 electron-rebuild@3
 ```
 
 Run in dev:
