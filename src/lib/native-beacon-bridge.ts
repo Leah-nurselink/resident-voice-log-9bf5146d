@@ -8,6 +8,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { traceBleDiagnostic } from "./ble-diagnostics";
+
 export type NativeRuntime =
   | "capacitor-android"
   | "electron-mac"
@@ -208,6 +210,10 @@ function parseRawIBeacon(manufacturerData: Record<string, string>): {
 
 function recordRawNativeAdvertisement(result: any): void {
   scanCallbacksReceived += 1;
+  traceBleDiagnostic("native-advertisement", "passed", "Android delivered a BLE advertisement", {
+    deviceId: result.device?.deviceId ?? result.device?.id ?? "unknown",
+    rssi: typeof result.rssi === "number" ? result.rssi : null,
+  });
   const now = new Date().toISOString();
   const deviceId =
     result.device?.deviceId ?? result.device?.id ?? result.device?.name ?? `unknown-${rawAdvertisements.size + 1}`;
@@ -347,6 +353,7 @@ async function buildDirectCapacitorAdapter(platform: string): Promise<NativeBleA
   return {
     runtime: platform === "android" ? "capacitor-android" : "capacitor",
     async start(handler) {
+      traceBleDiagnostic("plugin", "passed", "Direct Bluetooth plugin is available");
       await plugin.initialize({ androidNeverForLocation: false });
 
       try {
@@ -395,6 +402,10 @@ async function buildDirectCapacitorAdapter(platform: string): Promise<NativeBleA
             if (bytes) svc.set(k.toLowerCase(), bytes);
           }
         }
+        traceBleDiagnostic("bridge", "passed", "JavaScript bridge received the native advertisement", {
+          deviceId: result.device?.deviceId ?? result.device?.id ?? "unknown",
+          rssi: typeof result.rssi === "number" ? result.rssi : null,
+        });
         handler({
           rssi: result.rssi,
           txPower: result.txPower ?? null,
@@ -410,6 +421,7 @@ async function buildDirectCapacitorAdapter(platform: string): Promise<NativeBleA
 
       try {
         await plugin.requestLEScan({ allowDuplicates: true, scanMode: 2 });
+        traceBleDiagnostic("scan", "passed", "Android accepted the BLE scan request");
       } catch (err) {
         if (listenerHandle) {
           try {
@@ -422,6 +434,7 @@ async function buildDirectCapacitorAdapter(platform: string): Promise<NativeBleA
           err instanceof Error && err.message
             ? err.message
             : "Bluetooth permission denied. Grant Nearby devices permission and try again.";
+        traceBleDiagnostic("scan", "failed", message);
         throw new Error(message);
       }
       scanning = true;
@@ -458,6 +471,8 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
     return;
   }
   if (window.__nativeBleAdapter) {
+    traceBleDiagnostic("native-shell", "passed", "Native BLE adapter is already installed");
+    traceBleDiagnostic("plugin", "passed", "Bluetooth plugin bridge is available");
     lastInstallAttempt = {
       at: new Date().toISOString(),
       result: "installed",
@@ -470,6 +485,7 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
   const platform = cap?.getPlatform?.() ?? null;
 
   if (!isNativeCapacitorDetected()) {
+    traceBleDiagnostic("native-shell", "failed", `Native Android shell was not detected (platform=${platform ?? "none"})`);
     lastInstallAttempt = {
       at: new Date().toISOString(),
       result: "skipped",
@@ -479,6 +495,7 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
   }
 
   try {
+    traceBleDiagnostic("native-shell", "passed", `Native shell detected (platform=${platform ?? "unknown"})`);
     // Import Capacitor rather than depending only on window.Capacitor. The
     // native bridge is injected into the remote page at document start, while
     // this API also gives us a reliable platform check across Android WebView
@@ -494,6 +511,7 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
     const adapter: NativeBleAdapter = {
       runtime: runtimePlatform === "android" ? "capacitor-android" : "capacitor",
       async start(handler) {
+        traceBleDiagnostic("plugin", "passed", "Bluetooth plugin initialized through BleClient");
         // Beacon observations are used to infer room/resident proximity, so
         // do not assert neverForLocation: Android may otherwise filter beacon
         // advertisements from scan results.
@@ -549,6 +567,10 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
                 if (v instanceof DataView) svc.set(k.toLowerCase(), v);
               }
             }
+            traceBleDiagnostic("bridge", "passed", "JavaScript bridge received the native advertisement", {
+              deviceId: result.device?.deviceId ?? result.device?.name ?? "unknown",
+              rssi: typeof result.rssi === "number" ? result.rssi : null,
+            });
             handler({
               rssi: result.rssi,
               txPower: result.txPower ?? null,
@@ -561,12 +583,14 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
               serviceData: svc,
             });
           });
+          traceBleDiagnostic("scan", "passed", "Android accepted the BLE scan request");
         } catch (err) {
           // Most commonly a denied BLUETOOTH_SCAN / location permission.
           const message =
             err instanceof Error && err.message
               ? err.message
               : "Bluetooth permission denied. Grant Nearby devices permission and try again.";
+          traceBleDiagnostic("scan", "failed", message);
           throw new Error(message);
         }
         scanning = true;
@@ -583,6 +607,7 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
     };
 
     window.__nativeBleAdapter = adapter;
+    traceBleDiagnostic("plugin", "passed", `Bluetooth plugin adapter installed (${adapter.runtime})`);
     lastBridgeError = null;
     lastInstallAttempt = {
       at: new Date().toISOString(),
@@ -599,6 +624,7 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
     try {
       const directAdapter = await buildDirectCapacitorAdapter(platform);
       window.__nativeBleAdapter = directAdapter;
+      traceBleDiagnostic("plugin", "passed", `Direct Bluetooth plugin adapter installed (${directAdapter.runtime})`);
       lastBridgeError = null;
       lastInstallAttempt = {
         at: new Date().toISOString(),
@@ -608,6 +634,7 @@ export async function installCapacitorBridgeIfNeeded(): Promise<void> {
     } catch (directErr) {
       const directDetail = directErr instanceof Error ? directErr.message : String(directErr);
       lastBridgeError = `BleClient: ${detail}; Direct plugin: ${directDetail}`;
+      traceBleDiagnostic("plugin", "failed", lastBridgeError);
       lastInstallAttempt = {
         at: new Date().toISOString(),
         result: "error",
