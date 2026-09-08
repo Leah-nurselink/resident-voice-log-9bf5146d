@@ -9,7 +9,7 @@ Write-Host "==> Installing desktop-only deps (not persisted to package.json)"
 npm install --no-save `
   electron@31 `
   @electron/packager@18 `
-  @abandonware/noble@1 `
+  @abandonware/noble@1.9.2-26 `
   electron-rebuild@3
 
 Write-Host "==> Rebuilding native BLE module for Electron"
