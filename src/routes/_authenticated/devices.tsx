@@ -35,6 +35,7 @@ import {
   getLEScanSupportDiagnostic,
   getNearby,
   getStatus,
+  isAndroidBrowser,
   isLEScanAvailable,
   isWebBluetoothAvailable,
   startScanner,
@@ -60,7 +61,16 @@ import { isNativeShell } from "@/lib/surface";
 import { installCapacitorBridgeIfNeeded } from "@/lib/native-beacon-bridge";
 
 export const Route = createFileRoute("/_authenticated/devices")({
-  head: () => ({ meta: [{ title: "Nearby Devices · CareCore" }] }),
+  head: () => ({
+    meta: [
+      { title: "Nearby Devices · CareCore" },
+      { name: "description", content: "Scan, register, and monitor CareCore BLE beacons." },
+      { property: "og:title", content: "Nearby Devices · CareCore" },
+      { property: "og:description", content: "Scan, register, and monitor CareCore BLE beacons." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: DevicesPage,
 });
 
@@ -302,6 +312,17 @@ function DevicesPage() {
         />
       </div>
 
+      <Card className={isNativeShell() ? "mt-4 border-success/40" : "mt-4 border-warning/50"}>
+        <CardContent className="flex items-center justify-between gap-3 py-3 text-sm">
+          <span className="font-semibold">
+            {isNativeShell() ? "Installed CareCore app" : "Browser"}
+          </span>
+          <Badge variant={isNativeShell() ? "default" : "outline"}>
+            {isNativeShell() ? "Real beacon scanning" : "Demo beacons only"}
+          </Badge>
+        </CardContent>
+      </Card>
+
       {scannerStatus.mode === "native-bridge" && (
         <Card className="mt-4 border-emerald-200 bg-emerald-50">
           <CardContent className="py-3 text-sm text-emerald-900">
@@ -340,8 +361,18 @@ function DevicesPage() {
         </Card>
       )}
 
+      {!isNativeShell() && isAndroidBrowser() && (
+        <Card className="mt-4 border-warning/50">
+          <CardContent className="py-3 text-sm">
+            <strong>Chrome is showing demo beacons only.</strong> Download and open the installed
+            CareCore app to scan your real beacons. Real results will not have a Simulated badge.
+          </CardContent>
+        </Card>
+      )}
+
       {scannerStatus.mode !== "native-bridge" &&
         !isNativeShell() &&
+        !isAndroidBrowser() &&
         isWebBluetoothAvailable() &&
         !isLEScanAvailable() && (
           <Card className="mt-4 border-amber-200 bg-amber-50">
@@ -382,7 +413,7 @@ function DevicesPage() {
         </Card>
       )}
 
-      {scannerStatus.lastError && (
+      {scannerStatus.lastError && !isAndroidBrowser() && (
         <Card className="mt-4 border-destructive/30">
           <CardContent className="py-3 text-sm text-destructive">
             Scanner error: {scannerStatus.lastError}
