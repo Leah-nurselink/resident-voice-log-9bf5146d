@@ -15,6 +15,7 @@ import {
   subscribeStatus,
   getNearby,
   getStatus,
+  isAndroidBrowser,
   clearObservations,
   type BeaconObservation,
   type ScannerStatus,
@@ -121,6 +122,8 @@ function BeaconDiagnosticsPage() {
 
   const sorted = [...obs].sort((a, b) => b.rssi - a.rssi);
   const stages = summarizeBleDiagnosticStages(events);
+  const nativeShell = isNativeShell();
+  const androidBrowser = isAndroidBrowser();
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
@@ -172,6 +175,33 @@ function BeaconDiagnosticsPage() {
           </Button>
         </div>
       </header>
+
+      <Card className={nativeShell ? "border-success/40" : "border-warning/50"}>
+        <CardContent className="flex items-center justify-between gap-3 py-3 text-sm">
+          <div>
+            <div className="font-semibold">
+              {nativeShell ? "Installed CareCore app" : "Browser mode"}
+            </div>
+            <div className="text-muted-foreground">
+              {nativeShell
+                ? "This screen can use the native Bluetooth scanner."
+                : "This screen cannot verify the Android native scanner."}
+            </div>
+          </div>
+          <Badge variant={nativeShell ? "default" : "outline"}>
+            {nativeShell ? "Real scan" : "Demo only"}
+          </Badge>
+        </CardContent>
+      </Card>
+
+      {androidBrowser && (
+        <Card className="border-warning/50">
+          <CardContent className="py-3 text-sm">
+            Chrome cannot run CareCore's continuous beacon scan. Download and open the installed
+            CareCore app, then return to Beacon Diagnostics and press Start.
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -247,8 +277,8 @@ function BeaconDiagnosticsPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <Row label="Native shell (Capacitor/Electron)">
-            <Badge variant={isNativeShell() ? "default" : "outline"}>
-              {isNativeShell() ? "yes" : "no"}
+            <Badge variant={nativeShell ? "default" : "outline"}>
+              {nativeShell ? "yes" : "no"}
             </Badge>
           </Row>
           <Row label="Native BLE adapter installed">
@@ -313,7 +343,7 @@ function BeaconDiagnosticsPage() {
               <span className="text-xs text-destructive">{status.lastError}</span>
             </Row>
           )}
-          {!status.running && diag.state === "ready" && (
+          {!status.running && diag.state === "ready" && !nativeShell && (
             <p className="rounded-md border border-blue-200 bg-blue-50 p-2 text-xs text-blue-900">
               Press <strong>Start</strong> above — Chrome will pop up a Bluetooth permission
               request. You must click <strong>Allow</strong> in that prompt, or the scan cannot
@@ -326,6 +356,11 @@ function BeaconDiagnosticsPage() {
               Chrome refused the real scan (see "Last error" above), so demo beacons are shown.
               "NotAllowedError" = permission denied; "NotSupportedError" = this laptop/Chrome
               version cannot passively scan — use Chrome on Android, macOS, ChromeOS or Linux.
+            </p>
+          )}
+          {status.mode === "simulator" && androidBrowser && (
+            <p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-xs">
+              Browser demo mode is active. Open the installed CareCore app for real beacon results.
             </p>
           )}
           {diag.state === "likely-unsupported-os" && (
@@ -355,9 +390,9 @@ function BeaconDiagnosticsPage() {
         <CardContent>
           {rawAdvertisements.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No scan callbacks received yet. Press Start scan — on a laptop use Chrome with the
-              experimental web platform flag enabled, on the phone use the installed Android app —
-              and keep this screen open near a transmitting beacon.
+              {androidBrowser
+                ? "Browser mode cannot receive the native Android scan. Open the installed CareCore app and press Start there."
+                : "No scan callbacks received yet. Press Start and keep this screen open near a transmitting beacon."}
             </p>
           ) : (
             <ul className="divide-y">

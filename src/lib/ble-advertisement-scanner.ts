@@ -72,6 +72,7 @@ export type LEScanSupportState =
   | "ready"
   | "missing-web-bluetooth"
   | "missing-passive-scan"
+  | "mobile-browser"
   | "likely-unsupported-os";
 
 export interface LEScanSupportDiagnostic {
@@ -108,6 +109,12 @@ export function isLEScanAvailable(): boolean {
 
 export function isWebBluetoothAvailable(): boolean {
   return typeof navigator !== "undefined" && "bluetooth" in navigator;
+}
+
+/** Android Chrome may expose requestLEScan while refusing it at runtime. */
+export function isAndroidBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /android/i.test(navigator.userAgent ?? "") && !getNativeBridgeDiagnostic().detected;
 }
 
 export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
@@ -150,6 +157,19 @@ export function getLEScanSupportDiagnostic(): LEScanSupportDiagnostic {
       title: `Real beacon scanning is available (${label})`,
       message: "This shell provides native BLE scanning — no Chrome flag needed.",
       nextStep: "Click Start scan and allow Bluetooth permission to detect real beacons nearby.",
+    };
+  }
+
+  if (isAndroidBrowser()) {
+    return {
+      state: "mobile-browser",
+      webBluetoothAvailable,
+      leScanAvailable,
+      platform,
+      userAgent,
+      title: "Browser demo mode",
+      message: "Chrome cannot provide the continuous beacon scan CareCore needs.",
+      nextStep: "Download and open the installed CareCore app to scan real beacons.",
     };
   }
 
@@ -564,6 +584,13 @@ export async function startScanner(): Promise<void> {
     status.mode = "unavailable";
     emitStatus();
     throw new Error(message);
+  } else if (isAndroidBrowser()) {
+    // Android Chrome can expose requestLEScan but reject it with SecurityError.
+    // Do not make a misleading browser scan attempt; demo mode remains explicit.
+    simHandle = setInterval(() => void simulatorTick(), 3_000);
+    void simulatorTick();
+    status.running = true;
+    status.mode = "simulator";
   } else if (isLEScanAvailable()) {
     try {
       const bt: any = (navigator as any).bluetooth;
