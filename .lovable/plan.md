@@ -44,6 +44,8 @@ one beacon and one test resident.
 
 ## Steps
 
+0. **Open the installed CareCore app, not Chrome.** Real beacons can only ever
+   appear there; in a browser you will always see the simulated demo beacon.
 1. **Confirm the Android app you have is the latest build.** The Devices screen
    shows a build stamp; if it is older than the diagnostics work, install the
    newest one from the Downloads page.
