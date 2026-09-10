@@ -1,37 +1,45 @@
 # Getting one beacon to reach one resident — assessment and minimum path
 
+## What your two screenshots show
+
+You are running Resident Voice Log **in the Chrome browser on your phone**, not
+in the installed CareCore app. Three giveaways:
+
+- the red error "Access to the feature bluetooth is disallowed" / "Failed to
+  execute requestLEScan" — that is the browser refusing Bluetooth, not the app;
+- the only beacon listed is "DEMO beacon (simulated)";
+- the floating "Download app" button is showing, which is hidden inside the app.
+
+So the reason you see no real beacons here is simply that a mobile browser is
+not allowed to scan for them. This is not a fault in the beacon chain.
+
 ## Answers to your five questions
 
 **1. Is the native scanner actually implemented?**
-Yes. The Android app uses a real Bluetooth scanning plugin, asks for Bluetooth
-and Location, starts a live scan, and passes every advertisement it hears into
-the app. This code exists and is wired up today.
+Yes. The installed Android app uses a real Bluetooth scanning plugin, asks for
+Bluetooth and Location, starts a live scan, and passes every advertisement it
+hears into the app.
 
 **2. Is the bridge (`window.__nativeBleAdapter`) correctly implemented?**
-Yes. The Android shell installs it on start-up, and the app reads beacon
-identity (iBeacon UUID / major / minor) from what it delivers. The same bridge
-name is also used by the desktop shell, so nothing needs redesigning.
+Yes. The Android app installs it on start-up, and the app reads beacon identity
+(iBeacon UUID / major / minor) from what it delivers. Nothing needs redesigning.
 
 **3. Is the GitHub build failure blocking this?**
 It blocks only the **Windows desktop** app. The **Android** build is separate
-and has been producing a working app. So the Windows failure is not stopping
-your proof-of-concept.
+and is producing a working app, so it is not stopping your proof-of-concept.
 
 **4. What is needed to get the first detection working?**
-Almost certainly nothing new to build — what is missing is a recorded run on
-the phone showing which step stops. The app already has a Beacon Diagnostics
-screen that shows each step in order (shell, Bluetooth plugin, scan started,
-advertisement heard, bridge handover, app read it, matched a registered
-beacon, matched a resident, saved). We use that instead of guessing.
+Most likely nothing new to build — first repeat the test **inside the installed
+app** rather than in Chrome. If it still fails there, the app's Beacon
+Diagnostics screen names the exact step that stops.
 
 **5. Keep the current architecture or move to a separate native app?**
-Keep it. Phone-in-pocket is the right hardware for care staff, and the current
-Android shell already covers the whole chain. A separate desktop scanner is a
-nice-to-have, not the route to your proof-of-concept.
+Keep it. A phone in a carer's pocket is the right hardware, and the Android app
+already covers the whole chain end to end.
 
 ## Recommendation
 
-Park the Windows desktop app entirely for now. Prove the chain on Android with
+Park the Windows desktop app. Prove the chain on the installed Android app with
 one beacon and one test resident.
 
 ## Steps
