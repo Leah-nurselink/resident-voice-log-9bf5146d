@@ -51,6 +51,7 @@ function CapturePage() {
   const [residents, setResidents] = useState<Map<string, string>>(new Map());
   const [rooms, setRooms] = useState<Map<string, string>>(new Map());
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
+  const [savedDomain, setSavedDomain] = useState<string | null>(null);
 
   // Kick off scanner + session manager on mount
   useEffect(() => {
