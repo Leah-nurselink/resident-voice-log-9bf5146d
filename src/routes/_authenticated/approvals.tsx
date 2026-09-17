@@ -9,8 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ExplainPopover } from "@/components/ExplainPopover";
 import {
-  reviewRecommendation, applyCareGapToCarePlan,
-  bulkReviewRecommendations, bulkApplyCareGaps,
+  reviewRecommendation,
+  bulkReviewRecommendations,
 } from "@/lib/approvals";
 import { toast } from "sonner";
 import { Check, X, FileText, Sparkles, ChevronRight, Telescope, Stethoscope, ShieldAlert, ClipboardCheck } from "lucide-react";
