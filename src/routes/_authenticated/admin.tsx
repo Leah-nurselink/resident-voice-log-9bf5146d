@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, UserPlus, Shield, ShieldOff, KeyRound, Trash2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { PERMISSIONS, ROLES, ROLE_LABELS, type Role } from "@/lib/permissions";
+import { DEFAULT_ROLE_PERMISSIONS, PERMISSIONS, ROLES, ROLE_LABELS, type Role } from "@/lib/permissions";
 import {
   claimFirstAdmin, inviteStaff, listStaff, removeStaff, setStaffActive,
   setStaffApproved, setStaffPermission, setStaffRole,
@@ -102,6 +102,7 @@ function AdminContent({ listFn, qc }: { listFn: () => Promise<Awaited<ReturnType
       subtitle="Staff accounts & permissions"
       action={<InviteDialog onDone={refetch} />}
     >
+      <RoleGuide />
       <Tabs defaultValue="active">
         <TabsList>
           <TabsTrigger value="active">Active staff ({active.length})</TabsTrigger>
@@ -119,6 +120,40 @@ function AdminContent({ listFn, qc }: { listFn: () => Promise<Awaited<ReturnType
         )}
       </Tabs>
     </AppShell>
+  );
+}
+
+function RoleGuide() {
+  const [open, setOpen] = useState(false);
+  const labelFor = (key: string) => PERMISSIONS.find((p) => p.key === key)?.label ?? key;
+  return (
+    <Card className="mb-4">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 py-3">
+        <CardTitle className="text-sm">What each role can do</CardTitle>
+        <Button size="sm" variant="ghost" onClick={() => setOpen((v) => !v)}>
+          {open ? "Hide" : "Show"}
+        </Button>
+      </CardHeader>
+      {open && (
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          {ROLES.map((r) => (
+            <div key={r} className="rounded-md border p-3">
+              <p className="text-sm font-medium">{ROLE_LABELS[r]}</p>
+              {DEFAULT_ROLE_PERMISSIONS[r].length === 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground">View only — no editing.</p>
+              ) : (
+                <ul className="mt-1 list-disc pl-4 text-xs text-muted-foreground">
+                  {DEFAULT_ROLE_PERMISSIONS[r].map((k) => <li key={k}>{labelFor(k)}</li>)}
+                </ul>
+              )}
+            </div>
+          ))}
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            These are the starting points when you pick a role. You can switch any single item on or off per person below.
+          </p>
+        </CardContent>
+      )}
+    </Card>
   );
 }
 
