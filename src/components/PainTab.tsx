@@ -224,6 +224,7 @@ function PainDialog({ residentId, residentName, onClose }: { residentId: string;
         ai_confidence: aiConfidence,
         ai_evidence: aiEvidence,
         notes: notes || null,
+        intervention: intervention || null,
       });
       if (error) throw error;
     },
