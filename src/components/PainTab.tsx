@@ -163,6 +163,7 @@ function PainDialog({ residentId, residentName, onClose }: { residentId: string;
     behaviour_change: 0, physiological_change: 0, physical_change: 0,
   });
   const [notes, setNotes] = useState("");
+  const [intervention, setIntervention] = useState("");
   const [painType, setPainType] = useState<string>("");
   const [transcript, setTranscript] = useState("");
   const [aiEvidence, setAiEvidence] = useState<Record<string, string> | null>(null);
