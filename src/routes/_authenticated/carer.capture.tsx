@@ -137,8 +137,9 @@ function CapturePage() {
       }
       return inserted?.id as string;
     },
-    onSuccess: (id) => {
+    onSuccess: (id, n) => {
       setLastSavedId(id);
+      setSavedDomain(n.domain || null);
       setPending(null);
       setEditing(false);
       toast.success("Note approved and saved to resident record");
