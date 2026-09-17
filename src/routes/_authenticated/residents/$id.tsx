@@ -9,6 +9,7 @@ import { ResidentIntelligence } from "@/components/ResidentIntelligence";
 import { WoundsTab } from "@/components/WoundsTab";
 import { PersonalInfoTab } from "@/components/PersonalInfoTab";
 import { PainTab } from "@/components/PainTab";
+import { MedicationsTab } from "@/components/MedicationsTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -230,7 +231,7 @@ function ResidentDetail() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-        <TabsList className="grid w-full grid-cols-6 md:grid-cols-12">
+        <TabsList className="grid w-full grid-cols-6 md:grid-cols-13">
           <TabsTrigger value="intel" className="text-xs px-1">AI</TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs px-1">Story</TabsTrigger>
           <TabsTrigger value="notes" className="text-xs px-1">Notes</TabsTrigger>
@@ -240,6 +241,7 @@ function ResidentDetail() {
           <TabsTrigger value="schedule" className="text-xs px-1"><CalendarClock className="h-3 w-3" /></TabsTrigger>
           <TabsTrigger value="risk" className="text-xs px-1">Risk</TabsTrigger>
           <TabsTrigger value="pain" className="text-xs px-1">Pain</TabsTrigger>
+          <TabsTrigger value="meds" className="text-xs px-1">Meds</TabsTrigger>
           <TabsTrigger value="wounds" className="text-xs px-1">Wounds</TabsTrigger>
           <TabsTrigger value="consent" className="text-xs px-1">Consent</TabsTrigger>
           <TabsTrigger value="mca" className="text-xs px-1">MCA</TabsTrigger>
@@ -341,6 +343,10 @@ function ResidentDetail() {
 
         <TabsContent value="pain" className="mt-4">
           <PainTab residentId={id} residentName={r.full_name} />
+        </TabsContent>
+
+        <TabsContent value="meds" className="mt-4">
+          <MedicationsTab residentId={id} allergies={extra.allergies as string | null} />
         </TabsContent>
 
         <TabsContent value="wounds">

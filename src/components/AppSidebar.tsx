@@ -13,6 +13,7 @@ import {
   Home,
   MessageSquare,
   MessageCircle,
+  Pill,
   Settings,
   Scale,
   Shield,
