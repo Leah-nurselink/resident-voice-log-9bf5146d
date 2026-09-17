@@ -463,12 +463,29 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
     },
   });
 
+  // Approved interactions in this care area that feed the plan.
+  const supporting = useQuery({
+    queryKey: ["plan-interactions", residentId, domain],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("daily_notes")
+        .select("id, created_at, content, status")
+        .eq("resident_id", residentId).eq("domain", domain).eq("status", "approved")
+        .order("created_at", { ascending: false }).limit(10);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const sinceReview = (supporting.data ?? []).filter(
+    (n) => !existing?.last_review || new Date(n.created_at) > new Date(existing.last_review),
+  );
+
   const save = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrideReview?: string) => {
       const { data: u } = await supabase.auth.getUser();
       const { error } = await supabase.from("care_plans").upsert({
         resident_id: residentId, domain, needs, risks: risksTxt, outcome, content,
-        last_review: reviewDate, updated_by: u.user!.id,
+        last_review: overrideReview ?? reviewDate, updated_by: u.user!.id,
       }, { onConflict: "resident_id,domain" });
       if (error) throw error;
     },
