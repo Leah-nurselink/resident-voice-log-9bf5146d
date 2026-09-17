@@ -218,6 +218,10 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
           </div>
         </div>
 
+        {assessments.data && assessments.data.length > 0 && (
+          <WoundPhotoHistory entries={assessments.data} woundId={wound.id} />
+        )}
+
         {assessments.data && assessments.data.length >= 2 && (
           <WoundComparison entries={assessments.data} />
         )}
@@ -457,6 +461,122 @@ function PhotoGallery({ paths }: { paths: string[] }) {
         </Dialog>
       )}
     </>
+  );
+}
+
+function WoundPhotoHistory({ entries, woundId }: { entries: any[]; woundId: string }) {
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const addPhotos = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const paths: string[] = [];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${u.user!.id}/${woundId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error } = await supabase.storage.from("wound-photos").upload(path, file, { contentType: file.type, upsert: false });
+        if (error) throw error;
+        paths.push(path);
+      }
+      const latest = entries[0];
+      const existing = Array.isArray(latest?.photos) ? (latest.photos as string[]) : [];
+      const { error } = await supabase.from("wound_assessments")
+        .update({ photos: [...existing, ...paths] as never })
+        .eq("id", latest.id);
+      if (error) throw error;
+      toast.success(paths.length > 1 ? "Photos added" : "Photo added");
+      qc.invalidateQueries({ queryKey: ["wound-assessments", woundId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  // entries arrive newest-first
+  const items = entries.flatMap((e: any) =>
+    (Array.isArray(e.photos) ? (e.photos as unknown[]) : [])
+      .filter((x): x is string => typeof x === "string")
+      .map((path) => ({ path, at: e.assessed_at as string })),
+  );
+  const [urls, setUrls] = useState<{ url: string; at: string }[]>([]);
+  const [index, setIndex] = useState<number | null>(null);
+  const key = items.map((i) => i.path).join("|");
+
+  useEffect(() => {
+    let cancelled = false;
+    if (items.length === 0) { setUrls([]); return; }
+    (async () => {
+      const { data } = await supabase.storage.from("wound-photos").createSignedUrls(items.map((i) => i.path), 3600);
+      if (cancelled || !data) return;
+      setUrls(data.map((d, i) => ({ url: d.signedUrl ?? "", at: items[i].at })).filter((u) => u.url));
+    })();
+    return () => { cancelled = true; };
+  }, [key]);
+
+  const current = index != null ? urls[index] : null;
+
+  return (
+    <div className="mt-3 rounded-xl border bg-card p-3">
+      <div className="flex items-center gap-2">
+        <ImageIcon className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold">Photo history</h3>
+        <Badge variant="secondary" className="text-[10px]">{items.length}</Badge>
+        <div className="ml-auto">
+          <input ref={fileRef} type="file" accept="image/*" multiple capture="environment"
+            className="hidden" onChange={(e) => addPhotos(e.target.files)} />
+          <Button size="sm" variant="outline" className="h-7 text-xs" disabled={uploading}
+            onClick={() => fileRef.current?.click()}>
+            <Camera className="mr-1 h-3.5 w-3.5" />{uploading ? "Uploading…" : "Add photos"}
+          </Button>
+        </div>
+      </div>
+      <p className="mt-0.5 text-xs text-muted-foreground">Newest first — tap a photo to view it full size and step back through earlier ones.</p>
+      {items.length === 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">No photos yet — add one with the button above.</p>
+      ) : urls.length === 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">Loading photos…</p>
+      ) : (
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+          {urls.map((u, i) => (
+            <button key={i} type="button" onClick={() => setIndex(i)} className="shrink-0 text-left">
+              <div className="h-24 w-24 overflow-hidden rounded-lg border">
+                <img src={u.url} alt={`Wound photo ${i + 1}`} className="h-full w-full object-cover" />
+              </div>
+              <div className="mt-1 w-24 text-[10px] text-muted-foreground">{format(new Date(u.at), "d MMM yyyy")}</div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {current && (
+        <Dialog open onOpenChange={() => setIndex(null)}>
+          <DialogContent className="max-w-3xl p-3">
+            <DialogHeader>
+              <DialogTitle className="text-sm">
+                {format(new Date(current.at), "d MMM yyyy HH:mm")} · photo {(index ?? 0) + 1} of {urls.length}
+              </DialogTitle>
+            </DialogHeader>
+            <img src={current.url} alt="Wound photo" className="max-h-[70vh] w-full rounded object-contain" />
+            <div className="flex items-center justify-between">
+              <Button variant="outline" size="sm" disabled={(index ?? 0) >= urls.length - 1}
+                onClick={() => setIndex((i) => Math.min((i ?? 0) + 1, urls.length - 1))}>
+                Earlier photo
+              </Button>
+              <Button variant="outline" size="sm" disabled={(index ?? 0) <= 0}
+                onClick={() => setIndex((i) => Math.max((i ?? 0) - 1, 0))}>
+                Later photo
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 }
 
