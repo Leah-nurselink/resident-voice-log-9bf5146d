@@ -147,6 +147,29 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         });
       });
 
+      (recs.data ?? []).forEach((r) => {
+        events.push({
+          id: `ai-${r.id}`, ts: r.created_at, kind: "ai",
+          title: "AI identified potential change",
+          detail: r.detail ?? r.title,
+          meta: r.domain ? <Badge variant="outline" className="text-[10px]">{domainLabel(r.domain as CarePlanDomain)}</Badge> : undefined,
+        });
+        if (r.reviewed_at && r.status !== "pending") {
+          events.push({
+            id: `aiR-${r.id}`, ts: r.reviewed_at, kind: "approval",
+            title: r.status === "rejected" ? "Staff rejected AI suggestion" : "Staff approved documentation",
+            detail: r.title,
+          });
+        }
+      });
+      (notes.data ?? []).filter((n) => n.status === "approved").forEach((n) => {
+        events.push({
+          id: `na-${n.id}`, ts: n.updated_at ?? n.created_at, kind: "approval",
+          title: "Staff approved documentation",
+          detail: n.content,
+        });
+      });
+
       events.sort((a, b) => +new Date(b.ts) - +new Date(a.ts));
       const ai = analyseResident(
         (notesAll.data ?? []) as never,
