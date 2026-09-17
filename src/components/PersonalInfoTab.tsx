@@ -94,8 +94,26 @@ export function PersonalInfoTab({ resident }: Props) {
       </div>
 
       <Section title="Identity" icon={Users}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <ResidentPhoto
+            residentId={resident.id}
+            path={form.photo_url}
+            initials={(form.full_name ?? "?").split(" ").map((s: string) => s[0]).slice(0, 2).join("")}
+            onUploaded={(p) => set("photo_url", p)}
+          />
+          <div className="text-right">
+            <Label className="text-xs">Resident ID</Label>
+            <div className="font-mono text-sm">{form.resident_ref ?? "—"}</div>
+          </div>
+        </div>
         <Grid>
-          <Field label="Full name"><Input value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} /></Field>
+          <Field label="First name">
+            <Input value={form.first_name ?? ""} onChange={(e) => setName("first_name", e.target.value)} />
+          </Field>
+          <Field label="Last name">
+            <Input value={form.last_name ?? ""} onChange={(e) => setName("last_name", e.target.value)} />
+          </Field>
+          <Field label="Full name (as displayed)"><Input value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} /></Field>
           <Field label="Preferred name"><Input value={form.preferred_name ?? ""} onChange={(e) => set("preferred_name", e.target.value)} /></Field>
           <Field label="Date of birth"><Input type="date" value={form.date_of_birth ?? ""} onChange={(e) => set("date_of_birth", e.target.value)} /></Field>
           <Field label="Gender">
