@@ -18,6 +18,7 @@ import {
   type Administration, type Medication,
 } from "@/lib/medications";
 import { RecordDoseDialog } from "@/components/MedicationAdministration";
+import { medicationObservations } from "@/lib/medication-insights";
 
 export function MedicationsTab({ residentId, allergies }: { residentId: string; allergies?: string | null }) {
   const [editing, setEditing] = useState<Medication | "new" | null>(null);
