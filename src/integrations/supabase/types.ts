@@ -708,6 +708,7 @@ export type Database = {
         Row: {
           audio_quality: number | null
           author_id: string
+          category: string | null
           content: string
           created_at: string
           domain: Database["public"]["Enums"]["care_plan_domain"] | null
@@ -729,6 +730,7 @@ export type Database = {
         Insert: {
           audio_quality?: number | null
           author_id: string
+          category?: string | null
           content: string
           created_at?: string
           domain?: Database["public"]["Enums"]["care_plan_domain"] | null
@@ -750,6 +752,7 @@ export type Database = {
         Update: {
           audio_quality?: number | null
           author_id?: string
+          category?: string | null
           content?: string
           created_at?: string
           domain?: Database["public"]["Enums"]["care_plan_domain"] | null
@@ -967,6 +970,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      handovers: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          prepared_by: string | null
+          sections: Json
+          shift: string
+          shift_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          prepared_by?: string | null
+          sections?: Json
+          shift?: string
+          shift_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          prepared_by?: string | null
+          sections?: Json
+          shift?: string
+          shift_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       mca_assessments: {
         Row: {
@@ -1283,11 +1334,14 @@ export type Database = {
           created_at: string
           facial_expression: number
           id: string
+          intervention: string | null
           notes: string | null
           pain_type: string | null
           physical_change: number
           physiological_change: number
           resident_id: string
+          response: string | null
+          response_at: string | null
           severity: string
           source: string
           total_score: number
@@ -1305,11 +1359,14 @@ export type Database = {
           created_at?: string
           facial_expression?: number
           id?: string
+          intervention?: string | null
           notes?: string | null
           pain_type?: string | null
           physical_change?: number
           physiological_change?: number
           resident_id: string
+          response?: string | null
+          response_at?: string | null
           severity?: string
           source?: string
           total_score?: number
@@ -1327,11 +1384,14 @@ export type Database = {
           created_at?: string
           facial_expression?: number
           id?: string
+          intervention?: string | null
           notes?: string | null
           pain_type?: string | null
           physical_change?: number
           physiological_change?: number
           resident_id?: string
+          response?: string | null
+          response_at?: string | null
           severity?: string
           source?: string
           total_score?: number
@@ -1967,6 +2027,7 @@ export type Database = {
           id: string
           location: string
           resident_id: string
+          review_date: string | null
           side: string | null
           status: string
           updated_at: string
@@ -1982,6 +2043,7 @@ export type Database = {
           id?: string
           location: string
           resident_id: string
+          review_date?: string | null
           side?: string | null
           status?: string
           updated_at?: string
@@ -1997,6 +2059,7 @@ export type Database = {
           id?: string
           location?: string
           resident_id?: string
+          review_date?: string | null
           side?: string | null
           status?: string
           updated_at?: string
