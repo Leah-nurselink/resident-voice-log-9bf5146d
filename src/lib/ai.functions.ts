@@ -33,6 +33,10 @@ const RISKS = [
   "falls","pressure","nutrition","moving_handling","continence",
   "medication","environmental","behavioural","mental_capacity","general",
 ] as const;
+const NOTE_CATEGORIES = [
+  "personal_care","nutrition","hydration","mobility","mood","behaviour",
+  "sleep","pain","skin","activities","clinical_observation","other",
+] as const;
 const FLAGS = [
   "fall","injury","bruising","refused_medication","weight_loss",
   "aggressive_behaviour","safeguarding","skin_breakdown","low_intake","unsteady",
@@ -90,6 +94,7 @@ export const structureNote = createServerFn({ method: "POST" })
     const schema = z.object({
       content: z.string().describe("Rewritten care note in professional UK care-sector language, 1-4 short sentences. No invented facts."),
       domain: z.enum(DOMAINS).nullable().describe("Single best-matching care plan domain, or null."),
+      category: z.enum(NOTE_CATEGORIES).describe("Short daily-note category that best describes this observation."),
       risks: z.array(z.enum(RISKS)).describe("Related risk assessments to update."),
       flags: z.array(z.enum(FLAGS)).describe("Incident/safeguarding flags detected in the note."),
     });
