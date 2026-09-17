@@ -33,6 +33,8 @@ const ICONS: Record<Event["kind"], React.ReactNode> = {
   wound: <Bandage className="h-3.5 w-3.5" />,
   alert: <AlertTriangle className="h-3.5 w-3.5" />,
   comm: <Phone className="h-3.5 w-3.5" />,
+  ai: <Sparkles className="h-3.5 w-3.5" />,
+  approval: <Check className="h-3.5 w-3.5" />,
 };
 
 const TONES: Record<Event["kind"], string> = {
