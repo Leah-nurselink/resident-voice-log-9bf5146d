@@ -16,7 +16,7 @@ import { ExplainPopover } from "@/components/ExplainPopover";
 type Event = {
   id: string;
   ts: string;
-  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm";
+  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm" | "ai" | "approval";
   title: string;
   detail?: string;
   full?: string;
