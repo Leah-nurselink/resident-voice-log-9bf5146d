@@ -537,7 +537,9 @@ function WoundPhotoHistory({ entries, woundId }: { entries: any[]; woundId: stri
         </div>
       </div>
       <p className="mt-0.5 text-xs text-muted-foreground">Newest first — tap a photo to view it full size and step back through earlier ones.</p>
-      {urls.length === 0 ? (
+      {items.length === 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">No photos yet — add one with the button above.</p>
+      ) : urls.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">Loading photos…</p>
       ) : (
         <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
