@@ -19,6 +19,7 @@ import { composeCommunication, sendCommunication, generateFamilySummary } from "
 import { transcribeAudio } from "@/lib/ai.functions";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { TaskBoard } from "@/components/TaskBoard";
 
 export const Route = createFileRoute("/_authenticated/communications")({
   head: () => ({ meta: [{ title: "Communications Hub · ForgeAI" }] }),
