@@ -46,11 +46,12 @@ function ReviewsPage() {
   const { data } = useQuery({
     queryKey: ["reviews-due"],
     queryFn: async () => {
-      const [plans, risks, consents, mca] = await Promise.all([
+      const [plans, risks, consents, mca, meds] = await Promise.all([
         supabase.from("care_plans").select("id, domain, last_review, resident_id, residents(full_name)"),
         supabase.from("risk_assessments").select("id, type, review_date, resident_id, residents(full_name)"),
         supabase.from("consents").select("id, consent_type, review_date, resident_id, residents(full_name)"),
         supabase.from("mca_assessments").select("id, decision, review_date, resident_id, residents(full_name)"),
+        supabase.from("medications").select("id, name, review_date, resident_id, residents(full_name)").eq("status", "active"),
       ]);
 
       const items: Item[] = [];
@@ -83,6 +84,14 @@ function ReviewsPage() {
         items.push({
           id: `mc-${m.id}`, residentId: m.resident_id, residentName: name(m.residents),
           type: "Capacity assessment", label: m.decision, due: m.review_date,
+        });
+      });
+
+      (meds.data ?? []).forEach((m) => {
+        if (!m.review_date) return;
+        items.push({
+          id: `md-${m.id}`, residentId: m.resident_id, residentName: name(m.residents),
+          type: "Medication", label: m.name, due: m.review_date,
         });
       });
 
