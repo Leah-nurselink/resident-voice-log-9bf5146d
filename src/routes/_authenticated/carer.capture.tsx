@@ -138,7 +138,9 @@ function CapturePage() {
     },
     onSuccess: (id) => {
       setLastSavedId(id);
-      toast.success("Note saved to resident record");
+      setPending(null);
+      setEditing(false);
+      toast.success("Note approved and saved to resident record");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
