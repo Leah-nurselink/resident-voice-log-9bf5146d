@@ -34,6 +34,7 @@ function severityFromScore(s: number) {
 export function PainTab({ residentId, residentName }: { residentId: string; residentName: string }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [responseFor, setResponseFor] = useState<any | null>(null);
 
   const assessments = useQuery({
     queryKey: ["pain", residentId],
