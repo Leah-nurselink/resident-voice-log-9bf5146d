@@ -39,12 +39,16 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, PermissionKey[]> = {
     "write_notes","approve_notes","complete_audits","manage_residents","view_analytics","raise_safeguarding",
   ],
   nurse: [
+    "edit_care_plans","edit_risk_assessments","edit_mca","edit_consent","manage_wounds",
+    "manage_medications","administer_medication",
+    "write_notes","approve_notes","complete_audits","manage_residents","view_analytics","raise_safeguarding",
+  ],
+  senior_carer: [
     "edit_care_plans","edit_risk_assessments","edit_mca","manage_wounds",
     "manage_medications","administer_medication",
-    "write_notes","approve_notes","complete_audits","raise_safeguarding",
+    "write_notes","approve_notes","complete_audits",
   ],
-  senior_carer: ["write_notes","approve_notes","complete_audits","manage_wounds","administer_medication","raise_safeguarding"],
-  carer: ["write_notes"],
+  carer: ["write_notes","approve_notes","manage_wounds"],
   md: ["edit_care_plans","edit_risk_assessments","write_notes","approve_notes","manage_medications"],
   family: [],
 };
