@@ -17,6 +17,8 @@ export const PERMISSIONS = [
   { key: "edit_mca", label: "Edit MCA assessments" },
   { key: "edit_consent", label: "Edit consent records" },
   { key: "manage_wounds", label: "Manage wound charts" },
+  { key: "manage_medications", label: "Add / edit medications" },
+  { key: "administer_medication", label: "Record medication given" },
   { key: "write_notes", label: "Write care notes" },
   { key: "approve_notes", label: "Approve care notes" },
   { key: "complete_audits", label: "Complete audits" },
@@ -33,14 +35,16 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, PermissionKey[]> = {
   admin: PERMISSIONS.map((p) => p.key),
   manager: [
     "edit_care_plans","edit_risk_assessments","edit_mca","edit_consent","manage_wounds",
+    "manage_medications","administer_medication",
     "write_notes","approve_notes","complete_audits","manage_residents","view_analytics","raise_safeguarding",
   ],
   nurse: [
     "edit_care_plans","edit_risk_assessments","edit_mca","manage_wounds",
+    "manage_medications","administer_medication",
     "write_notes","approve_notes","complete_audits","raise_safeguarding",
   ],
-  senior_carer: ["write_notes","approve_notes","complete_audits","manage_wounds","raise_safeguarding"],
+  senior_carer: ["write_notes","approve_notes","complete_audits","manage_wounds","administer_medication","raise_safeguarding"],
   carer: ["write_notes"],
-  md: ["edit_care_plans","edit_risk_assessments","write_notes","approve_notes"],
+  md: ["edit_care_plans","edit_risk_assessments","write_notes","approve_notes","manage_medications"],
   family: [],
 };
