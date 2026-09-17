@@ -207,6 +207,25 @@ function ResidentDetail() {
             ))}
           </div>
         )}
+        {(extra.allergies || (openAlerts.data?.length ?? 0) > 0) && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {extra.allergies && (
+              <Badge className="bg-destructive/15 text-destructive border-destructive/30">
+                <AlertTriangle className="mr-1 h-3 w-3" /> Allergies: {extra.allergies}
+              </Badge>
+            )}
+            {(openAlerts.data ?? []).map((a) => (
+              <Badge
+                key={a.id}
+                className={a.severity === "critical"
+                  ? "bg-destructive/15 text-destructive border-destructive/30"
+                  : "bg-warning/20 text-warning-foreground border-warning/40"}
+              >
+                <AlertTriangle className="mr-1 h-3 w-3" /> {a.message}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
