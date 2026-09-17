@@ -97,7 +97,7 @@ function ApprovalsPage() {
     <AppShell title="Clinical Approvals">
       <div className="mb-3 flex items-center gap-2 px-1">
         <ClipboardCheck className="h-4 w-4 text-primary" />
-        <p className="text-sm text-muted-foreground">Review AI-generated insights. Approve, reject, or apply to a care plan.</p>
+        <p className="text-sm text-muted-foreground">Review AI-generated insights. Approve, reject, or open the care plan to review it yourself — nothing is written into a care plan automatically.</p>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => { setTab(v); setSelected({}); }}>
