@@ -210,6 +210,7 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
           <div className="mt-1 text-xs text-muted-foreground">
             Noticed {format(new Date(wound.date_noticed), "d MMM yyyy")}
             {wound.date_healed ? ` · healed ${format(new Date(wound.date_healed), "d MMM yyyy")}` : ""}
+            {wound.review_date ? ` · review ${format(new Date(wound.review_date), "d MMM yyyy")}` : ""}
           </div>
           {wound.cause && <p className="mt-2 text-xs">{wound.cause}</p>}
           <div className="mt-2">
