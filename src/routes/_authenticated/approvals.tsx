@@ -13,7 +13,7 @@ import {
   bulkReviewRecommendations,
 } from "@/lib/approvals";
 import { toast } from "sonner";
-import { Check, X, FileText, Sparkles, ChevronRight, Telescope, Stethoscope, ShieldAlert, ClipboardCheck } from "lucide-react";
+import { Check, X, FileText, Sparkles, ChevronRight, Telescope, Stethoscope, ShieldAlert, ClipboardCheck, ClipboardList } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 
@@ -84,6 +84,26 @@ function ApprovalsPage() {
     mutationFn: (p: { ids: string[]; action: "approve" | "reject" }) =>
       bulkReviewRecommendations(p.ids, p.action),
     onSuccess: (_d, v) => { toast.success(`${v.ids.length} ${v.action}d`); invalidate(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const createTask = useMutation({
+    mutationFn: async (r: { id: string; title: string; detail: string | null; resident_id: string | null; severity: string }) => {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase.from("communication_tasks").insert({
+        resident_id: r.resident_id,
+        recommendation_id: r.id,
+        source: "ai_recommendation",
+        kind: "follow_up",
+        title: r.title.slice(0, 160),
+        detail: r.detail,
+        priority: r.severity === "critical" ? "urgent" : r.severity === "warning" ? "high" : "normal",
+        status: "open",
+        created_by: u.user?.id ?? null,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => toast.success("Task created — see the Tasks page to assign it"),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
@@ -210,6 +230,9 @@ function ApprovalsPage() {
                         </Link>
                       </Button>
                     )}
+                    <Button size="sm" variant="outline" onClick={() => createTask.mutate(r)} disabled={createTask.isPending}>
+                      <ClipboardList className="mr-1 h-3.5 w-3.5" />Create task
+                    </Button>
                   </div>
                 )}
                 {r.reviewed_at && (

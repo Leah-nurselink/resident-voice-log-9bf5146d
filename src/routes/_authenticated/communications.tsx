@@ -19,6 +19,7 @@ import { composeCommunication, sendCommunication, generateFamilySummary } from "
 import { transcribeAudio } from "@/lib/ai.functions";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { TaskBoard } from "@/components/TaskBoard";
 
 export const Route = createFileRoute("/_authenticated/communications")({
   head: () => ({ meta: [{ title: "Communications Hub · ForgeAI" }] }),
@@ -54,8 +55,11 @@ function Page() {
         </TabsList>
         <TabsContent value="compose"><ComposeTab /></TabsContent>
         <TabsContent value="outbound"><CommsList direction="outbound" /></TabsContent>
-        <TabsContent value="inbound"><CommsList direction="inbound" /></TabsContent>
-        <TabsContent value="tasks"><TasksList /></TabsContent>
+        <TabsContent value="inbound" className="space-y-4">
+          <InboundSetupCard />
+          <CommsList direction="inbound" />
+        </TabsContent>
+        <TabsContent value="tasks"><TaskBoard /></TabsContent>
       </Tabs>
     </AppShell>
   );
@@ -401,6 +405,42 @@ function FamilyShareControls({ comm, onChanged }: { comm: Comm; onChanged: () =>
         {!comm.family_share_consent && <span className="text-xs text-muted-foreground">Requires consent.</span>}
       </div>
       {comm.family_summary && <p className="mt-2 whitespace-pre-wrap rounded bg-muted/40 p-2 text-xs">{comm.family_summary}</p>}
+    </div>
+  );
+}
+
+// ---------------- Inbound setup ----------------
+function InboundSetupCard() {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const residents = useQuery({
+    queryKey: ["inbound-tokens"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("residents")
+        .select("id, full_name, inbound_token")
+        .order("full_name")
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <div className="rounded-xl border bg-card p-4 text-sm">
+      <p className="font-medium">How incoming email becomes an interaction</p>
+      <p className="mt-1 text-muted-foreground">
+        Point your mailbox provider at the address below. Every message received is written onto the resident's record, summarised,
+        and any actions it contains appear on the Tasks page.
+      </p>
+      <p className="mt-2 break-all rounded bg-muted/50 p-2 font-mono text-xs">{origin}/api/public/inbound-email</p>
+      <p className="mt-3 text-xs text-muted-foreground">
+        To make sure a message lands on the right resident, ask senders to use that resident's address tag:
+      </p>
+      <ul className="mt-1 space-y-0.5 text-xs">
+        {(residents.data ?? []).slice(0, 6).map((r) => (
+          <li key={r.id} className="font-mono">care+{r.inbound_token ?? "—"}@yourdomain.co.uk — {r.full_name}</li>
+        ))}
+      </ul>
     </div>
   );
 }

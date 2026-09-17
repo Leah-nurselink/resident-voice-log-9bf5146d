@@ -431,48 +431,57 @@ export type Database = {
       communication_tasks: {
         Row: {
           assigned_to: string | null
-          communication_id: string
+          communication_id: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
+          created_by: string | null
           detail: string | null
           due_date: string | null
           id: string
           kind: string
           priority: string
+          recommendation_id: string | null
           resident_id: string | null
+          source: string
           status: string
           title: string
           updated_at: string
         }
         Insert: {
           assigned_to?: string | null
-          communication_id: string
+          communication_id?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
+          created_by?: string | null
           detail?: string | null
           due_date?: string | null
           id?: string
           kind: string
           priority?: string
+          recommendation_id?: string | null
           resident_id?: string | null
+          source?: string
           status?: string
           title: string
           updated_at?: string
         }
         Update: {
           assigned_to?: string | null
-          communication_id?: string
+          communication_id?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
+          created_by?: string | null
           detail?: string | null
           due_date?: string | null
           id?: string
           kind?: string
           priority?: string
+          recommendation_id?: string | null
           resident_id?: string | null
+          source?: string
           status?: string
           title?: string
           updated_at?: string
@@ -483,6 +492,13 @@ export type Database = {
             columns: ["communication_id"]
             isOneToOne: false
             referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_tasks_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_recommendations"
             referencedColumns: ["id"]
           },
           {
