@@ -97,6 +97,10 @@ function CapturePage() {
     return Math.round(pct);
   }, [active]);
 
+  const [pending, setPending] = useState<StructuredNote | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState("");
+
   const saveNote = useMutation({
     mutationFn: async (n: StructuredNote) => {
       if (!active?.residentId) throw new Error("No active session");
