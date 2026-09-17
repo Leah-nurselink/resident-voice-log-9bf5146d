@@ -11,8 +11,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Heart, Home, Users, Stethoscope, Mic } from "lucide-react";
+import { Save, Heart, Home, Users, Stethoscope, Mic, Phone } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { ResidentPhoto } from "@/components/ResidentPhoto";
 
 
 export const DNACPR_OPTIONS = ["Not recorded", "For resuscitation", "DNACPR in place", "Under review"];
