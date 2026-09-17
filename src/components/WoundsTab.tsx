@@ -459,3 +459,80 @@ function PhotoGallery({ paths }: { paths: string[] }) {
     </>
   );
 }
+
+function WoundComparison({ entries }: { entries: any[] }) {
+  // entries arrive newest-first
+  const latest = entries[0];
+  const [compareId, setCompareId] = useState<string>(entries[entries.length - 1].id);
+  const earlier = entries.find((e) => e.id === compareId) ?? entries[entries.length - 1];
+
+  const area = (a: any) =>
+    a.length_cm != null && a.width_cm != null ? Number(a.length_cm) * Number(a.width_cm) : null;
+  const aNow = area(latest);
+  const aThen = area(earlier);
+  const change = aNow != null && aThen != null && aThen > 0 ? ((aNow - aThen) / aThen) * 100 : null;
+
+  const row = (label: string, then: any, now: any) => (
+    <div className="grid grid-cols-3 gap-2 border-t py-1.5 text-xs first:border-t-0">
+      <span className="text-muted-foreground">{label}</span>
+      <span>{then ?? "—"}</span>
+      <span className="font-medium">{now ?? "—"}</span>
+    </div>
+  );
+
+  return (
+    <div className="mt-3 rounded-xl border bg-card p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Compare over time</h3>
+        <Select value={compareId} onValueChange={setCompareId}>
+          <SelectTrigger className="h-8 w-44 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {entries.slice(1).map((e) => (
+              <SelectItem key={e.id} value={e.id} className="text-xs">
+                {format(new Date(e.assessed_at), "d MMM yyyy")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] font-medium text-muted-foreground">
+        <span />
+        <span>{format(new Date(earlier.assessed_at), "d MMM")}</span>
+        <span>{format(new Date(latest.assessed_at), "d MMM")} (latest)</span>
+      </div>
+      <div className="mt-1">
+        {row("Length (cm)", earlier.length_cm, latest.length_cm)}
+        {row("Width (cm)", earlier.width_cm, latest.width_cm)}
+        {row("Depth (cm)", earlier.depth_cm, latest.depth_cm)}
+        {row("Tissue", earlier.tissue_type, latest.tissue_type)}
+        {row("Exudate", earlier.exudate_amount, latest.exudate_amount)}
+        {row("Pain", earlier.pain_score != null ? `${earlier.pain_score}/10` : null, latest.pain_score != null ? `${latest.pain_score}/10` : null)}
+        {row("Dressing", earlier.dressing, latest.dressing)}
+      </div>
+
+      {change != null && (
+        <div className="mt-2 rounded-lg border bg-muted/30 p-2 text-xs">
+          Surface area has {change < 0 ? "reduced" : change > 0 ? "increased" : "stayed the same"}
+          {change !== 0 ? ` by ${Math.abs(change).toFixed(0)}%` : ""} between these two entries
+          ({aThen?.toFixed(1)} cm² → {aNow?.toFixed(1)} cm²).
+        </div>
+      )}
+
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <div>
+          <div className="text-[11px] text-muted-foreground">Earlier photos</div>
+          {Array.isArray(earlier.photos) && earlier.photos.length > 0
+            ? <PhotoGallery paths={(earlier.photos as unknown[]).filter((x): x is string => typeof x === "string")} />
+            : <p className="text-[11px] text-muted-foreground">None</p>}
+        </div>
+        <div>
+          <div className="text-[11px] text-muted-foreground">Latest photos</div>
+          {Array.isArray(latest.photos) && latest.photos.length > 0
+            ? <PhotoGallery paths={(latest.photos as unknown[]).filter((x): x is string => typeof x === "string")} />
+            : <p className="text-[11px] text-muted-foreground">None</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
