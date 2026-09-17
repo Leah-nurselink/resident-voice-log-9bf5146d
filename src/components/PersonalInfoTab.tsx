@@ -253,6 +253,31 @@ export function PersonalInfoTab({ resident }: Props) {
         </Grid>
       </Section>
 
+      <Section title="Emergency contact" icon={Phone}>
+        <p className="text-xs text-muted-foreground -mt-1 mb-2">Who to call first in an emergency, if different from next of kin.</p>
+        <Grid>
+          <Field label="Emergency contact name">
+            <Input value={form.emergency_contact_name ?? ""} onChange={(e) => set("emergency_contact_name", e.target.value)} />
+          </Field>
+          <Field label="Relationship">
+            <Input value={form.emergency_contact_relationship ?? ""} onChange={(e) => set("emergency_contact_relationship", e.target.value)} placeholder="Daughter, Friend, Social worker..." />
+          </Field>
+          <Field label="Emergency telephone">
+            <Input
+              type="tel"
+              inputMode="tel"
+              value={form.emergency_contact_phone ?? ""}
+              onChange={(e) => set("emergency_contact_phone", e.target.value)}
+              placeholder="07123 456789 or +44 7123 456789"
+              aria-invalid={!isValidPhone(form.emergency_contact_phone)}
+              className={!isValidPhone(form.emergency_contact_phone) ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {!isValidPhone(form.emergency_contact_phone) && (
+              <p className="text-[11px] text-destructive">Enter a valid UK or international phone number.</p>
+            )}
+          </Field>
+        </Grid>
+      </Section>
 
       <Section title="Recording & transcription consent" icon={Mic}>
         <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 p-3">
