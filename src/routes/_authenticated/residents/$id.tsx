@@ -171,11 +171,16 @@ function ResidentDetail() {
     <AppShell title={r.full_name}>
       <div className="rounded-2xl border bg-card p-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-14 w-14 place-items-center rounded-full bg-secondary text-lg font-medium text-secondary-foreground">{initials}</div>
+          <ResidentPhoto residentId={id} path={extra.photo_url} initials={initials} size="sm" />
           <div className="flex-1">
-            <div className="font-medium">{r.full_name}</div>
+            <div className="font-medium">
+              {r.full_name}
+              {extra.preferred_name ? <span className="text-muted-foreground"> (“{extra.preferred_name}”)</span> : null}
+            </div>
             <div className="text-xs text-muted-foreground">
+              {extra.resident_ref ? `${extra.resident_ref} · ` : ""}
               {r.room_number ? `Room ${r.room_number} · ` : ""}{r.date_of_birth ? `DOB ${format(new Date(r.date_of_birth), "d MMM yyyy")}` : "DOB not set"}
+              {extra.residency_status ? ` · ${extra.residency_status}` : ""}
             </div>
           </div>
           <Button size="sm" variant="outline" onClick={() => setActiveTab("profile")} className="gap-1.5">
