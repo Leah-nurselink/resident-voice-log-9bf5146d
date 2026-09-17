@@ -13,7 +13,7 @@ import {
   bulkReviewRecommendations,
 } from "@/lib/approvals";
 import { toast } from "sonner";
-import { Check, X, FileText, Sparkles, ChevronRight, Telescope, Stethoscope, ShieldAlert, ClipboardCheck } from "lucide-react";
+import { Check, X, FileText, Sparkles, ChevronRight, Telescope, Stethoscope, ShieldAlert, ClipboardCheck, ClipboardList } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 
