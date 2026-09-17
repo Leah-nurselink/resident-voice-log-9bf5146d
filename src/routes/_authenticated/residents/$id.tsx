@@ -166,6 +166,7 @@ function ResidentDetail() {
   if (!resident.data) return <AppShell title="Loading…"><div /></AppShell>;
   const r = resident.data;
   const initials = r.full_name.split(" ").map((s: string) => s[0]).slice(0, 2).join("");
+  const extra = r as unknown as Record<string, string | null>;
 
   return (
     <AppShell title={r.full_name}>
