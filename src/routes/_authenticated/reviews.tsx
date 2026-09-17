@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, FileText, Shield, FileSignature, Brain } from "lucide-react";
+import { CalendarClock, FileText, Shield, FileSignature, Brain, Pill } from "lucide-react";
 import { format, differenceInCalendarDays, addDays } from "date-fns";
 import { domainLabel, riskLabel, type CarePlanDomain, type RiskType } from "@/lib/care-domains";
 
@@ -27,7 +27,7 @@ type Item = {
   id: string;
   residentId: string;
   residentName: string;
-  type: "Care plan" | "Risk assessment" | "Consent" | "Capacity assessment";
+  type: "Care plan" | "Risk assessment" | "Consent" | "Capacity assessment" | "Medication";
   label: string;
   due: string; // yyyy-mm-dd
 };
@@ -37,6 +37,7 @@ const ICON: Record<Item["type"], React.ReactNode> = {
   "Risk assessment": <Shield className="h-3.5 w-3.5" />,
   Consent: <FileSignature className="h-3.5 w-3.5" />,
   "Capacity assessment": <Brain className="h-3.5 w-3.5" />,
+  Medication: <Pill className="h-3.5 w-3.5" />,
 };
 
 const CARE_PLAN_REVIEW_DAYS = 90;
@@ -45,11 +46,12 @@ function ReviewsPage() {
   const { data } = useQuery({
     queryKey: ["reviews-due"],
     queryFn: async () => {
-      const [plans, risks, consents, mca] = await Promise.all([
+      const [plans, risks, consents, mca, meds] = await Promise.all([
         supabase.from("care_plans").select("id, domain, last_review, resident_id, residents(full_name)"),
         supabase.from("risk_assessments").select("id, type, review_date, resident_id, residents(full_name)"),
         supabase.from("consents").select("id, consent_type, review_date, resident_id, residents(full_name)"),
         supabase.from("mca_assessments").select("id, decision, review_date, resident_id, residents(full_name)"),
+        supabase.from("medications").select("id, name, review_date, resident_id, residents(full_name)").eq("status", "active"),
       ]);
 
       const items: Item[] = [];
@@ -82,6 +84,14 @@ function ReviewsPage() {
         items.push({
           id: `mc-${m.id}`, residentId: m.resident_id, residentName: name(m.residents),
           type: "Capacity assessment", label: m.decision, due: m.review_date,
+        });
+      });
+
+      (meds.data ?? []).forEach((m) => {
+        if (!m.review_date) return;
+        items.push({
+          id: `md-${m.id}`, residentId: m.resident_id, residentName: name(m.residents),
+          type: "Medication", label: m.name, due: m.review_date,
         });
       });
 

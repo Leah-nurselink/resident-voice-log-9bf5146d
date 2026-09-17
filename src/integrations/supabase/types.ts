@@ -1039,6 +1039,167 @@ export type Database = {
           },
         ]
       }
+      medication_administrations: {
+        Row: {
+          action_taken: string | null
+          administered_at: string
+          administered_by: string | null
+          created_at: string
+          dose_given: string | null
+          effectiveness: string | null
+          effectiveness_at: string | null
+          id: string
+          medication_id: string
+          notes: string | null
+          reason: string | null
+          resident_id: string
+          scheduled_date: string
+          scheduled_time: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_taken?: string | null
+          administered_at?: string
+          administered_by?: string | null
+          created_at?: string
+          dose_given?: string | null
+          effectiveness?: string | null
+          effectiveness_at?: string | null
+          id?: string
+          medication_id: string
+          notes?: string | null
+          reason?: string | null
+          resident_id: string
+          scheduled_date?: string
+          scheduled_time?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          action_taken?: string | null
+          administered_at?: string
+          administered_by?: string | null
+          created_at?: string
+          dose_given?: string | null
+          effectiveness?: string | null
+          effectiveness_at?: string | null
+          id?: string
+          medication_id?: string
+          notes?: string | null
+          reason?: string | null
+          resident_id?: string
+          scheduled_date?: string
+          scheduled_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_administrations_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_administrations_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medications: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          days_of_week: number[]
+          dose: string | null
+          end_date: string | null
+          form: string | null
+          frequency_text: string | null
+          id: string
+          indication: string | null
+          instructions: string | null
+          is_prn: boolean
+          name: string
+          notes: string | null
+          prescriber: string | null
+          prn_indication: string | null
+          prn_max_doses_24h: number | null
+          prn_min_interval_minutes: number | null
+          resident_id: string
+          review_date: string | null
+          route: string | null
+          start_date: string | null
+          status: string
+          times: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[]
+          dose?: string | null
+          end_date?: string | null
+          form?: string | null
+          frequency_text?: string | null
+          id?: string
+          indication?: string | null
+          instructions?: string | null
+          is_prn?: boolean
+          name: string
+          notes?: string | null
+          prescriber?: string | null
+          prn_indication?: string | null
+          prn_max_doses_24h?: number | null
+          prn_min_interval_minutes?: number | null
+          resident_id: string
+          review_date?: string | null
+          route?: string | null
+          start_date?: string | null
+          status?: string
+          times?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[]
+          dose?: string | null
+          end_date?: string | null
+          form?: string | null
+          frequency_text?: string | null
+          id?: string
+          indication?: string | null
+          instructions?: string | null
+          is_prn?: boolean
+          name?: string
+          notes?: string | null
+          prescriber?: string | null
+          prn_indication?: string | null
+          prn_max_doses_24h?: number | null
+          prn_min_interval_minutes?: number | null
+          resident_id?: string
+          review_date?: string | null
+          route?: string | null
+          start_date?: string | null
+          status?: string
+          times?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           email_address: string | null

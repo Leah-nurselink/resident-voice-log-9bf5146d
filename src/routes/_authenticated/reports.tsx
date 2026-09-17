@@ -32,7 +32,7 @@ function useMetrics() {
       const today = new Date().toISOString().slice(0, 10);
       const count = (q: { count: number | null }) => q.count ?? 0;
 
-      const [notes, drafts, openAlerts, pendingRecs, openTasks, comms, consentsPending, mcaDue, plans] = await Promise.all([
+      const [notes, drafts, openAlerts, pendingRecs, openTasks, comms, consentsPending, mcaDue, plans, medsGiven, medsNotGiven, medsReviewDue] = await Promise.all([
         supabase.from("daily_notes").select("id", { count: "exact", head: true }).gte("created_at", since),
         supabase.from("daily_notes").select("id", { count: "exact", head: true }).eq("status", "draft"),
         supabase.from("alerts").select("id", { count: "exact", head: true }).eq("resolved", false),
@@ -42,6 +42,9 @@ function useMetrics() {
         supabase.from("consents").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("mca_assessments").select("id", { count: "exact", head: true }).lte("review_date", today),
         supabase.from("care_plans").select("id", { count: "exact", head: true }),
+        supabase.from("medication_administrations").select("id", { count: "exact", head: true }).eq("status", "given").gte("administered_at", since),
+        supabase.from("medication_administrations").select("id", { count: "exact", head: true }).in("status", ["refused", "omitted", "not_available"]).gte("administered_at", since),
+        supabase.from("medications").select("id", { count: "exact", head: true }).eq("status", "active").lte("review_date", today),
       ]);
 
       const quality: Metric[] = [
@@ -49,6 +52,8 @@ function useMetrics() {
         { label: "Notes awaiting approval", value: count(drafts), hint: "Drafts not yet approved by staff", to: "/notes" },
         { label: "Unresolved alerts", value: count(openAlerts), hint: "Open the alerts list", to: "/alerts" },
         { label: "AI insights awaiting review", value: count(pendingRecs), hint: "Open the approvals queue", to: "/approvals" },
+        { label: "Doses given (30 days)", value: count(medsGiven), hint: "Open today's medication round", to: "/medication-round" },
+        { label: "Doses refused, omitted or unavailable", value: count(medsNotGiven), hint: "Open today's medication round", to: "/medication-round" },
       ];
       const governance: Metric[] = [
         { label: "Open actions", value: count(openTasks), hint: "Open the tasks board", to: "/tasks" },
@@ -56,6 +61,7 @@ function useMetrics() {
         { label: "Consents pending", value: count(consentsPending), hint: "Open reviews due", to: "/reviews" },
         { label: "Capacity reviews due", value: count(mcaDue), hint: "Open reviews due", to: "/reviews" },
         { label: "Care plans in place", value: count(plans), hint: "Open care plans", to: "/care-plans" },
+        { label: "Medication reviews due", value: count(medsReviewDue), hint: "Open reviews due", to: "/reviews" },
       ];
       return { quality, governance };
     },

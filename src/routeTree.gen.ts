@@ -30,6 +30,7 @@ import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
 import { Route as AuthenticatedIncidentReviewRouteImport } from './routes/_authenticated/incident-review'
 import { Route as AuthenticatedIntelligenceRouteImport } from './routes/_authenticated/intelligence'
+import { Route as AuthenticatedMedicationRoundRouteImport } from './routes/_authenticated/medication-round'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
 import { Route as AuthenticatedProfessionalsRouteImport } from './routes/_authenticated/professionals'
 import { Route as AuthenticatedRegulatoryRouteImport } from './routes/_authenticated/regulatory'
@@ -154,6 +155,12 @@ const AuthenticatedIntelligenceRoute =
     path: '/intelligence',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMedicationRoundRoute =
+  AuthenticatedMedicationRoundRouteImport.update({
+    id: '/medication-round',
+    path: '/medication-round',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNotesRoute = AuthenticatedNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -257,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/feedback': typeof AuthenticatedFeedbackRoute
   '/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
+  '/medication-round': typeof AuthenticatedMedicationRoundRoute
   '/notes': typeof AuthenticatedNotesRoute
   '/professionals': typeof AuthenticatedProfessionalsRoute
   '/regulatory': typeof AuthenticatedRegulatoryRoute
@@ -293,6 +301,7 @@ export interface FileRoutesByTo {
   '/feedback': typeof AuthenticatedFeedbackRoute
   '/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
+  '/medication-round': typeof AuthenticatedMedicationRoundRoute
   '/notes': typeof AuthenticatedNotesRoute
   '/professionals': typeof AuthenticatedProfessionalsRoute
   '/regulatory': typeof AuthenticatedRegulatoryRoute
@@ -332,6 +341,7 @@ export interface FileRoutesById {
   '/_authenticated/feedback': typeof AuthenticatedFeedbackRoute
   '/_authenticated/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/_authenticated/intelligence': typeof AuthenticatedIntelligenceRoute
+  '/_authenticated/medication-round': typeof AuthenticatedMedicationRoundRoute
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
   '/_authenticated/professionals': typeof AuthenticatedProfessionalsRoute
   '/_authenticated/regulatory': typeof AuthenticatedRegulatoryRoute
@@ -371,6 +381,7 @@ export interface FileRouteTypes {
     | '/feedback'
     | '/incident-review'
     | '/intelligence'
+    | '/medication-round'
     | '/notes'
     | '/professionals'
     | '/regulatory'
@@ -407,6 +418,7 @@ export interface FileRouteTypes {
     | '/feedback'
     | '/incident-review'
     | '/intelligence'
+    | '/medication-round'
     | '/notes'
     | '/professionals'
     | '/regulatory'
@@ -445,6 +457,7 @@ export interface FileRouteTypes {
     | '/_authenticated/feedback'
     | '/_authenticated/incident-review'
     | '/_authenticated/intelligence'
+    | '/_authenticated/medication-round'
     | '/_authenticated/notes'
     | '/_authenticated/professionals'
     | '/_authenticated/regulatory'
@@ -621,6 +634,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIntelligenceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/medication-round': {
+      id: '/_authenticated/medication-round'
+      path: '/medication-round'
+      fullPath: '/medication-round'
+      preLoaderRoute: typeof AuthenticatedMedicationRoundRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/notes': {
       id: '/_authenticated/notes'
       path: '/notes'
@@ -761,6 +781,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFeedbackRoute: typeof AuthenticatedFeedbackRoute
   AuthenticatedIncidentReviewRoute: typeof AuthenticatedIncidentReviewRoute
   AuthenticatedIntelligenceRoute: typeof AuthenticatedIntelligenceRoute
+  AuthenticatedMedicationRoundRoute: typeof AuthenticatedMedicationRoundRoute
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
   AuthenticatedProfessionalsRoute: typeof AuthenticatedProfessionalsRoute
   AuthenticatedRegulatoryRoute: typeof AuthenticatedRegulatoryRoute
@@ -791,6 +812,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFeedbackRoute: AuthenticatedFeedbackRoute,
   AuthenticatedIncidentReviewRoute: AuthenticatedIncidentReviewRoute,
   AuthenticatedIntelligenceRoute: AuthenticatedIntelligenceRoute,
+  AuthenticatedMedicationRoundRoute: AuthenticatedMedicationRoundRoute,
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
   AuthenticatedProfessionalsRoute: AuthenticatedProfessionalsRoute,
   AuthenticatedRegulatoryRoute: AuthenticatedRegulatoryRoute,

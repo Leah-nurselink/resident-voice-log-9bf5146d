@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { format, formatDistanceToNow } from "date-fns";
 import {
   FileText, Sparkles, Shield, Brain, FileSignature, AlertTriangle,
-  Radio, Activity, Heart, Bandage, Telescope, Phone, Maximize2, Check,
+  Radio, Activity, Heart, Bandage, Telescope, Phone, Maximize2, Check, Pill,
 } from "lucide-react";
 import { domainLabel, riskLabel, type RiskType, type CarePlanDomain } from "@/lib/care-domains";
 import { analyseResident } from "@/lib/care-intelligence";
@@ -16,7 +16,7 @@ import { ExplainPopover } from "@/components/ExplainPopover";
 type Event = {
   id: string;
   ts: string;
-  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm" | "ai" | "approval";
+  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm" | "ai" | "approval" | "med";
   title: string;
   detail?: string;
   full?: string;
@@ -35,6 +35,7 @@ const ICONS: Record<Event["kind"], React.ReactNode> = {
   comm: <Phone className="h-3.5 w-3.5" />,
   ai: <Sparkles className="h-3.5 w-3.5" />,
   approval: <Check className="h-3.5 w-3.5" />,
+  med: <Pill className="h-3.5 w-3.5" />,
 };
 
 const TONES: Record<Event["kind"], string> = {
@@ -49,13 +50,14 @@ const TONES: Record<Event["kind"], string> = {
   comm: "bg-teal-500/15 text-teal-600",
   ai: "bg-indigo-500/15 text-indigo-600",
   approval: "bg-emerald-500/15 text-emerald-700",
+  med: "bg-fuchsia-500/15 text-fuchsia-600",
 };
 
 export function ResidentTimeline({ residentId }: { residentId: string }) {
   const { data } = useQuery({
     queryKey: ["timeline", residentId],
     queryFn: async () => {
-      const [notes, sessions, plans, risks, consents, mca, wounds, alerts, comms, notesAll, plansAll, recs] = await Promise.all([
+      const [notes, sessions, plans, risks, consents, mca, wounds, alerts, comms, notesAll, plansAll, recs, medAdmins] = await Promise.all([
         supabase.from("daily_notes").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(50),
         supabase.from("care_sessions").select("*").eq("resident_id", residentId).order("started_at", { ascending: false }).limit(20),
         supabase.from("care_plan_history").select("*").eq("resident_id", residentId).order("changed_at", { ascending: false }).limit(20),
@@ -68,6 +70,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         supabase.from("daily_notes").select("id,created_at,content,domain,risks,flags").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(400),
         supabase.from("care_plans").select("id,domain,updated_at").eq("resident_id", residentId),
         supabase.from("ai_recommendations").select("id,title,detail,kind,domain,status,created_at,reviewed_at").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(30),
+        supabase.from("medication_administrations").select("id,status,reason,action_taken,dose_given,administered_at,scheduled_time,medications(name,dose,is_prn)").eq("resident_id", residentId).order("administered_at", { ascending: false }).limit(60),
       ]);
 
       const events: Event[] = [];
@@ -167,6 +170,21 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
           id: `na-${n.id}`, ts: n.updated_at ?? n.created_at, kind: "approval",
           title: "Staff approved documentation",
           detail: n.content,
+        });
+      });
+
+      (medAdmins.data ?? []).forEach((a) => {
+        const med = (a as { medications?: { name?: string; dose?: string | null; is_prn?: boolean } | null }).medications;
+        const label = a.status.replace(/_/g, " ");
+        events.push({
+          id: `md-${a.id}`, ts: a.administered_at, kind: "med",
+          title: `Medication ${label} · ${med?.name ?? "medication"}`,
+          detail: [
+            med?.is_prn ? "As required" : a.scheduled_time ? `Due ${String(a.scheduled_time).slice(0, 5)}` : null,
+            a.dose_given ? `Dose ${a.dose_given}` : null,
+            a.reason ? `Reason: ${a.reason}` : null,
+            a.action_taken ? `Action: ${a.action_taken}` : null,
+          ].filter(Boolean).join(" · ") || undefined,
         });
       });
 
