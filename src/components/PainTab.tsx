@@ -142,6 +142,16 @@ export function PainTab({ residentId, residentName }: { residentId: string; resi
           qc.invalidateQueries({ queryKey: ["pain", residentId] });
         }} />
       )}
+
+      {responseFor && (
+        <ResponseDialog
+          assessment={responseFor}
+          onClose={() => {
+            setResponseFor(null);
+            qc.invalidateQueries({ queryKey: ["pain", residentId] });
+          }}
+        />
+      )}
     </div>
   );
 }
