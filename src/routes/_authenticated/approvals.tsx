@@ -91,11 +91,6 @@ function ApprovalsPage() {
     () => Object.entries(selected).filter(([, v]) => v).map(([k]) => k),
     [selected],
   );
-  const selectedCareGaps = useMemo(
-    () => (data ?? []).filter((r) => selected[r.id] && r.kind === "care_gap" && r.domain && r.resident_id)
-      .map((r) => ({ id: r.id, resident_id: r.resident_id, domain: r.domain, title: r.title, detail: r.detail })),
-    [data, selected],
-  );
 
 
   return (
