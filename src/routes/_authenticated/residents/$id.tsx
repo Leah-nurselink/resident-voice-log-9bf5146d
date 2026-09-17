@@ -26,7 +26,7 @@ import {
 import { useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
-import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone, Printer, CalendarClock, UserCog } from "lucide-react";
+import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, FileText, Phone, Printer, CalendarClock, UserCog } from "lucide-react";
 import { ResidentPhoto } from "@/components/ResidentPhoto";
 import { CallRecorder } from "@/components/CallRecorder";
 import { CommunicationsTab } from "@/components/CommunicationsTab";
@@ -463,12 +463,29 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
     },
   });
 
+  // Approved interactions in this care area that feed the plan.
+  const supporting = useQuery({
+    queryKey: ["plan-interactions", residentId, domain],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("daily_notes")
+        .select("id, created_at, content, status")
+        .eq("resident_id", residentId).eq("domain", domain).eq("status", "approved")
+        .order("created_at", { ascending: false }).limit(10);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const sinceReview = (supporting.data ?? []).filter(
+    (n) => !existing?.last_review || new Date(n.created_at) > new Date(existing.last_review),
+  );
+
   const save = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrideReview?: string) => {
       const { data: u } = await supabase.auth.getUser();
       const { error } = await supabase.from("care_plans").upsert({
         resident_id: residentId, domain, needs, risks: risksTxt, outcome, content,
-        last_review: reviewDate, updated_by: u.user!.id,
+        last_review: overrideReview ?? reviewDate, updated_by: u.user!.id,
       }, { onConflict: "resident_id,domain" });
       if (error) throw error;
     },
@@ -530,6 +547,32 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
           </div>
         )}
 
+        {(supporting.data?.length ?? 0) > 0 && (
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <FileText className="h-3.5 w-3.5 text-primary" />Supporting interactions
+            </div>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              {sinceReview.length > 0
+                ? `${sinceReview.length} approved interaction${sinceReview.length === 1 ? "" : "s"} since the last review.`
+                : "No new interactions since the last review."}
+            </p>
+            <ul className="space-y-1.5">
+              {(supporting.data ?? []).slice(0, 5).map((n) => (
+                <li key={n.id} className="flex items-start justify-between gap-2 text-xs">
+                  <span className="min-w-0">
+                    <span className="font-medium">{format(new Date(n.created_at), "d MMM")}</span> — {n.content.slice(0, 120)}
+                  </span>
+                  <Button size="sm" variant="ghost" className="h-6 shrink-0 text-[11px]"
+                    onClick={() => { setContent((c: string) => (c ? c + "\n\n" : "") + `From interaction ${format(new Date(n.created_at), "d MMM yyyy")}:\n${n.content}`); toast.success("Pulled into plan"); }}>
+                    Pull in
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="space-y-3">
           <Field label="Need" value={needs} onChange={setNeeds} placeholder="What support does the resident need?" />
           <Field label="Risk" value={risksTxt} onChange={setRisksTxt} placeholder="What could go wrong?" />
@@ -551,9 +594,16 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
           )} />
         )}
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>Update</Button>
+          <Button
+            variant="outline"
+            onClick={() => { const today = new Date().toISOString().slice(0, 10); setReviewDate(today); save.mutate(today); }}
+            disabled={save.isPending}
+          >
+            Mark as reviewed
+          </Button>
+          <Button onClick={() => save.mutate(undefined)} disabled={save.isPending}>Update</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

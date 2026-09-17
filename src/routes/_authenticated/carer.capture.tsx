@@ -24,7 +24,7 @@ import {
   subscribeSessionManager,
   type SessionManagerState,
 } from "@/lib/ble-session-manager";
-import type { CarePlanDomain, RiskType } from "@/lib/care-domains";
+import { domainLabel, type CarePlanDomain, type RiskType } from "@/lib/care-domains";
 import { Link } from "@tanstack/react-router";
 import { isNativeShell } from "@/lib/surface";
 
@@ -51,6 +51,7 @@ function CapturePage() {
   const [residents, setResidents] = useState<Map<string, string>>(new Map());
   const [rooms, setRooms] = useState<Map<string, string>>(new Map());
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
+  const [savedDomain, setSavedDomain] = useState<string | null>(null);
 
   // Kick off scanner + session manager on mount
   useEffect(() => {
@@ -137,8 +138,9 @@ function CapturePage() {
       }
       return inserted?.id as string;
     },
-    onSuccess: (id) => {
+    onSuccess: (id, n) => {
       setLastSavedId(id);
+      setSavedDomain(n.domain || null);
       setPending(null);
       setEditing(false);
       toast.success("Note approved and saved to resident record");
@@ -277,6 +279,26 @@ function CapturePage() {
             <Button asChild size="sm" variant="ghost">
               <Link to="/notes">View</Link>
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {lastSavedId && savedDomain && active?.residentId && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="space-y-2 p-3">
+            <p className="text-sm">
+              This approved information may be relevant to the{" "}
+              <span className="font-semibold">{domainLabel(savedDomain as CarePlanDomain)}</span> care plan.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Nothing has been changed — a person decides whether the plan needs updating.
+            </p>
+            <div className="flex gap-2">
+              <Button asChild size="sm">
+                <Link to="/residents/$id" params={{ id: active.residentId }}>Review care plan</Link>
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSavedDomain(null)}>Not now</Button>
+            </div>
           </CardContent>
         </Card>
       )}

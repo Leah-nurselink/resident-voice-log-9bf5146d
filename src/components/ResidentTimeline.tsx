@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { format, formatDistanceToNow } from "date-fns";
 import {
   FileText, Sparkles, Shield, Brain, FileSignature, AlertTriangle,
-  Radio, Activity, Heart, Bandage, Telescope, Phone, Maximize2,
+  Radio, Activity, Heart, Bandage, Telescope, Phone, Maximize2, Check,
 } from "lucide-react";
 import { domainLabel, riskLabel, type RiskType, type CarePlanDomain } from "@/lib/care-domains";
 import { analyseResident } from "@/lib/care-intelligence";
@@ -16,7 +16,7 @@ import { ExplainPopover } from "@/components/ExplainPopover";
 type Event = {
   id: string;
   ts: string;
-  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm";
+  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm" | "ai" | "approval";
   title: string;
   detail?: string;
   full?: string;
@@ -33,6 +33,8 @@ const ICONS: Record<Event["kind"], React.ReactNode> = {
   wound: <Bandage className="h-3.5 w-3.5" />,
   alert: <AlertTriangle className="h-3.5 w-3.5" />,
   comm: <Phone className="h-3.5 w-3.5" />,
+  ai: <Sparkles className="h-3.5 w-3.5" />,
+  approval: <Check className="h-3.5 w-3.5" />,
 };
 
 const TONES: Record<Event["kind"], string> = {
@@ -45,13 +47,15 @@ const TONES: Record<Event["kind"], string> = {
   wound: "bg-rose-500/15 text-rose-600",
   alert: "bg-destructive/15 text-destructive",
   comm: "bg-teal-500/15 text-teal-600",
+  ai: "bg-indigo-500/15 text-indigo-600",
+  approval: "bg-emerald-500/15 text-emerald-700",
 };
 
 export function ResidentTimeline({ residentId }: { residentId: string }) {
   const { data } = useQuery({
     queryKey: ["timeline", residentId],
     queryFn: async () => {
-      const [notes, sessions, plans, risks, consents, mca, wounds, alerts, comms, notesAll, plansAll] = await Promise.all([
+      const [notes, sessions, plans, risks, consents, mca, wounds, alerts, comms, notesAll, plansAll, recs] = await Promise.all([
         supabase.from("daily_notes").select("*").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(50),
         supabase.from("care_sessions").select("*").eq("resident_id", residentId).order("started_at", { ascending: false }).limit(20),
         supabase.from("care_plan_history").select("*").eq("resident_id", residentId).order("changed_at", { ascending: false }).limit(20),
@@ -63,6 +67,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         supabase.from("communications").select("id,channel,direction,subject,body,ai_summary,recipient_name,sender_name,created_at,metadata").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(30),
         supabase.from("daily_notes").select("id,created_at,content,domain,risks,flags").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(400),
         supabase.from("care_plans").select("id,domain,updated_at").eq("resident_id", residentId),
+        supabase.from("ai_recommendations").select("id,title,detail,kind,domain,status,created_at,reviewed_at").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(30),
       ]);
 
       const events: Event[] = [];
@@ -139,6 +144,29 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
           meta: (
             <Badge variant="outline" className="text-[10px] capitalize">{c.direction}</Badge>
           ),
+        });
+      });
+
+      (recs.data ?? []).forEach((r) => {
+        events.push({
+          id: `ai-${r.id}`, ts: r.created_at, kind: "ai",
+          title: "AI identified potential change",
+          detail: r.detail ?? r.title,
+          meta: r.domain ? <Badge variant="outline" className="text-[10px]">{domainLabel(r.domain as CarePlanDomain)}</Badge> : undefined,
+        });
+        if (r.reviewed_at && r.status !== "pending") {
+          events.push({
+            id: `aiR-${r.id}`, ts: r.reviewed_at, kind: "approval",
+            title: r.status === "rejected" ? "Staff rejected AI suggestion" : "Staff approved documentation",
+            detail: r.title,
+          });
+        }
+      });
+      (notes.data ?? []).filter((n) => n.status === "approved").forEach((n) => {
+        events.push({
+          id: `na-${n.id}`, ts: n.updated_at ?? n.created_at, kind: "approval",
+          title: "Staff approved documentation",
+          detail: n.content,
         });
       });
 

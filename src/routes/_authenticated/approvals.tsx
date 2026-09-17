@@ -9,8 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ExplainPopover } from "@/components/ExplainPopover";
 import {
-  reviewRecommendation, applyCareGapToCarePlan,
-  bulkReviewRecommendations, bulkApplyCareGaps,
+  reviewRecommendation,
+  bulkReviewRecommendations,
 } from "@/lib/approvals";
 import { toast } from "sonner";
 import { Check, X, FileText, Sparkles, ChevronRight, Telescope, Stethoscope, ShieldAlert, ClipboardCheck } from "lucide-react";
@@ -80,20 +80,10 @@ function ApprovalsPage() {
     onSuccess: () => { toast.success("Rejected"); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
-  const apply = useMutation({
-    mutationFn: (rec: Parameters<typeof applyCareGapToCarePlan>[0]) => applyCareGapToCarePlan(rec),
-    onSuccess: () => { toast.success("Applied to care plan"); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
   const bulkReview = useMutation({
     mutationFn: (p: { ids: string[]; action: "approve" | "reject" }) =>
       bulkReviewRecommendations(p.ids, p.action),
     onSuccess: (_d, v) => { toast.success(`${v.ids.length} ${v.action}d`); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-  const bulkApply = useMutation({
-    mutationFn: (recs: Parameters<typeof bulkApplyCareGaps>[0]) => bulkApplyCareGaps(recs),
-    onSuccess: (n) => { toast.success(`Applied ${n} care gap${n === 1 ? "" : "s"}`); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
@@ -101,18 +91,13 @@ function ApprovalsPage() {
     () => Object.entries(selected).filter(([, v]) => v).map(([k]) => k),
     [selected],
   );
-  const selectedCareGaps = useMemo(
-    () => (data ?? []).filter((r) => selected[r.id] && r.kind === "care_gap" && r.domain && r.resident_id)
-      .map((r) => ({ id: r.id, resident_id: r.resident_id, domain: r.domain, title: r.title, detail: r.detail })),
-    [data, selected],
-  );
 
 
   return (
     <AppShell title="Clinical Approvals">
       <div className="mb-3 flex items-center gap-2 px-1">
         <ClipboardCheck className="h-4 w-4 text-primary" />
-        <p className="text-sm text-muted-foreground">Review AI-generated insights. Approve, reject, or apply to a care plan.</p>
+        <p className="text-sm text-muted-foreground">Review AI-generated insights. Approve, reject, or open the care plan to review it yourself — nothing is written into a care plan automatically.</p>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => { setTab(v); setSelected({}); }}>
@@ -141,10 +126,6 @@ function ApprovalsPage() {
               </Button>
               <Button size="sm" variant="outline" onClick={() => bulkReview.mutate({ ids: selectedIds, action: "reject" })} disabled={!selectedIds.length || bulkReview.isPending}>
                 <X className="mr-1 h-3.5 w-3.5" />Reject
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => bulkApply.mutate(selectedCareGaps)} disabled={!selectedCareGaps.length || bulkApply.isPending}>
-                <FileText className="mr-1 h-3.5 w-3.5" />
-                Apply {selectedCareGaps.length || ""} care gap{selectedCareGaps.length === 1 ? "" : "s"}
               </Button>
             </div>
           </div>
@@ -223,16 +204,10 @@ function ApprovalsPage() {
                       <X className="mr-1 h-3.5 w-3.5" />Reject
                     </Button>
                     {r.kind === "care_gap" && r.domain && r.resident_id && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => apply.mutate({
-                          id: r.id, resident_id: r.resident_id, domain: r.domain,
-                          title: r.title, detail: r.detail,
-                        })}
-                        disabled={apply.isPending}
-                      >
-                        <FileText className="mr-1 h-3.5 w-3.5" />Apply to care plan
+                      <Button asChild size="sm" variant="secondary">
+                        <Link to="/residents/$id" params={{ id: r.resident_id }}>
+                          <FileText className="mr-1 h-3.5 w-3.5" />Review care plan
+                        </Link>
                       </Button>
                     )}
                   </div>
