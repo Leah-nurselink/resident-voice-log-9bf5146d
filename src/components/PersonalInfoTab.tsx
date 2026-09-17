@@ -210,6 +210,9 @@ export function PersonalInfoTab({ resident }: Props) {
         <Field label="Allergies"><Textarea rows={2} value={form.allergies ?? ""} onChange={(e) => set("allergies", e.target.value)} /></Field>
         <Field label="Dietary requirements"><Textarea rows={2} value={form.dietary_requirements ?? ""} onChange={(e) => set("dietary_requirements", e.target.value)} /></Field>
         <Field label="Communication needs"><Textarea rows={2} value={form.communication_needs ?? ""} onChange={(e) => set("communication_needs", e.target.value)} placeholder="Hearing aid, glasses, language..." /></Field>
+        <Field label="Important preferences (likes, dislikes, routines, how they wish to be cared for)">
+          <Textarea rows={3} value={form.important_preferences ?? ""} onChange={(e) => set("important_preferences", e.target.value)} placeholder="Prefers a bath in the evening, likes tea with two sugars, dislikes loud TV..." />
+        </Field>
       </Section>
 
       <Section title="Next of kin" icon={Users}>
