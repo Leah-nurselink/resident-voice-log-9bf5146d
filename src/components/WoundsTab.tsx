@@ -218,6 +218,10 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
           </div>
         </div>
 
+        {assessments.data && assessments.data.length > 0 && (
+          <WoundPhotoHistory entries={assessments.data} />
+        )}
+
         {assessments.data && assessments.data.length >= 2 && (
           <WoundComparison entries={assessments.data} />
         )}
