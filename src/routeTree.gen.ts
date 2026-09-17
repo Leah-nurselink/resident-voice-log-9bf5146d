@@ -39,6 +39,7 @@ import { Route as AuthenticatedRegulatoryRouteImport } from './routes/_authentic
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedReviewsRouteImport } from './routes/_authenticated/reviews'
 import { Route as AuthenticatedSafeguardingRouteImport } from './routes/_authenticated/safeguarding'
+import { Route as AuthenticatedStaffRouteImport } from './routes/_authenticated/staff'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedCarerIndexRouteImport } from './routes/_authenticated/carer.index'
 import { Route as AuthenticatedCarerCaptureRouteImport } from './routes/_authenticated/carer.capture'
@@ -205,6 +206,11 @@ const AuthenticatedSafeguardingRoute =
     path: '/safeguarding',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedStaffRoute = AuthenticatedStaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -285,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/reviews': typeof AuthenticatedReviewsRoute
   '/safeguarding': typeof AuthenticatedSafeguardingRoute
+  '/staff': typeof AuthenticatedStaffRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/carer/capture': typeof AuthenticatedCarerCaptureRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
@@ -324,6 +331,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsRoute
   '/reviews': typeof AuthenticatedReviewsRoute
   '/safeguarding': typeof AuthenticatedSafeguardingRoute
+  '/staff': typeof AuthenticatedStaffRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/carer/capture': typeof AuthenticatedCarerCaptureRoute
   '/residents/$id': typeof AuthenticatedResidentsIdRoute
@@ -366,6 +374,7 @@ export interface FileRoutesById {
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/reviews': typeof AuthenticatedReviewsRoute
   '/_authenticated/safeguarding': typeof AuthenticatedSafeguardingRoute
+  '/_authenticated/staff': typeof AuthenticatedStaffRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/carer/capture': typeof AuthenticatedCarerCaptureRoute
   '/_authenticated/residents/$id': typeof AuthenticatedResidentsIdRoute
@@ -408,6 +417,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reviews'
     | '/safeguarding'
+    | '/staff'
     | '/tasks'
     | '/carer/capture'
     | '/residents/$id'
@@ -447,6 +457,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reviews'
     | '/safeguarding'
+    | '/staff'
     | '/tasks'
     | '/carer/capture'
     | '/residents/$id'
@@ -488,6 +499,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports'
     | '/_authenticated/reviews'
     | '/_authenticated/safeguarding'
+    | '/_authenticated/staff'
     | '/_authenticated/tasks'
     | '/_authenticated/carer/capture'
     | '/_authenticated/residents/$id'
@@ -722,6 +734,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSafeguardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/staff': {
+      id: '/_authenticated/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof AuthenticatedStaffRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tasks': {
       id: '/_authenticated/tasks'
       path: '/tasks'
@@ -828,6 +847,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedReviewsRoute: typeof AuthenticatedReviewsRoute
   AuthenticatedSafeguardingRoute: typeof AuthenticatedSafeguardingRoute
+  AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedResidentsIdRoute: typeof AuthenticatedResidentsIdRoute
   AuthenticatedResidentsIndexRoute: typeof AuthenticatedResidentsIndexRoute
@@ -860,6 +880,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedReviewsRoute: AuthenticatedReviewsRoute,
   AuthenticatedSafeguardingRoute: AuthenticatedSafeguardingRoute,
+  AuthenticatedStaffRoute: AuthenticatedStaffRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedResidentsIdRoute: AuthenticatedResidentsIdRoute,
   AuthenticatedResidentsIndexRoute: AuthenticatedResidentsIndexRoute,

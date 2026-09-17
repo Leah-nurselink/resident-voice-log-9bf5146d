@@ -1891,6 +1891,293 @@ export type Database = {
         }
         Relationships: []
       }
+      shift_absences: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string | null
+          recorded_by: string | null
+          shift_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          recorded_by?: string | null
+          shift_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          recorded_by?: string | null
+          shift_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_absences_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          break_minutes: number | null
+          clock_in_at: string | null
+          clock_out_at: string | null
+          cover_required: boolean
+          created_at: string
+          created_by: string | null
+          end_time: string
+          handover_status: string
+          id: string
+          location: string
+          notes: string | null
+          resident_ids: string[]
+          role: Database["public"]["Enums"]["app_role"] | null
+          shift_date: string
+          staff_user_id: string | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          break_minutes?: number | null
+          clock_in_at?: string | null
+          clock_out_at?: string | null
+          cover_required?: boolean
+          created_at?: string
+          created_by?: string | null
+          end_time: string
+          handover_status?: string
+          id?: string
+          location?: string
+          notes?: string | null
+          resident_ids?: string[]
+          role?: Database["public"]["Enums"]["app_role"] | null
+          shift_date: string
+          staff_user_id?: string | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          break_minutes?: number | null
+          clock_in_at?: string | null
+          clock_out_at?: string | null
+          cover_required?: boolean
+          created_at?: string
+          created_by?: string | null
+          end_time?: string
+          handover_status?: string
+          id?: string
+          location?: string
+          notes?: string | null
+          resident_ids?: string[]
+          role?: Database["public"]["Enums"]["app_role"] | null
+          shift_date?: string
+          staff_user_id?: string | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      staff_availability: {
+        Row: {
+          available: boolean
+          created_at: string
+          day_of_week: number
+          from_time: string | null
+          id: string
+          notes: string | null
+          to_time: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available?: boolean
+          created_at?: string
+          day_of_week: number
+          from_time?: string | null
+          id?: string
+          notes?: string | null
+          to_time?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available?: boolean
+          created_at?: string
+          day_of_week?: number
+          from_time?: string | null
+          id?: string
+          notes?: string | null
+          to_time?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      staff_competencies: {
+        Row: {
+          created_at: string
+          id: string
+          level: string | null
+          notes: string | null
+          signed_off_by: string | null
+          signed_off_date: string | null
+          skill: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: string | null
+          notes?: string | null
+          signed_off_by?: string | null
+          signed_off_date?: string | null
+          skill: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: string | null
+          notes?: string | null
+          signed_off_by?: string | null
+          signed_off_date?: string | null
+          skill?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      staff_profiles: {
+        Row: {
+          contracted_hours: number | null
+          created_at: string
+          employment_status: string
+          id: string
+          job_title: string | null
+          leaving_date: string | null
+          notes: string | null
+          phone: string | null
+          restriction_tags: string[]
+          restrictions: string | null
+          start_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contracted_hours?: number | null
+          created_at?: string
+          employment_status?: string
+          id?: string
+          job_title?: string | null
+          leaving_date?: string | null
+          notes?: string | null
+          phone?: string | null
+          restriction_tags?: string[]
+          restrictions?: string | null
+          start_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contracted_hours?: number | null
+          created_at?: string
+          employment_status?: string
+          id?: string
+          job_title?: string | null
+          leaving_date?: string | null
+          notes?: string | null
+          phone?: string | null
+          restriction_tags?: string[]
+          restrictions?: string | null
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      staff_qualifications: {
+        Row: {
+          awarded_date: string | null
+          created_at: string
+          expiry_date: string | null
+          id: string
+          level: string | null
+          notes: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          awarded_date?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          level?: string | null
+          notes?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          awarded_date?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          level?: string | null
+          notes?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      staff_training: {
+        Row: {
+          completed_date: string | null
+          course: string
+          created_at: string
+          id: string
+          notes: string | null
+          provider: string | null
+          renewal_due: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_date?: string | null
+          course: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          provider?: string | null
+          renewal_due?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_date?: string | null
+          course?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          provider?: string | null
+          renewal_due?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           created_at: string
