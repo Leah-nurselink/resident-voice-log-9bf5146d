@@ -594,9 +594,16 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
           )} />
         )}
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>Update</Button>
+          <Button
+            variant="outline"
+            onClick={() => { const today = new Date().toISOString().slice(0, 10); setReviewDate(today); save.mutate(today); }}
+            disabled={save.isPending}
+          >
+            Mark as reviewed
+          </Button>
+          <Button onClick={() => save.mutate(undefined)} disabled={save.isPending}>Update</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
