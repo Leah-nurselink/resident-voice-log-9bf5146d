@@ -87,6 +87,26 @@ function ApprovalsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  const createTask = useMutation({
+    mutationFn: async (r: { id: string; title: string; detail: string | null; resident_id: string | null; severity: string }) => {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase.from("communication_tasks").insert({
+        resident_id: r.resident_id,
+        recommendation_id: r.id,
+        source: "ai_recommendation",
+        kind: "follow_up",
+        title: r.title.slice(0, 160),
+        detail: r.detail,
+        priority: r.severity === "critical" ? "urgent" : r.severity === "warning" ? "high" : "normal",
+        status: "open",
+        created_by: u.user?.id ?? null,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => toast.success("Task created — see the Tasks page to assign it"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
   const selectedIds = useMemo(
     () => Object.entries(selected).filter(([, v]) => v).map(([k]) => k),
     [selected],
