@@ -26,7 +26,7 @@ import {
 import { useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
-import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone, Printer, CalendarClock, UserCog } from "lucide-react";
+import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, FileText, Phone, Printer, CalendarClock, UserCog } from "lucide-react";
 import { ResidentPhoto } from "@/components/ResidentPhoto";
 import { CallRecorder } from "@/components/CallRecorder";
 import { CommunicationsTab } from "@/components/CommunicationsTab";
