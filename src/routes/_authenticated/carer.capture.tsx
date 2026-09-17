@@ -219,7 +219,7 @@ function CapturePage() {
         <SessionRecorder
           residentName={residentName ?? undefined}
           autoStart
-          onResult={(n) => saveNote.mutate(n)}
+          onResult={(n) => { setPending(n); setEditing(false); setEditText(n.content); }}
         />
       ) : (
         <Card>
