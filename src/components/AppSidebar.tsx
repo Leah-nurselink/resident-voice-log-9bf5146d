@@ -39,35 +39,54 @@ import { cn } from "@/lib/utils";
 import { getAppVersion, getAppBuildTimeLocal } from "@/lib/app-version";
 
 
-const careItems = [
+const dashboardItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home, exact: true },
-  { title: "Devices", url: "/devices", icon: Bluetooth },
-  { title: "Beacon Diagnostics", url: "/beacon-diagnostics", icon: Bluetooth },
-  { title: "Carer App", url: "/carer", icon: Bluetooth },
-  { title: "Residents", url: "/residents", icon: Users },
-  { title: "Care Plans", url: "/care-plans", icon: FileText },
-  { title: "Medication Round", url: "/medication-round", icon: Pill },
-  { title: "Reviews Due", url: "/reviews", icon: Calendar },
-  { title: "Tasks", url: "/tasks", icon: ClipboardList },
-  { title: "Daily Notes", url: "/notes", icon: MessageSquare },
-  { title: "Communications", url: "/communications", icon: MessageCircle },
-  { title: "Professionals", url: "/professionals", icon: Stethoscope },
-  { title: "Calendar", url: "/calendar", icon: Calendar },
 ] as const;
 
-const systemItems = [
-  { title: "Intelligence", url: "/intelligence", icon: Brain },
-  { title: "Approvals", url: "/approvals", icon: ClipboardCheck },
-  { title: "Alerts", url: "/alerts", icon: AlertTriangle },
-  { title: "Family", url: "/family", icon: Heart },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Reports", url: "/reports", icon: FileText },
+const administrationItems = [
+  { title: "Devices", url: "/devices", icon: Bluetooth },
+  { title: "Beacon Diagnostics", url: "/beacon-diagnostics", icon: Bluetooth },
   { title: "Admin", url: "/admin", icon: ShieldCheck },
   { title: "Downloads", url: "/downloads", icon: Download },
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
 
+const residentItems = [
+  { title: "Residents", url: "/residents", icon: Users },
+  { title: "Care", url: "/care-plans", icon: FileText },
+  { title: "Family", url: "/family", icon: Heart },
+] as const;
 
+const medicationItems = [
+  { title: "Medication Round", url: "/medication-round", icon: Pill },
+] as const;
+
+const taskItems = [
+  { title: "Reviews Due", url: "/reviews", icon: Calendar },
+  { title: "Tasks", url: "/tasks", icon: ClipboardList },
+  { title: "Approvals", url: "/approvals", icon: ClipboardCheck },
+  { title: "Alerts", url: "/alerts", icon: AlertTriangle },
+] as const;
+
+const voiceItems = [
+  { title: "Voice & Interactions", url: "/notes", icon: MessageSquare },
+] as const;
+
+const communicationItems = [
+  { title: "Communications", url: "/communications", icon: MessageCircle },
+  { title: "Professionals", url: "/professionals", icon: Stethoscope },
+  { title: "Family", url: "/family", icon: Heart },
+] as const;
+
+const workforceItems = [
+  { title: "Calendar", url: "/calendar", icon: Calendar },
+] as const;
+
+const insightsItems = [
+  { title: "Intelligence", url: "/intelligence", icon: Brain },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Reports", url: "/reports", icon: FileText },
+] as const;
 
 const governanceItems = [
   { title: "Audits", url: "/audits", icon: ClipboardCheck },
@@ -76,6 +95,19 @@ const governanceItems = [
   { title: "Regulatory", url: "/regulatory", icon: Scale },
   { title: "Incident Review", url: "/incident-review", icon: FileSearch },
   { title: "Safeguarding", url: "/safeguarding", icon: Shield },
+] as const;
+
+const navigationGroups = [
+  { label: "Dashboard", items: dashboardItems },
+  { label: "Administration", items: administrationItems },
+  { label: "Residents", items: residentItems },
+  { label: "Medication", items: medicationItems },
+  { label: "Tasks", items: taskItems },
+  { label: "Voice & Interactions", items: voiceItems },
+  { label: "Communications", items: communicationItems },
+  { label: "Workforce", items: workforceItems },
+  { label: "Governance", items: governanceItems },
+  { label: "Insights & Reports", items: insightsItems },
 ] as const;
 
 export function AppSidebar() {
@@ -125,32 +157,18 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          {!collapsed && (
-            <SidebarGroupLabel className="text-nav-navy font-semibold">Care Management</SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>{careItems.map(renderItem)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          {!collapsed && (
-            <SidebarGroupLabel className="text-nav-navy font-semibold">Governance</SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>{governanceItems.map(renderItem)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          {!collapsed && (
-            <SidebarGroupLabel className="text-nav-navy font-semibold">System</SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>{systemItems.map(renderItem)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {navigationGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-nav-navy font-semibold">
+                {group.label}
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>{group.items.map(renderItem)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-3">
         {!collapsed ? (

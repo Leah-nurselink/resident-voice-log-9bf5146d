@@ -13,4 +13,5 @@
 - [x] Reports show real figures that link back to the records behind them
 - [x] Reviews Due page across all residents (care plans, risks, consents, capacity)
 - [x] Medication / MAR module: medication records, today's round, tap-to-record administration, PRN interval & 24h limits, allergy flag, history, timeline events, reviews & reports figures, pattern observations — 2026-09-17.
+- [x] Realign the sidebar into the agreed operational sections — 2026-09-17.
 - [ ] Later: medication observations into the main AI approvals queue + handover screen.
