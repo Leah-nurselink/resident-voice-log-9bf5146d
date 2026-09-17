@@ -24,7 +24,7 @@ import {
   subscribeSessionManager,
   type SessionManagerState,
 } from "@/lib/ble-session-manager";
-import type { CarePlanDomain, RiskType } from "@/lib/care-domains";
+import { domainLabel, type CarePlanDomain, type RiskType } from "@/lib/care-domains";
 import { Link } from "@tanstack/react-router";
 import { isNativeShell } from "@/lib/surface";
 
