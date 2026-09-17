@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { format, formatDistanceToNow } from "date-fns";
 import {
   FileText, Sparkles, Shield, Brain, FileSignature, AlertTriangle,
-  Radio, Activity, Heart, Bandage, Telescope, Phone, Maximize2,
+  Radio, Activity, Heart, Bandage, Telescope, Phone, Maximize2, Check,
 } from "lucide-react";
 import { domainLabel, riskLabel, type RiskType, type CarePlanDomain } from "@/lib/care-domains";
 import { analyseResident } from "@/lib/care-intelligence";
