@@ -80,20 +80,10 @@ function ApprovalsPage() {
     onSuccess: () => { toast.success("Rejected"); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
-  const apply = useMutation({
-    mutationFn: (rec: Parameters<typeof applyCareGapToCarePlan>[0]) => applyCareGapToCarePlan(rec),
-    onSuccess: () => { toast.success("Applied to care plan"); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
   const bulkReview = useMutation({
     mutationFn: (p: { ids: string[]; action: "approve" | "reject" }) =>
       bulkReviewRecommendations(p.ids, p.action),
     onSuccess: (_d, v) => { toast.success(`${v.ids.length} ${v.action}d`); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-  const bulkApply = useMutation({
-    mutationFn: (recs: Parameters<typeof bulkApplyCareGaps>[0]) => bulkApplyCareGaps(recs),
-    onSuccess: (n) => { toast.success(`Applied ${n} care gap${n === 1 ? "" : "s"}`); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
