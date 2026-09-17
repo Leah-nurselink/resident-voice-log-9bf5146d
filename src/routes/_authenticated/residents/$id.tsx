@@ -27,6 +27,7 @@ import { useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
 import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, Phone, Printer, CalendarClock, UserCog } from "lucide-react";
+import { ResidentPhoto } from "@/components/ResidentPhoto";
 import { CallRecorder } from "@/components/CallRecorder";
 import { CommunicationsTab } from "@/components/CommunicationsTab";
 import { ScheduleTab } from "@/components/ScheduleTab";
@@ -76,6 +77,21 @@ function ResidentDetail() {
       const { data, error } = await supabase.from("risk_assessments").select("*").eq("resident_id", id);
       if (error) throw error;
       return data;
+    },
+  });
+
+  const openAlerts = useQuery({
+    queryKey: ["resident-open-alerts", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("alerts")
+        .select("id, message, severity")
+        .eq("resident_id", id)
+        .eq("resolved", false)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -151,16 +167,22 @@ function ResidentDetail() {
   if (!resident.data) return <AppShell title="Loading…"><div /></AppShell>;
   const r = resident.data;
   const initials = r.full_name.split(" ").map((s: string) => s[0]).slice(0, 2).join("");
+  const extra = r as unknown as Record<string, string | null>;
 
   return (
     <AppShell title={r.full_name}>
       <div className="rounded-2xl border bg-card p-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-14 w-14 place-items-center rounded-full bg-secondary text-lg font-medium text-secondary-foreground">{initials}</div>
+          <ResidentPhoto residentId={id} path={extra.photo_url} initials={initials} size="sm" />
           <div className="flex-1">
-            <div className="font-medium">{r.full_name}</div>
+            <div className="font-medium">
+              {r.full_name}
+              {extra.preferred_name ? <span className="text-muted-foreground"> (“{extra.preferred_name}”)</span> : null}
+            </div>
             <div className="text-xs text-muted-foreground">
+              {extra.resident_ref ? `${extra.resident_ref} · ` : ""}
               {r.room_number ? `Room ${r.room_number} · ` : ""}{r.date_of_birth ? `DOB ${format(new Date(r.date_of_birth), "d MMM yyyy")}` : "DOB not set"}
+              {extra.residency_status ? ` · ${extra.residency_status}` : ""}
             </div>
           </div>
           <Button size="sm" variant="outline" onClick={() => setActiveTab("profile")} className="gap-1.5">
@@ -182,6 +204,25 @@ function ResidentDetail() {
             {risks.data.map((rk) => (
               <Badge key={rk.id} className={RISK_LEVEL_COLOR[rk.level as "low"|"medium"|"high"]}>
                 {riskLabel(rk.type as RiskType)}: {rk.level}
+              </Badge>
+            ))}
+          </div>
+        )}
+        {(extra.allergies || (openAlerts.data?.length ?? 0) > 0) && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {extra.allergies && (
+              <Badge className="bg-destructive/15 text-destructive border-destructive/30">
+                <AlertTriangle className="mr-1 h-3 w-3" /> Allergies: {extra.allergies}
+              </Badge>
+            )}
+            {(openAlerts.data ?? []).map((a) => (
+              <Badge
+                key={a.id}
+                className={a.severity === "critical"
+                  ? "bg-destructive/15 text-destructive border-destructive/30"
+                  : "bg-warning/20 text-warning-foreground border-warning/40"}
+              >
+                <AlertTriangle className="mr-1 h-3 w-3" /> {a.message}
               </Badge>
             ))}
           </div>

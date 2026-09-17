@@ -11,8 +11,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Heart, Home, Users, Stethoscope, Mic } from "lucide-react";
+import { Save, Heart, Home, Users, Stethoscope, Mic, Phone } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { ResidentPhoto } from "@/components/ResidentPhoto";
 
 
 export const DNACPR_OPTIONS = ["Not recorded", "For resuscitation", "DNACPR in place", "Under review"];
@@ -74,6 +75,14 @@ export function PersonalInfoTab({ resident }: Props) {
 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
+  // Keep the displayed full name in step with first/last name edits.
+  const setName = (k: "first_name" | "last_name", v: string) =>
+    setForm((f: any) => {
+      const next = { ...f, [k]: v };
+      const composed = `${next.first_name ?? ""} ${next.last_name ?? ""}`.trim();
+      return composed ? { ...next, full_name: composed } : next;
+    });
+
   return (
     <div className="space-y-4">
       {/* Status banner */}
@@ -94,8 +103,26 @@ export function PersonalInfoTab({ resident }: Props) {
       </div>
 
       <Section title="Identity" icon={Users}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <ResidentPhoto
+            residentId={resident.id}
+            path={form.photo_url}
+            initials={(form.full_name ?? "?").split(" ").map((s: string) => s[0]).slice(0, 2).join("")}
+            onUploaded={(p) => set("photo_url", p)}
+          />
+          <div className="text-right">
+            <Label className="text-xs">Resident ID</Label>
+            <div className="font-mono text-sm">{form.resident_ref ?? "—"}</div>
+          </div>
+        </div>
         <Grid>
-          <Field label="Full name"><Input value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} /></Field>
+          <Field label="First name">
+            <Input value={form.first_name ?? ""} onChange={(e) => setName("first_name", e.target.value)} />
+          </Field>
+          <Field label="Last name">
+            <Input value={form.last_name ?? ""} onChange={(e) => setName("last_name", e.target.value)} />
+          </Field>
+          <Field label="Full name (as displayed)"><Input value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} /></Field>
           <Field label="Preferred name"><Input value={form.preferred_name ?? ""} onChange={(e) => set("preferred_name", e.target.value)} /></Field>
           <Field label="Date of birth"><Input type="date" value={form.date_of_birth ?? ""} onChange={(e) => set("date_of_birth", e.target.value)} /></Field>
           <Field label="Gender">
@@ -184,6 +211,9 @@ export function PersonalInfoTab({ resident }: Props) {
         <Field label="Allergies"><Textarea rows={2} value={form.allergies ?? ""} onChange={(e) => set("allergies", e.target.value)} /></Field>
         <Field label="Dietary requirements"><Textarea rows={2} value={form.dietary_requirements ?? ""} onChange={(e) => set("dietary_requirements", e.target.value)} /></Field>
         <Field label="Communication needs"><Textarea rows={2} value={form.communication_needs ?? ""} onChange={(e) => set("communication_needs", e.target.value)} placeholder="Hearing aid, glasses, language..." /></Field>
+        <Field label="Important preferences (likes, dislikes, routines, how they wish to be cared for)">
+          <Textarea rows={3} value={form.important_preferences ?? ""} onChange={(e) => set("important_preferences", e.target.value)} placeholder="Prefers a bath in the evening, likes tea with two sugars, dislikes loud TV..." />
+        </Field>
       </Section>
 
       <Section title="Next of kin" icon={Users}>
@@ -224,6 +254,31 @@ export function PersonalInfoTab({ resident }: Props) {
         </Grid>
       </Section>
 
+      <Section title="Emergency contact" icon={Phone}>
+        <p className="text-xs text-muted-foreground -mt-1 mb-2">Who to call first in an emergency, if different from next of kin.</p>
+        <Grid>
+          <Field label="Emergency contact name">
+            <Input value={form.emergency_contact_name ?? ""} onChange={(e) => set("emergency_contact_name", e.target.value)} />
+          </Field>
+          <Field label="Relationship">
+            <Input value={form.emergency_contact_relationship ?? ""} onChange={(e) => set("emergency_contact_relationship", e.target.value)} placeholder="Daughter, Friend, Social worker..." />
+          </Field>
+          <Field label="Emergency telephone">
+            <Input
+              type="tel"
+              inputMode="tel"
+              value={form.emergency_contact_phone ?? ""}
+              onChange={(e) => set("emergency_contact_phone", e.target.value)}
+              placeholder="07123 456789 or +44 7123 456789"
+              aria-invalid={!isValidPhone(form.emergency_contact_phone)}
+              className={!isValidPhone(form.emergency_contact_phone) ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {!isValidPhone(form.emergency_contact_phone) && (
+              <p className="text-[11px] text-destructive">Enter a valid UK or international phone number.</p>
+            )}
+          </Field>
+        </Grid>
+      </Section>
 
       <Section title="Recording & transcription consent" icon={Mic}>
         <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 p-3">

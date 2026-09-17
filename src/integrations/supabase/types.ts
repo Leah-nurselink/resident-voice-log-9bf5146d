@@ -1373,8 +1373,12 @@ export type Database = {
           dnacpr_date: string | null
           dnacpr_notes: string | null
           dnacpr_status: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relationship: string | null
           ethnicity: string | null
           first_language: string | null
+          first_name: string | null
           full_name: string
           funding_source: string | null
           gender: string | null
@@ -1382,8 +1386,10 @@ export type Database = {
           gp_phone: string | null
           gp_practice: string | null
           id: string
+          important_preferences: string | null
           inbound_token: string | null
           key_risks: Json | null
+          last_name: string | null
           local_authority: string | null
           marital_status: string | null
           nationality: string | null
@@ -1405,6 +1411,7 @@ export type Database = {
           recording_consent_notes: string | null
           religion: string | null
           residency_status: string | null
+          resident_ref: string | null
           room_number: string | null
           tag_id: string | null
           transcription_enabled: boolean
@@ -1423,8 +1430,12 @@ export type Database = {
           dnacpr_date?: string | null
           dnacpr_notes?: string | null
           dnacpr_status?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
           ethnicity?: string | null
           first_language?: string | null
+          first_name?: string | null
           full_name: string
           funding_source?: string | null
           gender?: string | null
@@ -1432,8 +1443,10 @@ export type Database = {
           gp_phone?: string | null
           gp_practice?: string | null
           id?: string
+          important_preferences?: string | null
           inbound_token?: string | null
           key_risks?: Json | null
+          last_name?: string | null
           local_authority?: string | null
           marital_status?: string | null
           nationality?: string | null
@@ -1455,6 +1468,7 @@ export type Database = {
           recording_consent_notes?: string | null
           religion?: string | null
           residency_status?: string | null
+          resident_ref?: string | null
           room_number?: string | null
           tag_id?: string | null
           transcription_enabled?: boolean
@@ -1473,8 +1487,12 @@ export type Database = {
           dnacpr_date?: string | null
           dnacpr_notes?: string | null
           dnacpr_status?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
           ethnicity?: string | null
           first_language?: string | null
+          first_name?: string | null
           full_name?: string
           funding_source?: string | null
           gender?: string | null
@@ -1482,8 +1500,10 @@ export type Database = {
           gp_phone?: string | null
           gp_practice?: string | null
           id?: string
+          important_preferences?: string | null
           inbound_token?: string | null
           key_risks?: Json | null
+          last_name?: string | null
           local_authority?: string | null
           marital_status?: string | null
           nationality?: string | null
@@ -1505,6 +1525,7 @@ export type Database = {
           recording_consent_notes?: string | null
           religion?: string | null
           residency_status?: string | null
+          resident_ref?: string | null
           room_number?: string | null
           tag_id?: string | null
           transcription_enabled?: boolean
