@@ -14,7 +14,7 @@ import {
 } from "@/lib/approvals";
 import { toast } from "sonner";
 import { Check, X, FileText, Sparkles, ChevronRight, Telescope, Stethoscope, ShieldAlert, ClipboardCheck } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 
 export const Route = createFileRoute("/_authenticated/approvals")({
