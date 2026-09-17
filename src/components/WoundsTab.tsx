@@ -163,6 +163,10 @@ function WoundDialog({ residentId, existing, onClose }: { residentId: string; ex
               <Input type="date" value={dateHealed} onChange={(e) => setDateHealed(e.target.value)} />
             </div>
           )}
+          <div className="space-y-1.5">
+            <Label>Next review date</Label>
+            <Input type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
