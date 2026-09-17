@@ -204,16 +204,10 @@ function ApprovalsPage() {
                       <X className="mr-1 h-3.5 w-3.5" />Reject
                     </Button>
                     {r.kind === "care_gap" && r.domain && r.resident_id && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => apply.mutate({
-                          id: r.id, resident_id: r.resident_id, domain: r.domain,
-                          title: r.title, detail: r.detail,
-                        })}
-                        disabled={apply.isPending}
-                      >
-                        <FileText className="mr-1 h-3.5 w-3.5" />Apply to care plan
+                      <Button asChild size="sm" variant="secondary">
+                        <Link to="/residents/$id" params={{ id: r.resident_id }}>
+                          <FileText className="mr-1 h-3.5 w-3.5" />Review care plan
+                        </Link>
                       </Button>
                     )}
                   </div>
