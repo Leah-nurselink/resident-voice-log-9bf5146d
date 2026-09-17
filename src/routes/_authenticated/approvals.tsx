@@ -127,10 +127,6 @@ function ApprovalsPage() {
               <Button size="sm" variant="outline" onClick={() => bulkReview.mutate({ ids: selectedIds, action: "reject" })} disabled={!selectedIds.length || bulkReview.isPending}>
                 <X className="mr-1 h-3.5 w-3.5" />Reject
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => bulkApply.mutate(selectedCareGaps)} disabled={!selectedCareGaps.length || bulkApply.isPending}>
-                <FileText className="mr-1 h-3.5 w-3.5" />
-                Apply {selectedCareGaps.length || ""} care gap{selectedCareGaps.length === 1 ? "" : "s"}
-              </Button>
             </div>
           </div>
         )}
