@@ -173,6 +173,21 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         });
       });
 
+      (medAdmins.data ?? []).forEach((a) => {
+        const med = (a as { medications?: { name?: string; dose?: string | null; is_prn?: boolean } | null }).medications;
+        const label = a.status.replace(/_/g, " ");
+        events.push({
+          id: `md-${a.id}`, ts: a.administered_at, kind: "med",
+          title: `Medication ${label} · ${med?.name ?? "medication"}`,
+          detail: [
+            med?.is_prn ? "As required" : a.scheduled_time ? `Due ${String(a.scheduled_time).slice(0, 5)}` : null,
+            a.dose_given ? `Dose ${a.dose_given}` : null,
+            a.reason ? `Reason: ${a.reason}` : null,
+            a.action_taken ? `Action: ${a.action_taken}` : null,
+          ].filter(Boolean).join(" · ") || undefined,
+        });
+      });
+
       events.sort((a, b) => +new Date(b.ts) - +new Date(a.ts));
       const ai = analyseResident(
         (notesAll.data ?? []) as never,
