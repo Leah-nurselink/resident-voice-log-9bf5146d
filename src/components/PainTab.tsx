@@ -295,6 +295,12 @@ function PainDialog({ residentId, residentName, onClose }: { residentId: string;
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
 
+          <div>
+            <Label className="text-xs">Intervention — what was done</Label>
+            <Textarea rows={2} value={intervention} onChange={(e) => setIntervention(e.target.value)}
+              placeholder="e.g. Paracetamol 1g given, repositioned, warm pack applied" />
+          </div>
+
           <div className="rounded-lg border bg-card p-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Total score</span>
