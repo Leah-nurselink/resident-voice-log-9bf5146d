@@ -547,6 +547,32 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
           </div>
         )}
 
+        {(supporting.data?.length ?? 0) > 0 && (
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <FileText className="h-3.5 w-3.5 text-primary" />Supporting interactions
+            </div>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              {sinceReview.length > 0
+                ? `${sinceReview.length} approved interaction${sinceReview.length === 1 ? "" : "s"} since the last review.`
+                : "No new interactions since the last review."}
+            </p>
+            <ul className="space-y-1.5">
+              {(supporting.data ?? []).slice(0, 5).map((n) => (
+                <li key={n.id} className="flex items-start justify-between gap-2 text-xs">
+                  <span className="min-w-0">
+                    <span className="font-medium">{format(new Date(n.created_at), "d MMM")}</span> — {n.content.slice(0, 120)}
+                  </span>
+                  <Button size="sm" variant="ghost" className="h-6 shrink-0 text-[11px]"
+                    onClick={() => { setContent((c: string) => (c ? c + "\n\n" : "") + `From interaction ${format(new Date(n.created_at), "d MMM yyyy")}:\n${n.content}`); toast.success("Pulled into plan"); }}>
+                    Pull in
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="space-y-3">
           <Field label="Need" value={needs} onChange={setNeeds} placeholder="What support does the resident need?" />
           <Field label="Risk" value={risksTxt} onChange={setRisksTxt} placeholder="What could go wrong?" />
