@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, FileText, Shield, FileSignature, Brain, Pill } from "lucide-react";
+import { CalendarClock, FileText, Shield, FileSignature, Brain, Pill, Bandage } from "lucide-react";
 import { format, differenceInCalendarDays, addDays } from "date-fns";
 import { domainLabel, riskLabel, type CarePlanDomain, type RiskType } from "@/lib/care-domains";
 
