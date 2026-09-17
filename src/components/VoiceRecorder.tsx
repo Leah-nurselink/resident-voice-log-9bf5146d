@@ -10,6 +10,7 @@ import { structureNote, transcribeAudio } from "@/lib/ai.functions";
 export type StructuredNote = {
   content: string;
   domain: string | null;
+  category: string | null;
   risks: string[];
   flags: string[];
   transcript: string;

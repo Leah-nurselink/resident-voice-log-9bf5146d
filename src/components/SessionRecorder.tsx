@@ -13,6 +13,7 @@ import { AudioIntelligenceSession, type AudioMetrics, type SessionAudio } from "
 export type StructuredNote = {
   content: string;
   domain: string | null;
+  category: string | null;
   risks: string[];
   flags: string[];
   transcript: string;

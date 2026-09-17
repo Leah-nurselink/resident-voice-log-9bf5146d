@@ -62,6 +62,7 @@ const medicationItems = [
 ] as const;
 
 const taskItems = [
+  { title: "Handover", url: "/handover", icon: ClipboardList },
   { title: "Reviews Due", url: "/reviews", icon: Calendar },
   { title: "Tasks", url: "/tasks", icon: ClipboardList },
   { title: "Approvals", url: "/approvals", icon: ClipboardCheck },

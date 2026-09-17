@@ -34,6 +34,7 @@ function severityFromScore(s: number) {
 export function PainTab({ residentId, residentName }: { residentId: string; residentName: string }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [responseFor, setResponseFor] = useState<any | null>(null);
 
   const assessments = useQuery({
     queryKey: ["pain", residentId],
@@ -106,6 +107,19 @@ export function PainTab({ residentId, residentName }: { residentId: string; resi
                   </div>
                 </div>
                 {a.notes && <p className="mt-2 text-sm">{a.notes}</p>}
+                {a.intervention && (
+                  <p className="mt-1.5 text-xs"><span className="font-medium">Intervention:</span> {a.intervention}</p>
+                )}
+                {a.response ? (
+                  <p className="mt-1 text-xs">
+                    <span className="font-medium">Response:</span> {a.response}
+                    {a.response_at && <span className="text-muted-foreground"> · {format(new Date(a.response_at), "d MMM HH:mm")}</span>}
+                  </p>
+                ) : (
+                  <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => setResponseFor(a)}>
+                    Record response
+                  </Button>
+                )}
                 <div className="mt-2 grid grid-cols-3 gap-1 text-[10px] text-muted-foreground">
                   <span>Voc {a.vocalisation}</span>
                   <span>Face {a.facial_expression}</span>
@@ -128,6 +142,16 @@ export function PainTab({ residentId, residentName }: { residentId: string; resi
           qc.invalidateQueries({ queryKey: ["pain", residentId] });
         }} />
       )}
+
+      {responseFor && (
+        <ResponseDialog
+          assessment={responseFor}
+          onClose={() => {
+            setResponseFor(null);
+            qc.invalidateQueries({ queryKey: ["pain", residentId] });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -139,6 +163,7 @@ function PainDialog({ residentId, residentName, onClose }: { residentId: string;
     behaviour_change: 0, physiological_change: 0, physical_change: 0,
   });
   const [notes, setNotes] = useState("");
+  const [intervention, setIntervention] = useState("");
   const [painType, setPainType] = useState<string>("");
   const [transcript, setTranscript] = useState("");
   const [aiEvidence, setAiEvidence] = useState<Record<string, string> | null>(null);
@@ -199,6 +224,7 @@ function PainDialog({ residentId, residentName, onClose }: { residentId: string;
         ai_confidence: aiConfidence,
         ai_evidence: aiEvidence,
         notes: notes || null,
+        intervention: intervention || null,
       });
       if (error) throw error;
     },
@@ -269,6 +295,12 @@ function PainDialog({ residentId, residentName, onClose }: { residentId: string;
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
 
+          <div>
+            <Label className="text-xs">Intervention — what was done</Label>
+            <Textarea rows={2} value={intervention} onChange={(e) => setIntervention(e.target.value)}
+              placeholder="e.g. Paracetamol 1g given, repositioned, warm pack applied" />
+          </div>
+
           <div className="rounded-lg border bg-card p-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Total score</span>
@@ -283,6 +315,49 @@ function PainDialog({ residentId, residentName, onClose }: { residentId: string;
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending}>Save assessment</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ResponseDialog({ assessment, onClose }: { assessment: any; onClose: () => void }) {
+  const [intervention, setIntervention] = useState(assessment.intervention ?? "");
+  const [response, setResponse] = useState("");
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!response.trim()) throw new Error("Please describe the response");
+      const { error } = await supabase.from("pain_assessments").update({
+        intervention: intervention || null,
+        response,
+        response_at: new Date().toISOString(),
+      }).eq("id", assessment.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Response recorded"); onClose(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
+  });
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Intervention & response</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Intervention — what was done</Label>
+            <Textarea rows={2} value={intervention} onChange={(e) => setIntervention(e.target.value)}
+              placeholder="e.g. Paracetamol 1g given, repositioned" />
+          </div>
+          <div>
+            <Label className="text-xs">Response — did it help?</Label>
+            <Textarea rows={2} value={response} onChange={(e) => setResponse(e.target.value)}
+              placeholder="e.g. Settled after 40 minutes, no further calling out" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

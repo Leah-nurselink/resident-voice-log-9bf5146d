@@ -115,6 +115,7 @@ function CapturePage() {
           transcript: n.transcript,
           content: n.content,
           domain: (n.domain as CarePlanDomain) || null,
+          category: n.category ?? null,
           risks: n.risks as RiskType[],
           flags: n.flags,
           status: "approved",

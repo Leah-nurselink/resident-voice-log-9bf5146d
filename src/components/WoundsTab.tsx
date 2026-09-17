@@ -79,6 +79,7 @@ function WoundDialog({ residentId, existing, onClose }: { residentId: string; ex
   const [dateNoticed, setDateNoticed] = useState(existing?.date_noticed || new Date().toISOString().slice(0, 10));
   const [status, setStatus] = useState<"open"|"healing"|"healed">(existing?.status || "open");
   const [dateHealed, setDateHealed] = useState(existing?.date_healed || "");
+  const [reviewDate, setReviewDate] = useState(existing?.review_date || "");
 
   const save = useMutation({
     mutationFn: async () => {
@@ -88,6 +89,7 @@ function WoundDialog({ residentId, existing, onClose }: { residentId: string; ex
         resident_id: residentId, location, side: side || null, wound_type: woundType,
         category: category || null, cause: cause || null, date_noticed: dateNoticed,
         status, date_healed: status === "healed" ? (dateHealed || new Date().toISOString().slice(0, 10)) : null,
+        review_date: reviewDate || null,
         created_by: u.user!.id,
       };
       const { error } = existing
@@ -161,6 +163,10 @@ function WoundDialog({ residentId, existing, onClose }: { residentId: string; ex
               <Input type="date" value={dateHealed} onChange={(e) => setDateHealed(e.target.value)} />
             </div>
           )}
+          <div className="space-y-1.5">
+            <Label>Next review date</Label>
+            <Input type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -204,12 +210,17 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
           <div className="mt-1 text-xs text-muted-foreground">
             Noticed {format(new Date(wound.date_noticed), "d MMM yyyy")}
             {wound.date_healed ? ` · healed ${format(new Date(wound.date_healed), "d MMM yyyy")}` : ""}
+            {wound.review_date ? ` · review ${format(new Date(wound.review_date), "d MMM yyyy")}` : ""}
           </div>
           {wound.cause && <p className="mt-2 text-xs">{wound.cause}</p>}
           <div className="mt-2">
             <Button size="sm" variant="outline" onClick={() => setEdit(true)} className="h-7 text-xs">Edit details</Button>
           </div>
         </div>
+
+        {assessments.data && assessments.data.length >= 2 && (
+          <WoundComparison entries={assessments.data} />
+        )}
 
         <div className="mt-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Assessments</h3>
@@ -446,5 +457,82 @@ function PhotoGallery({ paths }: { paths: string[] }) {
         </Dialog>
       )}
     </>
+  );
+}
+
+function WoundComparison({ entries }: { entries: any[] }) {
+  // entries arrive newest-first
+  const latest = entries[0];
+  const [compareId, setCompareId] = useState<string>(entries[entries.length - 1].id);
+  const earlier = entries.find((e) => e.id === compareId) ?? entries[entries.length - 1];
+
+  const area = (a: any) =>
+    a.length_cm != null && a.width_cm != null ? Number(a.length_cm) * Number(a.width_cm) : null;
+  const aNow = area(latest);
+  const aThen = area(earlier);
+  const change = aNow != null && aThen != null && aThen > 0 ? ((aNow - aThen) / aThen) * 100 : null;
+
+  const row = (label: string, then: any, now: any) => (
+    <div className="grid grid-cols-3 gap-2 border-t py-1.5 text-xs first:border-t-0">
+      <span className="text-muted-foreground">{label}</span>
+      <span>{then ?? "—"}</span>
+      <span className="font-medium">{now ?? "—"}</span>
+    </div>
+  );
+
+  return (
+    <div className="mt-3 rounded-xl border bg-card p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Compare over time</h3>
+        <Select value={compareId} onValueChange={setCompareId}>
+          <SelectTrigger className="h-8 w-44 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {entries.slice(1).map((e) => (
+              <SelectItem key={e.id} value={e.id} className="text-xs">
+                {format(new Date(e.assessed_at), "d MMM yyyy")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] font-medium text-muted-foreground">
+        <span />
+        <span>{format(new Date(earlier.assessed_at), "d MMM")}</span>
+        <span>{format(new Date(latest.assessed_at), "d MMM")} (latest)</span>
+      </div>
+      <div className="mt-1">
+        {row("Length (cm)", earlier.length_cm, latest.length_cm)}
+        {row("Width (cm)", earlier.width_cm, latest.width_cm)}
+        {row("Depth (cm)", earlier.depth_cm, latest.depth_cm)}
+        {row("Tissue", earlier.tissue_type, latest.tissue_type)}
+        {row("Exudate", earlier.exudate_amount, latest.exudate_amount)}
+        {row("Pain", earlier.pain_score != null ? `${earlier.pain_score}/10` : null, latest.pain_score != null ? `${latest.pain_score}/10` : null)}
+        {row("Dressing", earlier.dressing, latest.dressing)}
+      </div>
+
+      {change != null && (
+        <div className="mt-2 rounded-lg border bg-muted/30 p-2 text-xs">
+          Surface area has {change < 0 ? "reduced" : change > 0 ? "increased" : "stayed the same"}
+          {change !== 0 ? ` by ${Math.abs(change).toFixed(0)}%` : ""} between these two entries
+          ({aThen?.toFixed(1)} cm² → {aNow?.toFixed(1)} cm²).
+        </div>
+      )}
+
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <div>
+          <div className="text-[11px] text-muted-foreground">Earlier photos</div>
+          {Array.isArray(earlier.photos) && earlier.photos.length > 0
+            ? <PhotoGallery paths={(earlier.photos as unknown[]).filter((x): x is string => typeof x === "string")} />
+            : <p className="text-[11px] text-muted-foreground">None</p>}
+        </div>
+        <div>
+          <div className="text-[11px] text-muted-foreground">Latest photos</div>
+          {Array.isArray(latest.photos) && latest.photos.length > 0
+            ? <PhotoGallery paths={(latest.photos as unknown[]).filter((x): x is string => typeof x === "string")} />
+            : <p className="text-[11px] text-muted-foreground">None</p>}
+        </div>
+      </div>
+    </div>
   );
 }
