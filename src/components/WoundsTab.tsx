@@ -79,6 +79,7 @@ function WoundDialog({ residentId, existing, onClose }: { residentId: string; ex
   const [dateNoticed, setDateNoticed] = useState(existing?.date_noticed || new Date().toISOString().slice(0, 10));
   const [status, setStatus] = useState<"open"|"healing"|"healed">(existing?.status || "open");
   const [dateHealed, setDateHealed] = useState(existing?.date_healed || "");
+  const [reviewDate, setReviewDate] = useState(existing?.review_date || "");
 
   const save = useMutation({
     mutationFn: async () => {
