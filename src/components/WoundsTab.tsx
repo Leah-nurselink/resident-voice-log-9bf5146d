@@ -218,6 +218,10 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
           </div>
         </div>
 
+        {assessments.data && assessments.data.length >= 2 && (
+          <WoundComparison entries={assessments.data} />
+        )}
+
         <div className="mt-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Assessments</h3>
           <Button size="sm" onClick={() => setAdding(true)}><Plus className="mr-1 h-3.5 w-3.5" />New entry</Button>
