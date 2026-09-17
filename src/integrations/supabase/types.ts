@@ -1320,6 +1320,45 @@ export type Database = {
         }
         Relationships: []
       }
+      record_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          changed_fields: string[] | null
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          resident_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          changed_fields?: string[] | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          resident_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          changed_fields?: string[] | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          resident_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       residents: {
         Row: {
           admission_date: string | null
@@ -1780,6 +1819,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_write: { Args: { _perm: string; _uid: string }; Returns: boolean }
       has_permission: {
         Args: { _perm: string; _uid: string }
         Returns: boolean
