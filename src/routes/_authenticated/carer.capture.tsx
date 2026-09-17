@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Activity, BluetoothSearching, CheckCircle2, WifiOff } from "lucide-react";
+import { Activity, BluetoothSearching, Check, CheckCircle2, Pencil, Sparkles, WifiOff, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { SessionRecorder, type StructuredNote } from "@/components/SessionRecorder";
 import {
   isLEScanAvailable,
@@ -97,6 +98,10 @@ function CapturePage() {
     return Math.round(pct);
   }, [active]);
 
+  const [pending, setPending] = useState<StructuredNote | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState("");
+
   const saveNote = useMutation({
     mutationFn: async (n: StructuredNote) => {
       if (!active?.residentId) throw new Error("No active session");
@@ -134,7 +139,9 @@ function CapturePage() {
     },
     onSuccess: (id) => {
       setLastSavedId(id);
-      toast.success("Note saved to resident record");
+      setPending(null);
+      setEditing(false);
+      toast.success("Note approved and saved to resident record");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
@@ -213,12 +220,52 @@ function CapturePage() {
         <SessionRecorder
           residentName={residentName ?? undefined}
           autoStart
-          onResult={(n) => saveNote.mutate(n)}
+          onResult={(n) => { setPending(n); setEditing(false); setEditText(n.content); }}
         />
       ) : (
         <Card>
           <CardContent className="p-4 text-sm text-muted-foreground">
             Recording will start automatically once a resident is detected.
+          </CardContent>
+        </Card>
+      )}
+
+      {pending && (
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Sparkles className="h-4 w-4 text-primary" />
+              AI-generated documentation — review before saving
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              <Badge variant="secondary" className="text-[10px]">Observation</Badge>
+              {pending.domain && <Badge variant="secondary" className="text-[10px]">{pending.domain}</Badge>}
+              {pending.risks.map((r) => <Badge key={r} variant="outline" className="text-[10px]">Risk: {r}</Badge>)}
+              {pending.flags.map((f) => <Badge key={f} variant="destructive" className="text-[10px]">{f}</Badge>)}
+            </div>
+
+            {editing ? (
+              <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} rows={6} className="resize-none" />
+            ) : (
+              <p className="rounded-xl border bg-muted/30 p-3 text-sm">{pending.content}</p>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              Suggested action: review and approve, edit the wording, or reject. Nothing is saved until you approve.
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => saveNote.mutate(editing ? { ...pending, content: editText.trim() } : pending)} disabled={saveNote.isPending || (editing && !editText.trim())}>
+                <Check className="mr-1 h-3.5 w-3.5" /> Approve &amp; save
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => { if (editing) { setPending({ ...pending, content: editText.trim() }); } setEditing(!editing); }}>
+                <Pencil className="mr-1 h-3.5 w-3.5" /> {editing ? "Done editing" : "Edit"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setPending(null); setEditing(false); toast.info("Note discarded — nothing saved"); }}>
+                <X className="mr-1 h-3.5 w-3.5" /> Reject
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -14,7 +14,7 @@ import {
 } from "@/lib/approvals";
 import { toast } from "sonner";
 import { Check, X, FileText, Sparkles, ChevronRight, Telescope, Stethoscope, ShieldAlert, ClipboardCheck } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 
 export const Route = createFileRoute("/_authenticated/approvals")({
@@ -178,6 +178,27 @@ function ApprovalsPage() {
                     </div>
                     <p className="mt-0.5 text-sm font-medium">{r.title}</p>
                     {r.detail && <p className="mt-0.5 text-xs opacity-90">{r.detail}</p>}
+
+                    {payload.evidence && payload.evidence.length > 0 && (
+                      <div className="mt-2 rounded-lg border bg-background/60 p-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">Evidence</p>
+                        <ul className="mt-1 space-y-0.5">
+                          {payload.evidence.slice(0, 5).map((ev, i) => (
+                            <li key={i} className="text-xs opacity-90">
+                              <span className="font-medium">{format(new Date(ev.date), "d MMM")}</span> — {ev.snippet}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {r.kind === "care_gap" && r.domain && r.resident_id && (
+                      <p className="mt-2 text-xs font-medium">
+                        Suggested review: {r.domain} care plan —{" "}
+                        <Link to="/residents/$id" params={{ id: r.resident_id }} className="underline">open care plan</Link>
+                      </p>
+                    )}
+
                     <Link to="/residents/$id" params={{ id: r.resident_id ?? "" }} className="mt-1 inline-flex items-center gap-1 text-xs underline">
                       {name} <ChevronRight className="h-3 w-3" />
                     </Link>
