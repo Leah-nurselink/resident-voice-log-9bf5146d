@@ -320,3 +320,46 @@ function PainDialog({ residentId, residentName, onClose }: { residentId: string;
     </Dialog>
   );
 }
+
+function ResponseDialog({ assessment, onClose }: { assessment: any; onClose: () => void }) {
+  const [intervention, setIntervention] = useState(assessment.intervention ?? "");
+  const [response, setResponse] = useState("");
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!response.trim()) throw new Error("Please describe the response");
+      const { error } = await supabase.from("pain_assessments").update({
+        intervention: intervention || null,
+        response,
+        response_at: new Date().toISOString(),
+      }).eq("id", assessment.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Response recorded"); onClose(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
+  });
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Intervention & response</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Intervention — what was done</Label>
+            <Textarea rows={2} value={intervention} onChange={(e) => setIntervention(e.target.value)}
+              placeholder="e.g. Paracetamol 1g given, repositioned" />
+          </div>
+          <div>
+            <Label className="text-xs">Response — did it help?</Label>
+            <Textarea rows={2} value={response} onChange={(e) => setResponse(e.target.value)}
+              placeholder="e.g. Settled after 40 minutes, no further calling out" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
