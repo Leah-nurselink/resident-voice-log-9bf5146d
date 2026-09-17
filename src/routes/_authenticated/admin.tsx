@@ -14,7 +14,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Shield, ShieldOff, KeyRound, Trash2 } from "lucide-react";
+import { Loader2, UserPlus, Shield, ShieldOff, KeyRound, Trash2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PERMISSIONS, ROLES, ROLE_LABELS, type Role } from "@/lib/permissions";
@@ -124,6 +124,15 @@ function AdminContent({ listFn, qc }: { listFn: () => Promise<Awaited<ReturnType
 
 type Row = Awaited<ReturnType<typeof listStaff>>[number];
 
+async function sendPasswordEmail(email: string) {
+  if (!email) { toast.error("This account has no email address"); return; }
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  if (error) toast.error(error.message);
+  else toast.success(`Password link sent to ${email}`);
+}
+
 function StaffList({ rows, onChange }: { rows: Row[]; onChange: () => void }) {
   if (rows.length === 0) {
     return <p className="py-10 text-center text-sm text-muted-foreground">No users here.</p>;
@@ -194,6 +203,9 @@ function StaffCard({ user, onChange }: { user: Row; onChange: () => void }) {
               <KeyRound className="mr-1 h-3.5 w-3.5" />
               {user.isActive ? "Deactivate" : "Reactivate"}
             </Button>
+            <Button size="sm" variant="outline" onClick={() => sendPasswordEmail(user.email)}>
+              <Mail className="mr-1 h-3.5 w-3.5" /> Send password email
+            </Button>
             <Button size="sm" variant="ghost" className="text-red-600" onClick={removeUser}>
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -232,6 +244,7 @@ function InviteDialog({ onDone }: { onDone: () => void }) {
     setBusy(true);
     try {
       await invite({ data: { email, fullName, role, tempPassword } });
+      await sendPasswordEmail(email);
       toast.success("Staff account created");
       onDone();
       setOpen(false);
@@ -267,9 +280,11 @@ function InviteDialog({ onDone }: { onDone: () => void }) {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="invite-pw">Temporary password</Label>
+            <Label htmlFor="invite-pw">Backup temporary password</Label>
             <Input id="invite-pw" value={tempPassword} onChange={(e) => setTempPassword(e.target.value)} required minLength={8} maxLength={72} />
-            <p className="text-xs text-muted-foreground">Share securely. Ask the staff member to change it on first sign-in.</p>
+            <p className="text-xs text-muted-foreground">
+              An email is sent automatically so they can set their own password. Only share this backup password if the email doesn't arrive.
+            </p>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={busy}>
