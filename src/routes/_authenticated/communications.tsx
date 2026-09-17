@@ -54,8 +54,11 @@ function Page() {
         </TabsList>
         <TabsContent value="compose"><ComposeTab /></TabsContent>
         <TabsContent value="outbound"><CommsList direction="outbound" /></TabsContent>
-        <TabsContent value="inbound"><CommsList direction="inbound" /></TabsContent>
-        <TabsContent value="tasks"><TasksList /></TabsContent>
+        <TabsContent value="inbound" className="space-y-4">
+          <InboundSetupCard />
+          <CommsList direction="inbound" />
+        </TabsContent>
+        <TabsContent value="tasks"><TaskBoard /></TabsContent>
       </Tabs>
     </AppShell>
   );
