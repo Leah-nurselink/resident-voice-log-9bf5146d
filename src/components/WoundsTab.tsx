@@ -89,6 +89,7 @@ function WoundDialog({ residentId, existing, onClose }: { residentId: string; ex
         resident_id: residentId, location, side: side || null, wound_type: woundType,
         category: category || null, cause: cause || null, date_noticed: dateNoticed,
         status, date_healed: status === "healed" ? (dateHealed || new Date().toISOString().slice(0, 10)) : null,
+        review_date: reviewDate || null,
         created_by: u.user!.id,
       };
       const { error } = existing
