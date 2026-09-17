@@ -6,3 +6,5 @@
 - [x] Add change history for resident records, consents, capacity assessments, wounds, alerts, device pairings, staff role/permission changes — 2026-09-17.
 - [ ] Later: wire per-permission checks into the screens so buttons appear/disappear by role.
 - [ ] Parked: verify a physical beacon in the installed Android app (requires the phone; paused to save credits).
+- [x] AI review card in voice capture (Edit / Approve / Reject before saving)
+- [x] AI insights: dated evidence list + "Suggested review: care plan" line
