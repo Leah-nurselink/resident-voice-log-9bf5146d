@@ -210,6 +210,9 @@ function ApprovalsPage() {
                         </Link>
                       </Button>
                     )}
+                    <Button size="sm" variant="outline" onClick={() => createTask.mutate(r)} disabled={createTask.isPending}>
+                      <ClipboardList className="mr-1 h-3.5 w-3.5" />Create task
+                    </Button>
                   </div>
                 )}
                 {r.reviewed_at && (
