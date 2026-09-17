@@ -229,6 +229,46 @@ function CapturePage() {
         </Card>
       )}
 
+      {pending && (
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Sparkles className="h-4 w-4 text-primary" />
+              AI-generated documentation — review before saving
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              <Badge variant="secondary" className="text-[10px]">Observation</Badge>
+              {pending.domain && <Badge variant="secondary" className="text-[10px]">{pending.domain}</Badge>}
+              {pending.risks.map((r) => <Badge key={r} variant="outline" className="text-[10px]">Risk: {r}</Badge>)}
+              {pending.flags.map((f) => <Badge key={f} variant="destructive" className="text-[10px]">{f}</Badge>)}
+            </div>
+
+            {editing ? (
+              <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} rows={6} className="resize-none" />
+            ) : (
+              <p className="rounded-xl border bg-muted/30 p-3 text-sm">{pending.content}</p>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              Suggested action: review and approve, edit the wording, or reject. Nothing is saved until you approve.
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => saveNote.mutate(editing ? { ...pending, content: editText.trim() } : pending)} disabled={saveNote.isPending || (editing && !editText.trim())}>
+                <Check className="mr-1 h-3.5 w-3.5" /> Approve &amp; save
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => { if (editing) { setPending({ ...pending, content: editText.trim() }); } setEditing(!editing); }}>
+                <Pencil className="mr-1 h-3.5 w-3.5" /> {editing ? "Done editing" : "Edit"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setPending(null); setEditing(false); toast.info("Note discarded — nothing saved"); }}>
+                <X className="mr-1 h-3.5 w-3.5" /> Reject
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {lastSavedId && (
         <Card className="border-emerald-200 bg-emerald-50">
           <CardContent className="flex items-center justify-between p-3 text-sm text-emerald-900">
