@@ -46,6 +46,7 @@ const careItems = [
   { title: "Carer App", url: "/carer", icon: Bluetooth },
   { title: "Residents", url: "/residents", icon: Users },
   { title: "Care Plans", url: "/care-plans", icon: FileText },
+  { title: "Medication Round", url: "/medication-round", icon: Pill },
   { title: "Reviews Due", url: "/reviews", icon: Calendar },
   { title: "Tasks", url: "/tasks", icon: ClipboardList },
   { title: "Daily Notes", url: "/notes", icon: MessageSquare },
