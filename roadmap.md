@@ -8,3 +8,7 @@
 - [ ] Parked: verify a physical beacon in the installed Android app (requires the phone; paused to save credits).
 - [x] AI review card in voice capture (Edit / Approve / Reject before saving)
 - [x] AI insights: dated evidence list + "Suggested review: care plan" line
+- [x] Email intake: webhook secret configured + setup card with per-resident address tags on the Inbox tab
+- [x] Actions become real tasks: Tasks board (assign, due dates, status) + "Create task" on AI insights
+- [x] Reports show real figures that link back to the records behind them
+- [x] Reviews Due page across all residents (care plans, risks, consents, capacity)
