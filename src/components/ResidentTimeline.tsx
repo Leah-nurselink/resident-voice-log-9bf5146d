@@ -67,6 +67,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
         supabase.from("communications").select("id,channel,direction,subject,body,ai_summary,recipient_name,sender_name,created_at,metadata").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(30),
         supabase.from("daily_notes").select("id,created_at,content,domain,risks,flags").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(400),
         supabase.from("care_plans").select("id,domain,updated_at").eq("resident_id", residentId),
+        supabase.from("ai_recommendations").select("id,title,detail,kind,domain,status,created_at,reviewed_at").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(30),
       ]);
 
       const events: Event[] = [];
