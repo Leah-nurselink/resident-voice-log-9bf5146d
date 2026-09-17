@@ -27,7 +27,7 @@ type Item = {
   id: string;
   residentId: string;
   residentName: string;
-  type: "Care plan" | "Risk assessment" | "Consent" | "Capacity assessment" | "Medication";
+  type: "Care plan" | "Risk assessment" | "Consent" | "Capacity assessment" | "Medication" | "Wound";
   label: string;
   due: string; // yyyy-mm-dd
 };
@@ -38,6 +38,7 @@ const ICON: Record<Item["type"], React.ReactNode> = {
   Consent: <FileSignature className="h-3.5 w-3.5" />,
   "Capacity assessment": <Brain className="h-3.5 w-3.5" />,
   Medication: <Pill className="h-3.5 w-3.5" />,
+  Wound: <Bandage className="h-3.5 w-3.5" />,
 };
 
 const CARE_PLAN_REVIEW_DAYS = 90;
@@ -46,12 +47,13 @@ function ReviewsPage() {
   const { data } = useQuery({
     queryKey: ["reviews-due"],
     queryFn: async () => {
-      const [plans, risks, consents, mca, meds] = await Promise.all([
+      const [plans, risks, consents, mca, meds, wounds] = await Promise.all([
         supabase.from("care_plans").select("id, domain, last_review, resident_id, residents(full_name)"),
         supabase.from("risk_assessments").select("id, type, review_date, resident_id, residents(full_name)"),
         supabase.from("consents").select("id, consent_type, review_date, resident_id, residents(full_name)"),
         supabase.from("mca_assessments").select("id, decision, review_date, resident_id, residents(full_name)"),
         supabase.from("medications").select("id, name, review_date, resident_id, residents(full_name)").eq("status", "active"),
+        supabase.from("wounds").select("id, location, review_date, resident_id, residents(full_name)").eq("status", "open"),
       ]);
 
       const items: Item[] = [];
@@ -92,6 +94,14 @@ function ReviewsPage() {
         items.push({
           id: `md-${m.id}`, residentId: m.resident_id, residentName: name(m.residents),
           type: "Medication", label: m.name, due: m.review_date,
+        });
+      });
+
+      (wounds.data ?? []).forEach((w) => {
+        if (!w.review_date) return;
+        items.push({
+          id: `wd-${w.id}`, residentId: w.resident_id, residentName: name(w.residents),
+          type: "Wound", label: w.location, due: w.review_date,
         });
       });
 
