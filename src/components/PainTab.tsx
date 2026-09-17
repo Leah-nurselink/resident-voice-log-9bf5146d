@@ -107,6 +107,19 @@ export function PainTab({ residentId, residentName }: { residentId: string; resi
                   </div>
                 </div>
                 {a.notes && <p className="mt-2 text-sm">{a.notes}</p>}
+                {a.intervention && (
+                  <p className="mt-1.5 text-xs"><span className="font-medium">Intervention:</span> {a.intervention}</p>
+                )}
+                {a.response ? (
+                  <p className="mt-1 text-xs">
+                    <span className="font-medium">Response:</span> {a.response}
+                    {a.response_at && <span className="text-muted-foreground"> · {format(new Date(a.response_at), "d MMM HH:mm")}</span>}
+                  </p>
+                ) : (
+                  <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => setResponseFor(a)}>
+                    Record response
+                  </Button>
+                )}
                 <div className="mt-2 grid grid-cols-3 gap-1 text-[10px] text-muted-foreground">
                   <span>Voc {a.vocalisation}</span>
                   <span>Face {a.facial_expression}</span>
