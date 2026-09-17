@@ -219,7 +219,7 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
         </div>
 
         {assessments.data && assessments.data.length > 0 && (
-          <WoundPhotoHistory entries={assessments.data} />
+          <WoundPhotoHistory entries={assessments.data} woundId={wound.id} />
         )}
 
         {assessments.data && assessments.data.length >= 2 && (
@@ -464,7 +464,40 @@ function PhotoGallery({ paths }: { paths: string[] }) {
   );
 }
 
-function WoundPhotoHistory({ entries }: { entries: any[] }) {
+function WoundPhotoHistory({ entries, woundId }: { entries: any[]; woundId: string }) {
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const addPhotos = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const paths: string[] = [];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${u.user!.id}/${woundId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error } = await supabase.storage.from("wound-photos").upload(path, file, { contentType: file.type, upsert: false });
+        if (error) throw error;
+        paths.push(path);
+      }
+      const latest = entries[0];
+      const existing = Array.isArray(latest?.photos) ? (latest.photos as string[]) : [];
+      const { error } = await supabase.from("wound_assessments")
+        .update({ photos: [...existing, ...paths] as never })
+        .eq("id", latest.id);
+      if (error) throw error;
+      toast.success(paths.length > 1 ? "Photos added" : "Photo added");
+      qc.invalidateQueries({ queryKey: ["wound-assessments", woundId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
   // entries arrive newest-first
   const items = entries.flatMap((e: any) =>
     (Array.isArray(e.photos) ? (e.photos as unknown[]) : [])
@@ -486,8 +519,6 @@ function WoundPhotoHistory({ entries }: { entries: any[] }) {
     return () => { cancelled = true; };
   }, [key]);
 
-  if (items.length === 0) return null;
-
   const current = index != null ? urls[index] : null;
 
   return (
@@ -496,6 +527,14 @@ function WoundPhotoHistory({ entries }: { entries: any[] }) {
         <ImageIcon className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold">Photo history</h3>
         <Badge variant="secondary" className="text-[10px]">{items.length}</Badge>
+        <div className="ml-auto">
+          <input ref={fileRef} type="file" accept="image/*" multiple capture="environment"
+            className="hidden" onChange={(e) => addPhotos(e.target.files)} />
+          <Button size="sm" variant="outline" className="h-7 text-xs" disabled={uploading}
+            onClick={() => fileRef.current?.click()}>
+            <Camera className="mr-1 h-3.5 w-3.5" />{uploading ? "Uploading…" : "Add photos"}
+          </Button>
+        </div>
       </div>
       <p className="mt-0.5 text-xs text-muted-foreground">Newest first — tap a photo to view it full size and step back through earlier ones.</p>
       {urls.length === 0 ? (
