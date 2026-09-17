@@ -15,3 +15,7 @@
 - [x] Medication / MAR module: medication records, today's round, tap-to-record administration, PRN interval & 24h limits, allergy flag, history, timeline events, reviews & reports figures, pattern observations — 2026-09-17.
 - [x] Realign the sidebar into the agreed operational sections — 2026-09-17.
 - [ ] Later: medication observations into the main AI approvals queue + handover screen.
+- [x] Pain: intervention field + "Record response" (what was done, whether it helped) — 2026-09-17.
+- [x] Wounds: review date + side-by-side comparison of two assessments (sizes, tissue, photos) — 2026-09-17.
+- [x] Daily notes: category on every note (AI suggests, staff can change), category filter chips, "New note" from the Daily Notes page — 2026-09-17.
+- [x] Handover page: AI-drafted shift handover across the eight sections, staff edit and approve, saved history — 2026-09-17.
