@@ -26,6 +26,7 @@ export const PERMISSIONS = [
   { key: "manage_users", label: "Manage staff accounts" },
   { key: "view_analytics", label: "View analytics" },
   { key: "raise_safeguarding", label: "Raise safeguarding alerts" },
+  { key: "manage_rota", label: "Manage rota and staff records" },
 ] as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[number]["key"];
