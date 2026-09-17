@@ -74,6 +74,14 @@ export function PersonalInfoTab({ resident }: Props) {
 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
+  // Keep the displayed full name in step with first/last name edits.
+  const setName = (k: "first_name" | "last_name", v: string) =>
+    setForm((f: any) => {
+      const next = { ...f, [k]: v };
+      const composed = `${next.first_name ?? ""} ${next.last_name ?? ""}`.trim();
+      return composed ? { ...next, full_name: composed } : next;
+    });
+
   return (
     <div className="space-y-4">
       {/* Status banner */}
