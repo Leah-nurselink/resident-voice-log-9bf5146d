@@ -135,6 +135,7 @@ function ResidentDetail() {
         transcript: pending.transcript,
         content: editing,
         domain: (pending.domain as CarePlanDomain) || null,
+        category: pending.category ?? null,
         risks: pending.risks as RiskType[],
         flags: pending.flags,
         status,
