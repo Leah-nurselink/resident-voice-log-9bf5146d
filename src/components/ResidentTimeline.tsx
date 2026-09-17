@@ -47,6 +47,8 @@ const TONES: Record<Event["kind"], string> = {
   wound: "bg-rose-500/15 text-rose-600",
   alert: "bg-destructive/15 text-destructive",
   comm: "bg-teal-500/15 text-teal-600",
+  ai: "bg-indigo-500/15 text-indigo-600",
+  approval: "bg-emerald-500/15 text-emerald-700",
 };
 
 export function ResidentTimeline({ residentId }: { residentId: string }) {
