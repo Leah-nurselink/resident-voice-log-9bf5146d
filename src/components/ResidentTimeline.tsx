@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { format, formatDistanceToNow } from "date-fns";
 import {
   FileText, Sparkles, Shield, Brain, FileSignature, AlertTriangle,
-  Radio, Activity, Heart, Bandage, Telescope, Phone, Maximize2, Check,
+  Radio, Activity, Heart, Bandage, Telescope, Phone, Maximize2, Check, Pill,
 } from "lucide-react";
 import { domainLabel, riskLabel, type RiskType, type CarePlanDomain } from "@/lib/care-domains";
 import { analyseResident } from "@/lib/care-intelligence";
@@ -16,7 +16,7 @@ import { ExplainPopover } from "@/components/ExplainPopover";
 type Event = {
   id: string;
   ts: string;
-  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm" | "ai" | "approval";
+  kind: "note" | "session" | "care_plan" | "risk" | "consent" | "mca" | "wound" | "alert" | "comm" | "ai" | "approval" | "med";
   title: string;
   detail?: string;
   full?: string;
@@ -35,6 +35,7 @@ const ICONS: Record<Event["kind"], React.ReactNode> = {
   comm: <Phone className="h-3.5 w-3.5" />,
   ai: <Sparkles className="h-3.5 w-3.5" />,
   approval: <Check className="h-3.5 w-3.5" />,
+  med: <Pill className="h-3.5 w-3.5" />,
 };
 
 const TONES: Record<Event["kind"], string> = {
@@ -49,6 +50,7 @@ const TONES: Record<Event["kind"], string> = {
   comm: "bg-teal-500/15 text-teal-600",
   ai: "bg-indigo-500/15 text-indigo-600",
   approval: "bg-emerald-500/15 text-emerald-700",
+  med: "bg-fuchsia-500/15 text-fuchsia-600",
 };
 
 export function ResidentTimeline({ residentId }: { residentId: string }) {
