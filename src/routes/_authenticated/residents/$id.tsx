@@ -79,6 +79,21 @@ function ResidentDetail() {
     },
   });
 
+  const openAlerts = useQuery({
+    queryKey: ["resident-open-alerts", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("alerts")
+        .select("id, message, severity")
+        .eq("resident_id", id)
+        .eq("resolved", false)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const consents = useQuery({
     queryKey: ["consents", id],
     queryFn: async () => {
