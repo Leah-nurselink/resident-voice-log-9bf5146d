@@ -53,12 +53,34 @@ export function MedicationsTab({ residentId, allergies }: { residentId: string; 
     [meds.data, admins.data],
   );
   const prn = active.filter((m) => m.is_prn);
+  const observations = useMemo(
+    () => medicationObservations(meds.data ?? [], admins.data ?? []),
+    [meds.data, admins.data],
+  );
 
   return (
     <div className="space-y-3">
       <Button className="w-full" onClick={() => setEditing("new")}>
         <Plus className="mr-1 h-4 w-4" />Add medication
       </Button>
+
+      {observations.length > 0 && (
+        <div className="space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-3">
+          <p className="text-xs font-semibold text-primary">Patterns for staff review</p>
+          {observations.map((o) => (
+            <div key={o.id} className="rounded-xl border bg-card p-3">
+              <p className="text-sm font-medium">{o.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{o.detail}</p>
+              <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
+                {o.evidence.map((e, i) => <li key={i}>{e.date} — {e.text}</li>)}
+              </ul>
+              <p className="mt-2 text-[11px] italic text-muted-foreground">
+                An observation from the recorded doses only — a person decides what it means.
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <Tabs defaultValue="mar">
         <TabsList className="grid w-full grid-cols-3">
