@@ -64,6 +64,7 @@ jobs:
 
       - name: Add Android BLE diagnostic logging
         run: node scripts/instrument-android-ble.mjs
+        continue-on-error: true
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
