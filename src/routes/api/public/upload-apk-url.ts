@@ -63,6 +63,7 @@ export const Route = createFileRoute("/api/public/upload-apk-url")({
               apikey: SERVICE_ROLE_KEY,
               Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
               "Content-Type": "application/json",
+              "x-upsert": "true",
             },
             body: JSON.stringify({}),
           },
