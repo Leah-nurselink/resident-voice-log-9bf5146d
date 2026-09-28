@@ -262,22 +262,38 @@ function DevicesPage() {
       title="Nearby Devices"
       subtitle="Live BLE advertisement scanning — no pairing required"
       action={
-        <div className="flex gap-2">
-          <Button asChild variant="outline" size="sm">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+          <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
             <Link to="/beacon-diagnostics">
               <Radio className="h-4 w-4" />
               BLE diagnostics
             </Link>
           </Button>
-          <Button onClick={checkRealBeaconSupport} variant="secondary" size="sm">
+          <Button
+            onClick={checkRealBeaconSupport}
+            variant="secondary"
+            size="sm"
+            className="w-full sm:w-auto"
+          >
             <CircleHelp className="h-4 w-4" />
-            Check real beacon support
+            <span className="sm:hidden">Check support</span>
+            <span className="hidden sm:inline">Check real beacon support</span>
           </Button>
-          <Button onClick={() => clearObservations()} variant="ghost" size="sm">
+          <Button
+            onClick={() => clearObservations()}
+            variant="ghost"
+            size="sm"
+            className="w-full sm:w-auto"
+          >
             <Trash2 className="h-4 w-4" />
             Clear list
           </Button>
-          <Button onClick={() => void toggleScanner()} variant="outline">
+          <Button
+            onClick={() => void toggleScanner()}
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+          >
             {scannerStatus.running ? (
               <>
                 <Pause className="h-4 w-4" /> Pause scan
@@ -313,7 +329,7 @@ function DevicesPage() {
       </div>
 
       <Card className={isNativeShell() ? "mt-4 border-success/40" : "mt-4 border-warning/50"}>
-        <CardContent className="flex items-center justify-between gap-3 py-3 text-sm">
+        <CardContent className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3 text-sm">
           <span className="font-semibold">
             {isNativeShell() ? "Installed CareCore app" : "Browser"}
           </span>
@@ -423,8 +439,9 @@ function DevicesPage() {
         </Card>
       )}
 
-      <Tabs defaultValue="nearby" className="mt-6">
-        <TabsList>
+      <Tabs defaultValue="nearby" className="mt-6 min-w-0">
+        <div className="max-w-full overflow-x-auto pb-1">
+        <TabsList className="w-max min-w-full justify-start">
           <TabsTrigger value="nearby">Nearby ({observations.length})</TabsTrigger>
           <TabsTrigger value="registered">Registered ({devices.length})</TabsTrigger>
           <TabsTrigger value="sessions">
@@ -435,6 +452,7 @@ function DevicesPage() {
           </TabsTrigger>
           <TabsTrigger value="rooms">Rooms</TabsTrigger>
         </TabsList>
+        </div>
 
         <TabsContent value="nearby" className="mt-4 space-y-4">
           <NearbySection
@@ -701,13 +719,13 @@ function RegisteredList({
         return (
           <Card key={d.id}>
             <CardContent className="py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <div>
-                    <div className="font-medium">{d.label}</div>
+                  <div className="min-w-0">
+                    <div className="break-words font-medium">{d.label}</div>
                     <div className="text-xs text-muted-foreground">
                       {typeLabel(d.device_type)} · {d.beacon_protocol}
                     </div>
@@ -721,7 +739,7 @@ function RegisteredList({
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex max-w-32 shrink-0 flex-col items-end gap-1 text-right sm:max-w-none">
                   <Badge
                     variant={inRange ? "default" : connected ? "secondary" : "outline"}
                     className={
@@ -810,13 +828,13 @@ function EditBeaconDialog({ device, onSaved }: { device: DeviceRow; onSaved: () 
     );
   }
   return (
-    <div className="absolute right-2 z-10 mt-8 w-72 rounded-md border bg-background p-3 shadow-lg">
+    <div className="absolute inset-x-2 z-10 mt-8 rounded-md border bg-background p-3 shadow-lg sm:left-auto sm:w-72">
       <div className="space-y-2">
         <div>
           <Label>Label</Label>
           <Input value={label} onChange={(e) => setLabel(e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           <div>
             <Label>Threshold</Label>
             <Input value={threshold} onChange={(e) => setThreshold(e.target.value)} />
@@ -875,7 +893,7 @@ function ActiveSessionsList({
             return (
               <li
                 key={s.residentId ?? s.deviceId}
-                className="flex items-center justify-between gap-3 px-4 py-3"
+                className="flex flex-col items-start gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
                   <div className="font-medium">{subject}</div>
@@ -885,7 +903,7 @@ function ActiveSessionsList({
                     started {relTime(s.startedAt)}
                   </div>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => void onEnd(s.deviceId)}>
+                <Button className="w-full sm:w-auto" size="sm" variant="ghost" onClick={() => void onEnd(s.deviceId)}>
                   End session
                 </Button>
               </li>
@@ -912,15 +930,15 @@ function AddRoomInline({ onSaved }: { onSaved: () => void }) {
     }
   };
   return (
-    <div className="flex gap-2">
+    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_8rem_auto]">
       <Input placeholder="Room name" value={name} onChange={(e) => setName(e.target.value)} />
       <Input
         placeholder="Floor"
         value={floor}
         onChange={(e) => setFloor(e.target.value)}
-        className="w-24"
+        className="w-full"
       />
-      <Button onClick={add} size="sm">
+      <Button onClick={add} size="sm" className="w-full sm:w-auto">
         Add
       </Button>
     </div>
