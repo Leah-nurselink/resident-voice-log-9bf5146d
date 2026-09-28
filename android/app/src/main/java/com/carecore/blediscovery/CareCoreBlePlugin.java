@@ -34,6 +34,7 @@ import java.util.Map;
 public class CareCoreBlePlugin extends Plugin {
 
     private BleScanner scanner;
+    private final Map<String, Long> lastEmitted = new java.util.concurrent.ConcurrentHashMap<>();
 
     @PluginMethod
     public void initialize(PluginCall call) {
@@ -102,8 +103,13 @@ public class CareCoreBlePlugin extends Plugin {
 
     private void startScanning(PluginCall call) {
         BleScanner s = ensureScanner();
+        lastEmitted.clear();
         s.onUpdate = devices -> {
-            for (DiscoveredDevice device : devices) emitScanResult(device);
+            for (DiscoveredDevice device : devices) {
+                Long prev = lastEmitted.get(device.address);
+                if (prev != null && prev >= device.lastSeen) continue;
+               lastEmitted.put(device.address, device.lastSeen);
+               emitScanResult(device);
         };
         s.onError = message -> {
             JSObject err = new JSObject();
@@ -111,8 +117,12 @@ public class CareCoreBlePlugin extends Plugin {
             notifyListeners("onScanError", err);
         };
         s.start();
-        call.resolve();
-    }
+        if (s.isScanning()) {
+           call.resolve();
+       } else {
+           call.reject("Could not start the BLE scan. Check Bluetooth and Location are on, and that Nearby devices and Location permissions are allowed.");
+       }
+   }   
 
     private BleScanner ensureScanner() {
         if (scanner == null) scanner = new BleScanner(getContext());
