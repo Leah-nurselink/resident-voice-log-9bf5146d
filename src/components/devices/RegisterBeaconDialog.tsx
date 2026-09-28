@@ -236,14 +236,14 @@ export function RegisterBeaconDialog({
         </DialogHeader>
 
         {/* Stepper */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="grid grid-cols-3 gap-1 text-xs sm:flex sm:items-center sm:gap-2">
           {(["details", "verify", "assign"] as Step[]).map((s, i) => {
             const active = step === s;
             const done =
               (s === "details" && step !== "details") ||
               (s === "verify" && step === "assign");
             return (
-              <div key={s} className="flex items-center gap-2">
+              <div key={s} className="flex min-w-0 items-center gap-1 sm:gap-2">
                 <div
                   className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-medium ${
                     active
@@ -255,10 +255,10 @@ export function RegisterBeaconDialog({
                 >
                   {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
                 </div>
-                <span className={active ? "font-medium" : "text-muted-foreground"}>
+                <span className={`${active ? "font-medium" : "text-muted-foreground"} min-w-0 truncate`}>
                   {s === "details" ? "Details" : s === "verify" ? "Verify signal" : "Assign"}
                 </span>
-                {i < 2 && <span className="text-muted-foreground">›</span>}
+                {i < 2 && <span className="hidden text-muted-foreground sm:inline">›</span>}
               </div>
             );
           })}
@@ -267,7 +267,7 @@ export function RegisterBeaconDialog({
         <div className="space-y-3">
           {step === "details" && (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label>Role</Label>
                   <Select value={type} onValueChange={(v) => setType(v as DeviceType)}>
@@ -320,8 +320,8 @@ export function RegisterBeaconDialog({
               </div>
 
               {protocol === "ibeacon" && (
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-3">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="sm:col-span-3">
                     <Label>UUID *</Label>
                     <Input
                       value={uuid}
@@ -346,7 +346,7 @@ export function RegisterBeaconDialog({
               )}
 
               {protocol === "eddystone-uid" && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <Label>Namespace *</Label>
                     <Input value={uuid} onChange={(e) => setUuid(e.target.value)} placeholder="10 bytes hex" className="font-mono text-xs" />
@@ -358,7 +358,7 @@ export function RegisterBeaconDialog({
                 </div>
               )}
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <div>
                   <Label>MAC</Label>
                   <Input value={mac} onChange={(e) => setMac(e.target.value)} placeholder="optional" />
@@ -480,7 +480,7 @@ export function RegisterBeaconDialog({
           )}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 [&>button]:w-full sm:[&>button]:w-auto">
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={saving}>
             Cancel
           </Button>
