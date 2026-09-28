@@ -35,7 +35,16 @@ import { ScheduleTab } from "@/components/ScheduleTab";
 import { exportSingleResidentPDF } from "@/lib/resident-export";
 
 export const Route = createFileRoute("/_authenticated/residents/$id")({
-  head: () => ({ meta: [{ title: "Resident · ForgeAI" }] }),
+  head: () => ({
+    meta: [
+      { title: "Resident Profile · CareCore" },
+      { name: "description", content: "Review a resident's care record, plans, risks, medication and timeline in CareCore." },
+      { property: "og:title", content: "Resident Profile · CareCore" },
+      { property: "og:description", content: "Review a resident's complete care record in CareCore." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: ResidentDetail,
 });
 
@@ -173,20 +182,21 @@ function ResidentDetail() {
 
   return (
     <AppShell title={r.full_name}>
-      <div className="rounded-2xl border bg-card p-4">
-        <div className="flex items-center gap-3">
+      <div className="rounded-lg border border-border bg-card p-3 sm:p-4">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:flex">
           <ResidentPhoto residentId={id} path={extra.photo_url} initials={initials} size="sm" />
-          <div className="flex-1">
-            <div className="font-medium">
+          <div className="min-w-0 flex-1">
+            <div className="break-words font-medium">
               {r.full_name}
               {extra.preferred_name ? <span className="text-muted-foreground"> (“{extra.preferred_name}”)</span> : null}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="mt-0.5 text-xs text-muted-foreground">
               {extra.resident_ref ? `${extra.resident_ref} · ` : ""}
               {r.room_number ? `Room ${r.room_number} · ` : ""}{r.date_of_birth ? `DOB ${format(new Date(r.date_of_birth), "d MMM yyyy")}` : "DOB not set"}
               {extra.residency_status ? ` · ${extra.residency_status}` : ""}
             </div>
           </div>
+          <div className="col-span-2 grid grid-cols-3 gap-2 sm:col-span-1 sm:flex sm:shrink-0">
           <Button size="sm" variant="outline" onClick={() => setActiveTab("profile")} className="gap-1.5">
             <UserCog className="h-3.5 w-3.5" /> Edit
           </Button>
@@ -199,6 +209,7 @@ function ResidentDetail() {
           <Button size="sm" onClick={() => setCallOpen(true)} className="gap-1.5">
             <Phone className="h-3.5 w-3.5" /> Call
           </Button>
+          </div>
         </div>
         <CallRecorder open={callOpen} onOpenChange={setCallOpen} residentId={id} residentName={r.full_name} />
         {risks.data && risks.data.length > 0 && (
@@ -232,20 +243,20 @@ function ResidentDetail() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-        <TabsList className="grid w-full grid-cols-6 md:grid-cols-13">
-          <TabsTrigger value="intel" className="text-xs px-1">AI</TabsTrigger>
-          <TabsTrigger value="timeline" className="text-xs px-1">Story</TabsTrigger>
-          <TabsTrigger value="notes" className="text-xs px-1">Notes</TabsTrigger>
-          <TabsTrigger value="comms" className="text-xs px-1">Comms</TabsTrigger>
-          <TabsTrigger value="profile" className="text-xs px-1">Profile</TabsTrigger>
-          <TabsTrigger value="care" className="text-xs px-1">Care</TabsTrigger>
-          <TabsTrigger value="schedule" className="text-xs px-1"><CalendarClock className="h-3 w-3" /></TabsTrigger>
-          <TabsTrigger value="risk" className="text-xs px-1">Risk</TabsTrigger>
-          <TabsTrigger value="pain" className="text-xs px-1">Pain</TabsTrigger>
-          <TabsTrigger value="meds" className="text-xs px-1">Meds</TabsTrigger>
-          <TabsTrigger value="wounds" className="text-xs px-1">Wounds</TabsTrigger>
-          <TabsTrigger value="consent" className="text-xs px-1">Consent</TabsTrigger>
-          <TabsTrigger value="mca" className="text-xs px-1">MCA</TabsTrigger>
+        <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto overscroll-x-contain p-1">
+          <TabsTrigger value="intel" className="min-h-10 shrink-0 px-3 text-xs">AI</TabsTrigger>
+          <TabsTrigger value="timeline" className="min-h-10 shrink-0 px-3 text-xs">Story</TabsTrigger>
+          <TabsTrigger value="notes" className="min-h-10 shrink-0 px-3 text-xs">Notes</TabsTrigger>
+          <TabsTrigger value="comms" className="min-h-10 shrink-0 px-3 text-xs">Comms</TabsTrigger>
+          <TabsTrigger value="profile" className="min-h-10 shrink-0 px-3 text-xs">Profile</TabsTrigger>
+          <TabsTrigger value="care" className="min-h-10 shrink-0 px-3 text-xs">Care</TabsTrigger>
+          <TabsTrigger value="schedule" aria-label="Schedule" className="min-h-10 shrink-0 px-3 text-xs"><CalendarClock className="h-3 w-3" /></TabsTrigger>
+          <TabsTrigger value="risk" className="min-h-10 shrink-0 px-3 text-xs">Risk</TabsTrigger>
+          <TabsTrigger value="pain" className="min-h-10 shrink-0 px-3 text-xs">Pain</TabsTrigger>
+          <TabsTrigger value="meds" className="min-h-10 shrink-0 px-3 text-xs">Meds</TabsTrigger>
+          <TabsTrigger value="wounds" className="min-h-10 shrink-0 px-3 text-xs">Wounds</TabsTrigger>
+          <TabsTrigger value="consent" className="min-h-10 shrink-0 px-3 text-xs">Consent</TabsTrigger>
+          <TabsTrigger value="mca" className="min-h-10 shrink-0 px-3 text-xs">MCA</TabsTrigger>
         </TabsList>
 
         <TabsContent value="intel" className="mt-4">
@@ -782,7 +793,7 @@ function ConsentDialog({ residentId, existing, onClose }: { residentId: string; 
             <Label>Name of person who consented</Label>
             <Input value={givenByName} onChange={(e) => setGivenByName(e.target.value)} placeholder="Optional" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Date given</Label>
               <Input type="date" value={dateGiven} onChange={(e) => setDateGiven(e.target.value)} />
@@ -884,7 +895,7 @@ function MCADialog({ residentId, existing, onClose }: { residentId: string; exis
             </>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Assessment date</Label>
               <Input type="date" value={assessmentDate} onChange={(e) => setAssessmentDate(e.target.value)} />

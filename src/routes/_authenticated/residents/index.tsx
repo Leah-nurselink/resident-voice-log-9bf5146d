@@ -26,7 +26,16 @@ import { exportResidentsExcel, exportResidentsPDF } from "@/lib/resident-export"
 const ARCHIVED_STATUSES = ["Discharged", "Deceased"];
 
 export const Route = createFileRoute("/_authenticated/residents/")({
-  head: () => ({ meta: [{ title: "Residents · CareCore" }] }),
+  head: () => ({
+    meta: [
+      { title: "Residents · CareCore" },
+      { name: "description", content: "Manage resident profiles and care information in CareCore." },
+      { property: "og:title", content: "Residents · CareCore" },
+      { property: "og:description", content: "Manage resident profiles and care information in CareCore." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: ResidentsList,
 });
 
@@ -65,7 +74,7 @@ function ResidentsList() {
       title="Residents"
       subtitle="Manage resident profiles and care information"
       action={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid w-full grid-cols-3 gap-2 md:flex md:w-auto md:flex-wrap md:items-center">
           <Button size="sm" variant="outline" onClick={() => exportResidentsExcel(filtered)} disabled={!filtered.length}>
             <FileSpreadsheet className="mr-1 h-4 w-4" /> Excel
           </Button>
@@ -132,7 +141,7 @@ function ResidentsList() {
                 >
                   <Card className="h-full transition hover:shadow-elevated">
                     <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                         <div className="flex min-w-0 items-center gap-3">
                           <Avatar className="h-12 w-12">
                             <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
@@ -290,7 +299,7 @@ function NewResidentDialog({ onCreated }: { onCreated: () => void }) {
           <Plus className="mr-1 h-4 w-4" /> Add resident
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+    <DialogContent>
         <DialogHeader>
           <DialogTitle>New resident</DialogTitle>
         </DialogHeader>
@@ -326,7 +335,7 @@ function NewResidentDialog({ onCreated }: { onCreated: () => void }) {
 }
 
 function Row({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-3">{children}</div>;
+  return <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>;
 }
 function FieldBox({ label, children }: { label: string; children: React.ReactNode }) {
   return <div className="space-y-1.5"><Label className="text-xs">{label}</Label>{children}</div>;

@@ -112,7 +112,7 @@ const navigationGroups = [
 ] as const;
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -126,8 +126,11 @@ export function AppSidebar() {
         <SidebarMenuButton asChild isActive={active}>
           <Link
             to={item.url}
+            onClick={() => {
+              if (isMobile) setOpenMobile(false);
+            }}
             className={cn(
-              "flex items-center gap-2 transition-colors",
+              "flex min-h-11 items-center gap-3 transition-colors md:min-h-0 md:gap-2",
               active
                 ? "bg-nav-navy text-nav-navy-foreground font-medium hover:bg-nav-navy hover:text-nav-navy-foreground"
                 : "text-nav-navy hover:bg-nav-navy-hover hover:text-nav-navy-foreground",
