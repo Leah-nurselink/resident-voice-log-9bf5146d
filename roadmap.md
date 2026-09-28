@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Active
+- [x] Make shared navigation, Residents, resident profiles, tabs, and dialogs mobile-friendly at 360–390px — 2026-09-28.
 - [x] Audit the app against the uploaded System Principles — scorecard delivered 2026-09-17.
 - [x] Tighten database permissions on sensitive records (consents, capacity assessments, wounds) — role/permission-scoped writes, 2026-09-17.
 - [x] Add change history for resident records, consents, capacity assessments, wounds, alerts, device pairings, staff role/permission changes — 2026-09-17.
