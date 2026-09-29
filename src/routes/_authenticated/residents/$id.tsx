@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { draftCarePlan, type CarePlanDraft } from "@/lib/care-plan-ai.functions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -337,7 +339,9 @@ function ResidentDetail() {
         <TabsContent value="care" className="mt-4 space-y-2">
           {CARE_PLAN_DOMAINS.map((d) => {
             const existing = carePlans.data?.find((c) => c.domain === d.id);
-            return <CarePlanRow key={d.id} residentId={id} domain={d.id} label={d.label} hint={d.hint} existing={existing} />;
+            const riskTypes = DOMAIN_TO_RISKS[d.id] || [];
+            const linked = (risks.data ?? []).filter((r) => riskTypes.includes(r.type as RiskType));
+            return <CarePlanRow key={d.id} residentId={id} domain={d.id} label={d.label} hint={d.hint} existing={existing} linkedRisks={linked} />;
           })}
         </TabsContent>
 
@@ -429,18 +433,29 @@ function ConsentBadge({ status }: { status: string }) {
   return <Badge className={map[status]} variant={status === "pending" ? "outline" : "default"}>{status}</Badge>;
 }
 
-function CarePlanRow({ residentId, domain, label, hint, existing }: { residentId: string; domain: CarePlanDomain; label: string; hint: string; existing?: any }) {
+function CarePlanRow({ residentId, domain, label, hint, existing, linkedRisks = [] }: { residentId: string; domain: CarePlanDomain; label: string; hint: string; existing?: any; linkedRisks?: any[] }) {
   const [open, setOpen] = useState(false);
+  const documented = !!(existing && (existing.content || existing.needs || existing.outcome || existing.risks));
   return (
     <>
-      <button onClick={() => setOpen(true)} className="flex w-full items-center justify-between rounded-2xl border bg-card p-4 text-left hover:bg-accent/30">
-        <div>
-          <div className="flex items-center gap-2">
+      <button onClick={() => setOpen(true)} className="flex w-full items-center justify-between gap-2 rounded-2xl border bg-card p-4 text-left hover:bg-accent/30">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium">{label}</span>
-            {existing ? <Badge variant="secondary" className="text-[10px]">Documented</Badge> : <Badge variant="outline" className="text-[10px]">Not set</Badge>}
-            {existing?.last_review && <span className="text-[10px] text-muted-foreground">· reviewed {format(new Date(existing.last_review), "d MMM")}</span>}
+            {documented ? <Badge variant="secondary" className="text-[10px]">Documented</Badge> : <Badge variant="outline" className="text-[10px]">Not set</Badge>}
+            {existing?.ai_draft && <Badge variant="outline" className="border-warning/40 bg-warning/20 text-[10px] text-warning-foreground">AI draft – awaiting approval</Badge>}
+            {existing?.last_review && documented && <span className="text-[10px] text-muted-foreground">· reviewed {format(new Date(existing.last_review), "d MMM")}</span>}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{existing?.content?.slice(0, 80) || hint}</p>
+          {linkedRisks.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {linkedRisks.map((r) => (
+                <Badge key={r.id} className={RISK_LEVEL_COLOR[r.level as "low"|"medium"|"high"] + " text-[10px]"}>
+                  <AlertTriangle className="mr-1 h-3 w-3" />{riskLabel(r.type as RiskType)} · {r.level}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
         <Pencil className="h-4 w-4 text-muted-foreground" />
       </button>
@@ -501,15 +516,58 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
   const save = useMutation({
     mutationFn: async (overrideReview?: string) => {
       const { data: u } = await supabase.auth.getUser();
-      const { error } = await supabase.from("care_plans").upsert({
+      const patch: Record<string, unknown> = {
         resident_id: residentId, domain, needs, risks: risksTxt, outcome, content,
         last_review: overrideReview ?? reviewDate, updated_by: u.user!.id,
-      }, { onConflict: "resident_id,domain" });
+      };
+      if (draftLoaded) {
+        patch.ai_draft = null;
+        patch.approved_by = u.user!.id;
+        patch.approved_at = new Date().toISOString();
+      }
+      const { error } = await supabase.from("care_plans").upsert(patch as never, { onConflict: "resident_id,domain" });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Care plan updated"); qc.invalidateQueries({ queryKey: ["care-plans", residentId] }); onClose(); },
+    onSuccess: () => { toast.success(draftLoaded ? "Care plan approved" : "Care plan updated"); qc.invalidateQueries({ queryKey: ["care-plans", residentId] }); onClose(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
+
+  const draftFn = useServerFn(draftCarePlan);
+  const [localDraft, setLocalDraft] = useState<CarePlanDraft | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const pendingDraft: CarePlanDraft | null = draftLoaded ? null : (localDraft ?? (existing?.ai_draft as CarePlanDraft | null) ?? null);
+
+  const draft = useMutation({
+    mutationFn: async () => {
+      const d = await draftFn({ data: { residentId, domain, needs, risks: risksTxt, outcome } });
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase.from("care_plans").upsert({
+        resident_id: residentId, domain, ai_draft: d, ai_draft_at: new Date().toISOString(), ai_draft_by: u.user!.id,
+      } as never, { onConflict: "resident_id,domain" });
+      if (error) throw error;
+      return d;
+    },
+    onSuccess: (d) => { setLocalDraft(d); setDraftLoaded(false); toast.success("AI draft ready for your review"); qc.invalidateQueries({ queryKey: ["care-plans", residentId] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Draft failed"),
+  });
+
+  const discard = useMutation({
+    mutationFn: async () => {
+      if (!existing?.id && !localDraft) return;
+      const { error } = await supabase.from("care_plans").update({ ai_draft: null } as never)
+        .eq("resident_id", residentId).eq("domain", domain);
+      if (error) throw error;
+    },
+    onSuccess: () => { setLocalDraft(null); toast.success("Draft discarded"); qc.invalidateQueries({ queryKey: ["care-plans", residentId] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Discard failed"),
+  });
+
+  function loadDraft() {
+    if (!pendingDraft) return;
+    setNeeds(pendingDraft.needs); setRisksTxt(pendingDraft.risks);
+    setOutcome(pendingDraft.outcome); setContent(pendingDraft.content);
+    setDraftLoaded(true);
+  }
 
   function applyVoice(n: StructuredNote) {
     setContent((c: string) => (c ? c + "\n\n" : "") + n.content);
@@ -591,6 +649,46 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
           </div>
         )}
 
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />AI person-centred draft
+            </div>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => draft.mutate()} disabled={draft.isPending}>
+              {draft.isPending ? "Drafting…" : pendingDraft ? "Redraft" : "Draft with AI"}
+            </Button>
+          </div>
+          {!pendingDraft && (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Uses your concerns below, the linked risk assessments, recent approved notes and the resident's preferences. Nothing goes live until you approve it.
+            </p>
+          )}
+          {pendingDraft && (
+            <div className="mt-2 space-y-2">
+              <Badge variant="outline" className="border-warning/40 bg-warning/20 text-[10px] text-warning-foreground">
+                AI draft – awaiting approval{existing?.ai_draft_at ? ` · ${format(new Date(existing.ai_draft_at), "d MMM HH:mm")}` : ""}
+              </Badge>
+              {(["needs", "risks", "outcome", "content"] as const).map((k) => pendingDraft[k] ? (
+                <div key={k} className="rounded-lg border bg-card p-2">
+                  <div className="text-[10px] font-medium uppercase text-muted-foreground">{k === "content" ? "Care plan detail" : k === "needs" ? "Need" : k === "risks" ? "Risk" : "Outcome"}</div>
+                  <p className="mt-0.5 whitespace-pre-wrap text-xs">{pendingDraft[k]}</p>
+                </div>
+              ) : null)}
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" className="h-7 text-xs" onClick={loadDraft}>
+                  <Pencil className="mr-1 h-3 w-3" />Edit &amp; approve
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => discard.mutate()} disabled={discard.isPending}>
+                  <X className="mr-1 h-3 w-3" />Discard draft
+                </Button>
+              </div>
+            </div>
+          )}
+          {draftLoaded && (
+            <p className="mt-2 text-[11px] text-primary">Draft copied into the form below. Check and edit it, then press "Approve care plan".</p>
+          )}
+        </div>
+
         <div className="space-y-3">
           <Field label="Need" value={needs} onChange={setNeeds} placeholder="What support does the resident need?" />
           <Field label="Risk" value={risksTxt} onChange={setRisksTxt} placeholder="What could go wrong?" />
@@ -621,7 +719,9 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
           >
             Mark as reviewed
           </Button>
-          <Button onClick={() => save.mutate(undefined)} disabled={save.isPending}>Update</Button>
+          <Button onClick={() => save.mutate(undefined)} disabled={save.isPending}>
+            {draftLoaded ? "Approve care plan" : "Update"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

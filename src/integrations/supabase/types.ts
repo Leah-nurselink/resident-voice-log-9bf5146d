@@ -209,6 +209,11 @@ export type Database = {
       }
       care_plans: {
         Row: {
+          ai_draft: Json | null
+          ai_draft_at: string | null
+          ai_draft_by: string | null
+          approved_at: string | null
+          approved_by: string | null
           content: string | null
           created_at: string
           domain: Database["public"]["Enums"]["care_plan_domain"]
@@ -222,6 +227,11 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          ai_draft?: Json | null
+          ai_draft_at?: string | null
+          ai_draft_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           content?: string | null
           created_at?: string
           domain: Database["public"]["Enums"]["care_plan_domain"]
@@ -235,6 +245,11 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          ai_draft?: Json | null
+          ai_draft_at?: string | null
+          ai_draft_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           content?: string | null
           created_at?: string
           domain?: Database["public"]["Enums"]["care_plan_domain"]

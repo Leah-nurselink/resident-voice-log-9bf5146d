@@ -21,3 +21,4 @@
 - [x] Wounds: review date + side-by-side comparison of two assessments (sizes, tissue, photos) — 2026-09-17.
 - [x] Daily notes: category on every note (AI suggests, staff can change), category filter chips, "New note" from the Daily Notes page — 2026-09-17.
 - [x] Handover page: AI-drafted shift handover across the eight sections, staff edit and approve, saved history — 2026-09-17.
+- [x] Care plans: per-section "Draft with AI" (person-centred, from risks + concerns + notes + preferences), stays a draft until clinician approves; linked risks shown on each section — 2026-09-29.
