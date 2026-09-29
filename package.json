@@ -13,7 +13,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.78",
+    "@ai-sdk/openai": "^3",
     "@ai-sdk/openai-compatible": "^2.0.51",
     "@capacitor-community/bluetooth-le": "^8.2.0",
     "@capacitor/android": "^8.4.1",
