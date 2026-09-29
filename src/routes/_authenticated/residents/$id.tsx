@@ -34,7 +34,8 @@ import { ResidentPhoto } from "@/components/ResidentPhoto";
 import { CallRecorder } from "@/components/CallRecorder";
 import { CommunicationsTab } from "@/components/CommunicationsTab";
 import { ScheduleTab } from "@/components/ScheduleTab";
-import { exportSingleResidentPDF, exportCarePlansPDF } from "@/lib/resident-export";
+import { exportCarePlansPDF } from "@/lib/resident-export";
+import { ResidentPdfDialog } from "@/components/ResidentPdfDialog";
 
 export const Route = createFileRoute("/_authenticated/residents/$id")({
   head: () => ({
@@ -202,12 +203,7 @@ function ResidentDetail() {
           <Button size="sm" variant="outline" onClick={() => setActiveTab("profile")} className="gap-1.5">
             <UserCog className="h-3.5 w-3.5" /> Edit
           </Button>
-          <Button size="sm" variant="outline" onClick={async () => {
-            const { data: sch } = await supabase.from("care_schedules" as never).select("*").eq("resident_id", id);
-            exportSingleResidentPDF(r, (sch as unknown as Record<string, unknown>[]) ?? []);
-          }} className="gap-1.5">
-            <Printer className="h-3.5 w-3.5" /> PDF
-          </Button>
+          <ResidentPdfDialog resident={r as unknown as Record<string, unknown>} />
           <Button size="sm" onClick={() => setCallOpen(true)} className="gap-1.5">
             <Phone className="h-3.5 w-3.5" /> Call
           </Button>
