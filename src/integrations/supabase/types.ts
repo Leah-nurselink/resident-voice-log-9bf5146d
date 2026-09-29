@@ -2385,7 +2385,7 @@ export type Database = {
       can_write: { Args: { _perm: string; _uid: string }; Returns: boolean }
       flag_due_care_reviews: { Args: never; Returns: undefined }
       has_permission: {
-        Args: { _perm: string; _uid: string }
+        Args: { _permission: string; _user_id: string }
         Returns: boolean
       }
       has_role: {
