@@ -34,7 +34,7 @@ import { ResidentPhoto } from "@/components/ResidentPhoto";
 import { CallRecorder } from "@/components/CallRecorder";
 import { CommunicationsTab } from "@/components/CommunicationsTab";
 import { ScheduleTab } from "@/components/ScheduleTab";
-import { exportSingleResidentPDF } from "@/lib/resident-export";
+import { exportSingleResidentPDF, exportCarePlansPDF } from "@/lib/resident-export";
 
 export const Route = createFileRoute("/_authenticated/residents/$id")({
   head: () => ({
@@ -337,6 +337,11 @@ function ResidentDetail() {
         </TabsContent>
 
         <TabsContent value="care" className="mt-4 space-y-2">
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => exportCarePlansPDF(r, (carePlans.data ?? []) as never, (risks.data ?? []) as never)}>
+              <Printer className="h-3.5 w-3.5" /> Download care plan & risks PDF
+            </Button>
+          </div>
           {CARE_PLAN_DOMAINS.map((d) => {
             const existing = carePlans.data?.find((c) => c.domain === d.id);
             const riskTypes = DOMAIN_TO_RISKS[d.id] || [];
@@ -445,6 +450,7 @@ function CarePlanRow({ residentId, domain, label, hint, existing, linkedRisks = 
             {documented ? <Badge variant="secondary" className="text-[10px]">Documented</Badge> : <Badge variant="outline" className="text-[10px]">Not set</Badge>}
             {existing?.ai_draft && <Badge variant="outline" className="border-warning/40 bg-warning/20 text-[10px] text-warning-foreground">AI draft – awaiting approval</Badge>}
             {existing?.last_review && documented && <span className="text-[10px] text-muted-foreground">· reviewed {format(new Date(existing.last_review), "d MMM")}</span>}
+            {existing?.last_review && documented && Date.now() - new Date(existing.last_review).getTime() > 30 * 864e5 && <Badge className="bg-destructive/15 text-destructive border-destructive/30 border text-[10px]">Review due</Badge>}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{existing?.content?.slice(0, 80) || hint}</p>
           {linkedRisks.length > 0 && (

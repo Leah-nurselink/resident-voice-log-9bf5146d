@@ -132,3 +132,33 @@ export function formatDays(days?: number[] | null): string {
   if (!days || days.length === 7) return "Every day";
   return days.map((d) => DAY_LABELS[d]).join(", ");
 }
+
+export function exportCarePlansPDF(r: AnyRow, plans: AnyRow[], risks: AnyRow[]) {
+  const doc = new jsPDF();
+  const name = String(r.full_name ?? "Resident");
+  doc.setFontSize(16);
+  doc.text(`Care plan – ${name}`, 14, 16);
+  doc.setFontSize(9);
+  doc.text(`${r.room_number ? `Room ${r.room_number} · ` : ""}Generated ${new Date().toLocaleString()}`, 14, 22);
+  const nice = (s: unknown) => String(s ?? "").replace(/_/g, " ");
+  autoTable(doc, {
+    head: [["Area", "Needs", "Risks", "Outcome", "Plan of care", "Last review"]],
+    body: plans.map((p) => [nice(p.domain), val(p, "needs"), val(p, "risks"), val(p, "outcome"), val(p, "content"), val(p, "last_review")]),
+    startY: 28,
+    styles: { fontSize: 8, cellPadding: 2, valign: "top" },
+    headStyles: { fillColor: [30, 64, 175] },
+    columnStyles: { 0: { cellWidth: 22, fontStyle: "bold" }, 5: { cellWidth: 20 } },
+  });
+  const y = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40;
+  doc.setFontSize(13);
+  doc.text("Risk assessments", 14, y + 10);
+  autoTable(doc, {
+    head: [["Type", "Level", "Factors", "Controls", "Review date"]],
+    body: risks.map((k) => [nice(k.type), val(k, "level"), val(k, "factors"), val(k, "controls"), val(k, "review_date")]),
+    startY: y + 14,
+    styles: { fontSize: 8, cellPadding: 2, valign: "top" },
+    headStyles: { fillColor: [30, 64, 175] },
+    columnStyles: { 0: { cellWidth: 28, fontStyle: "bold" }, 1: { cellWidth: 16 }, 4: { cellWidth: 22 } },
+  });
+  doc.save(`${name.replace(/\s+/g, "-")}-care-plan.pdf`);
+}
