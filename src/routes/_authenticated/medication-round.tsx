@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, Pill } from "lucide-react";
 import { format } from "date-fns";
 import {
-  dueDosesForDay, statusMeta, type Administration, type Medication,
+  dueDosesForDay, statusMeta, ROUNDS, roundForTime, doseTiming, type RoundKey, type Administration, type Medication,
 } from "@/lib/medications";
 import { RecordDoseDialog } from "@/components/MedicationAdministration";
 
@@ -33,6 +33,7 @@ function MedicationRound() {
   const dateKey = format(today, "yyyy-MM-dd");
   const [recording, setRecording] = useState<{ med: Medication; time: string | null; allergies: string | null } | null>(null);
   const [onlyOutstanding, setOnlyOutstanding] = useState(true);
+  const [round, setRound] = useState<RoundKey>(() => roundForTime(format(new Date(), "HH:mm")));
 
   const { data } = useQuery({
     queryKey: ["med-round", dateKey],
@@ -56,24 +57,35 @@ function MedicationRound() {
       .map((r) => {
         const meds = data.meds.filter((m) => m.resident_id === r.id);
         const admins = data.admins.filter((a) => a.resident_id === r.id);
-        const due = dueDosesForDay(meds, admins, today);
+        const due = dueDosesForDay(meds, admins, today).filter((d) => roundForTime(d.time) === round);
         const prn = meds.filter((m) => m.is_prn);
         return { resident: r, due, prn };
       })
       .filter((row) => row.due.length > 0 || row.prn.length > 0);
-  }, [data]);
+  }, [data, round]);
 
   const outstanding = rows.reduce((n, r) => n + r.due.filter((d) => !d.administration).length, 0);
 
   return (
-    <AppShell title="Medication round" subtitle={`${format(today, "EEEE d MMMM")} · ${outstanding} dose${outstanding === 1 ? "" : "s"} still to record`}>
+    <AppShell title="Medication round" subtitle={`${format(today, "EEEE d MMMM")} · ${outstanding} dose${outstanding === 1 ? "" : "s"} still to record this round`}>
+      <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {ROUNDS.map((r) => {
+          const current = roundForTime(format(today, "HH:mm")) === r.key;
+          return (
+            <Button key={r.key} variant={round === r.key ? "default" : "outline"} className="h-auto flex-col py-2" onClick={() => setRound(r.key)}>
+              <span className="text-sm font-semibold">{r.label}{current ? " · now" : ""}</span>
+              <span className="text-[10px] opacity-80">{r.range}</span>
+            </Button>
+          );
+        })}
+      </div>
       <div className="mb-3 flex gap-2">
         <Button size="sm" variant={onlyOutstanding ? "default" : "outline"} onClick={() => setOnlyOutstanding(true)}>Still to give</Button>
         <Button size="sm" variant={onlyOutstanding ? "outline" : "default"} onClick={() => setOnlyOutstanding(false)}>Everything today</Button>
       </div>
 
       {!data && <p className="text-sm text-muted-foreground">Loading…</p>}
-      {data && rows.length === 0 && <p className="text-sm text-muted-foreground">No medications are set up yet.</p>}
+      {data && rows.length === 0 && <p className="text-sm text-muted-foreground">No medications due in this round.</p>}
 
       <div className="space-y-4">
         {rows.map(({ resident, due, prn }) => {
@@ -104,7 +116,12 @@ function MedicationRound() {
                       </span>
                       {d.administration
                         ? <Badge className={statusMeta(d.administration.status).tone}>{statusMeta(d.administration.status).label}</Badge>
-                        : <Badge variant="outline">Record</Badge>}
+                        : (() => {
+                            const t = doseTiming(d.time);
+                            return t === "overdue" ? <Badge variant="destructive">Overdue · Record</Badge>
+                              : t === "due" ? <Badge>Due now · Record</Badge>
+                              : <Badge variant="outline">Upcoming</Badge>;
+                          })()}
                     </button>
                   </li>
                 ))}

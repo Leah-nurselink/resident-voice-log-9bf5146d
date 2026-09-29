@@ -1,3 +1,4 @@
+import { roundLabel } from "@/lib/medications";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -180,7 +181,7 @@ export function ResidentTimeline({ residentId }: { residentId: string }) {
           id: `md-${a.id}`, ts: a.administered_at, kind: "med",
           title: `Medication ${label} · ${med?.name ?? "medication"}`,
           detail: [
-            med?.is_prn ? "As required" : a.scheduled_time ? `Due ${String(a.scheduled_time).slice(0, 5)}` : null,
+            med?.is_prn ? "As required" : a.scheduled_time ? `${roundLabel(String(a.scheduled_time))} round · due ${String(a.scheduled_time).slice(0, 5)}` : null,
             a.dose_given ? `Dose ${a.dose_given}` : null,
             a.reason ? `Reason: ${a.reason}` : null,
             a.action_taken ? `Action: ${a.action_taken}` : null,

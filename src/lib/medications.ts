@@ -134,3 +134,33 @@ export function describeSchedule(m: Medication) {
   if (times.length) return times.join(", ");
   return m.frequency_text ?? "No times set";
 }
+
+export const ROUNDS = [
+  { key: "morning", label: "Morning", range: "06:00–11:59", start: 6, end: 12 },
+  { key: "afternoon", label: "Afternoon", range: "12:00–16:59", start: 12, end: 17 },
+  { key: "evening", label: "Evening", range: "17:00–20:59", start: 17, end: 21 },
+  { key: "night", label: "Night", range: "21:00–05:59", start: 21, end: 6 },
+] as const;
+export type RoundKey = typeof ROUNDS[number]["key"];
+
+/** Which round a clock time ("08:00") belongs to. */
+export function roundForTime(t: string | null | undefined): RoundKey {
+  const h = Number((t ?? "00").slice(0, 2));
+  if (h >= 6 && h < 12) return "morning";
+  if (h >= 12 && h < 17) return "afternoon";
+  if (h >= 17 && h < 21) return "evening";
+  return "night";
+}
+
+export function roundLabel(t: string | null | undefined) {
+  return ROUNDS.find((r) => r.key === roundForTime(t))!.label;
+}
+
+/** Due-state of a scheduled dose relative to now: upcoming, due (within ±1h), or overdue. */
+export function doseTiming(time: string, now = new Date()): "upcoming" | "due" | "overdue" {
+  const [h, m] = time.split(":").map(Number);
+  const diff = (h * 60 + m) - (now.getHours() * 60 + now.getMinutes());
+  if (diff > 60) return "upcoming";
+  if (diff < -60) return "overdue";
+  return "due";
+}
