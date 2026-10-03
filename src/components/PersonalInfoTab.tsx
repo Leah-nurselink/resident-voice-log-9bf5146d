@@ -222,6 +222,15 @@ export function PersonalInfoTab({ resident }: Props) {
         <Grid>
           <Field label="Next of kin name"><Input value={form.next_of_kin ?? ""} onChange={(e) => set("next_of_kin", e.target.value)} /></Field>
           <Field label="Relationship"><Input value={form.next_of_kin_relationship ?? ""} onChange={(e) => set("next_of_kin_relationship", e.target.value)} placeholder="Daughter, Son, Spouse..." /></Field>
+          <Field label="Next of kin email">
+            <Input
+              type="email"
+              inputMode="email"
+              value={form.next_of_kin_email ?? ""}
+              onChange={(e) => set("next_of_kin_email", e.target.value)}
+              placeholder="name@example.com — used to invite them to the app"
+            />
+          </Field>
           <Field label="Next of kin telephone">
             <Input
               type="tel"
