@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { explainDeviation } from "@/lib/deviation-ai.functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -313,5 +315,21 @@ function AlertsPage() {
         </>
       )}
     </AppShell>
+  );
+}
+
+function DeviationExplain({ alertId, initial }: { alertId: string; initial?: string }) {
+  const [text, setText] = useState<string | undefined>(initial);
+  const fn = useServerFn(explainDeviation);
+  const m = useMutation({
+    mutationFn: () => fn({ data: { alertId } }),
+    onSuccess: (r) => setText(r.text),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "AI explanation failed"),
+  });
+  if (text) return <div className="mt-2 whitespace-pre-wrap rounded-md border bg-background/60 p-2 text-xs">{text}<p className="mt-1 text-[10px] opacity-70">AI suggestion — a nurse decides what to do.</p></div>;
+  return (
+    <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => m.mutate()} disabled={m.isPending}>
+      {m.isPending ? "Explaining…" : "Explain with AI"}
+    </Button>
   );
 }
