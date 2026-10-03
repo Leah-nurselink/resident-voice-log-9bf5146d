@@ -76,7 +76,7 @@ export async function loadHighlights(residentId: string, period: string, client:
   const professionalTotal = professionals.reduce((s, x) => s + x.count, 0);
 
   const flags = [...new Set(ns.flatMap((n) => n.flags ?? []))].map((f) => f.replace(/_/g, " "));
-  const scores = (pain.data ?? []).map((x) => x.total_score as number);
+  const scores = (pain.data ?? []).map((x: { total_score: number }) => x.total_score);
   const painMax = scores.length ? Math.max(...scores) : null;
 
   const summary: string[] = [];
