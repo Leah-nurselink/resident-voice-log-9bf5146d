@@ -87,7 +87,21 @@ function CapturePage() {
     })();
   }, []);
 
-  const active = sessionState.activeSessions[0] ?? null;
+  // Beacon focus: carer picks one beacon or a group; only those residents are recorded.
+  const [beacons, setBeacons] = useState<{ id: string; label: string; resident_id: string | null }[]>([]);
+  const [focus, setFocus] = useState<string[]>([]);
+  useEffect(() => {
+    try { setFocus(JSON.parse(localStorage.getItem("carecore.beaconFocus") ?? "[]")); } catch { /* ignore */ }
+    void supabase.from("devices").select("id, label, resident_id").not("resident_id", "is", null).eq("status", "active")
+      .then(({ data }) => setBeacons((data ?? []) as never));
+  }, []);
+  const toggleFocus = (id: string) => setFocus((f) => {
+    const next = f.includes(id) ? f.filter((x) => x !== id) : [...f, id];
+    localStorage.setItem("carecore.beaconFocus", JSON.stringify(next));
+    return next;
+  });
+  const focusResidents = new Set(beacons.filter((b) => focus.includes(b.id)).map((b) => b.resident_id));
+  const active = sessionState.activeSessions.find((s) => !focus.length || (s.residentId && focusResidents.has(s.residentId))) ?? null;
   const residentName = active?.residentId ? (residents.get(active.residentId) ?? "Resident") : null;
   const roomName = active?.roomId ? rooms.get(active.roomId) : null;
 
@@ -159,6 +173,22 @@ function CapturePage() {
           Bluetooth identifies who and where; you just speak.
         </p>
       </header>
+
+      {beacons.length > 0 && (
+        <Card>
+          <CardContent className="space-y-2 p-4">
+            <div className="text-sm font-medium">Focus on beacons</div>
+            <p className="text-xs text-muted-foreground">Pick one beacon or a group. Only those residents will be recorded. Pick none to use all.</p>
+            <div className="flex flex-wrap gap-1.5">
+              {beacons.map((b) => (
+                <Button key={b.id} size="sm" variant={focus.includes(b.id) ? "default" : "outline"} className="h-7 text-xs" onClick={() => toggleFocus(b.id)}>
+                  {b.resident_id ? (residents.get(b.resident_id) ?? b.label) : b.label}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Presence panel */}
       <Card>

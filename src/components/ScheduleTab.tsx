@@ -36,6 +36,10 @@ const SUGGESTED: Partial<Record<CarePlanDomain, string[]>> = {
   cognition: ["Reorientation", "Memory activity"],
   breathing: ["Inhaler", "Nebuliser", "Oxygen check"],
 };
+const SUGGESTED_EXTRA: Record<string, string[]> = {
+  appointment: ["Hospital appointment", "GP visit", "Dentist", "Optician", "Podiatry", "Hairdresser"],
+  other: [],
+};
 
 type Schedule = {
   id: string;
@@ -48,7 +52,15 @@ type Schedule = {
   window_end: string;
   specific_time: string | null;
   is_active: boolean;
+  specific_date: string | null;
 };
+
+// Extra schedule types beyond care plan domains.
+const EXTRA_TYPES = [
+  { id: "appointment", label: "Appointment (hospital, GP, dentist…)" },
+  { id: "other", label: "Other" },
+];
+const ALL_TYPES = [...CARE_PLAN_DOMAINS.map((d) => ({ id: d.id as string, label: d.label })), ...EXTRA_TYPES];
 
 export function ScheduleTab({ residentId }: { residentId: string }) {
   const qc = useQueryClient();
@@ -89,14 +101,14 @@ export function ScheduleTab({ residentId }: { residentId: string }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarClock className="h-4 w-4 text-primary" />
-          Daily routine across care plan domains
+          Daily routine and appointments
         </div>
         <Button size="sm" onClick={() => setEditing({ resident_id: residentId, is_active: true, days_of_week: [0,1,2,3,4,5,6] })}>
           <Plus className="mr-1 h-4 w-4" /> Add schedule
         </Button>
       </div>
 
-      {CARE_PLAN_DOMAINS.map((d) => {
+      {ALL_TYPES.map((d) => {
         const items = byDomain[d.id] ?? [];
         if (!items.length) return null;
         return (
@@ -114,10 +126,11 @@ export function ScheduleTab({ residentId }: { residentId: string }) {
                       <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
                           <Clock className="h-3 w-3" />
+                          {s.specific_date ? `${new Date(s.specific_date + "T00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })} · ` : ""}
                           {s.window_start.slice(0,5)}–{s.window_end.slice(0,5)}
                           {s.specific_time ? ` · @ ${s.specific_time.slice(0,5)}` : ""}
                         </span>
-                        <span>· {formatDays(s.days_of_week)}</span>
+                        {!s.specific_date && <span>· {formatDays(s.days_of_week)}</span>}
                       </div>
                       {s.notes && <p className="mt-1 text-xs text-muted-foreground">{s.notes}</p>}
                     </div>
@@ -181,6 +194,7 @@ function ScheduleDialog({
         window_start: f.window_start!,
         window_end: f.window_end!,
         specific_time: f.specific_time || null,
+        specific_date: f.specific_date || null,
         is_active: f.is_active ?? true,
       };
       const table = supabase.from("care_schedules" as never) as unknown as {
@@ -204,7 +218,7 @@ function ScheduleDialog({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
 
-  const suggestions = SUGGESTED[f.domain as CarePlanDomain] ?? [];
+  const suggestions = SUGGESTED[f.domain as CarePlanDomain] ?? SUGGESTED_EXTRA[f.domain ?? ""] ?? [];
   const days = f.days_of_week ?? [];
   const toggleDay = (d: number) =>
     set("days_of_week", days.includes(d) ? days.filter((x) => x !== d) : [...days, d].sort());
@@ -217,11 +231,11 @@ function ScheduleDialog({
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs">Care plan domain</Label>
+            <Label className="text-xs">Type</Label>
             <Select value={f.domain} onValueChange={(v) => { set("domain", v); set("activity", ""); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {CARE_PLAN_DOMAINS.map((d) => (
+                {ALL_TYPES.map((d) => (
                   <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -264,6 +278,12 @@ function ScheduleDialog({
           </div>
 
           <div className="space-y-1.5">
+            <Label className="text-xs">Specific date (for one-off appointments)</Label>
+            <Input type="date" value={f.specific_date ?? ""} onChange={(e) => set("specific_date", e.target.value || null)} />
+            <p className="text-[11px] text-muted-foreground">Leave blank for a repeating routine on the days below.</p>
+          </div>
+
+          {!f.specific_date && <div className="space-y-1.5">
             <Label className="text-xs">Days</Label>
             <div className="flex flex-wrap gap-2">
               {DAY_LABELS.map((lbl, i) => (
@@ -273,7 +293,7 @@ function ScheduleDialog({
                 </label>
               ))}
             </div>
-          </div>
+          </div>}
 
           <div className="space-y-1.5">
             <Label className="text-xs">Notes</Label>

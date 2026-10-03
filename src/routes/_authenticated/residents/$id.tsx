@@ -16,6 +16,7 @@ import { MedicationsTab } from "@/components/MedicationsTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { DictateButton } from "@/components/DictateButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -248,7 +249,7 @@ function ResidentDetail() {
           <TabsTrigger value="notes" className="min-h-10 shrink-0 px-3 text-xs">Notes</TabsTrigger>
           <TabsTrigger value="comms" className="min-h-10 shrink-0 px-3 text-xs">Comms</TabsTrigger>
           <TabsTrigger value="profile" className="min-h-10 shrink-0 px-3 text-xs">Profile</TabsTrigger>
-          <TabsTrigger value="care" className="min-h-10 shrink-0 px-3 text-xs">Care</TabsTrigger>
+          <TabsTrigger value="care" className="min-h-10 shrink-0 px-3 text-xs">Care plans</TabsTrigger>
           <TabsTrigger value="schedule" aria-label="Schedule" className="min-h-10 shrink-0 px-3 text-xs"><CalendarClock className="h-3 w-3" /></TabsTrigger>
           <TabsTrigger value="risk" className="min-h-10 shrink-0 px-3 text-xs">Risk</TabsTrigger>
           <TabsTrigger value="pain" className="min-h-10 shrink-0 px-3 text-xs">Pain</TabsTrigger>
@@ -1050,10 +1051,14 @@ function HistoryPanel<T extends { id: string }>({ items, render }: { items: T[];
   );
 }
 
-function Field({ label, value, onChange, placeholder, rows = 2 }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
+function Field({ label, value, onChange, placeholder, rows = 2, dictate = true }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; dictate?: boolean }) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label>{label}</Label>
+        {dictate && <DictateButton onText={(t) => onChange(value ? `${value} ${t}` : t)} />}
+      </div>
+      {dictate && placeholder && <p className="text-[11px] text-muted-foreground">Ask: “{placeholder}” — then speak or type.</p>}
       <Textarea rows={rows} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="resize-none" />
     </div>
   );
