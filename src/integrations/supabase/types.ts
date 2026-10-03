@@ -283,6 +283,7 @@ export type Database = {
           is_active: boolean
           notes: string | null
           resident_id: string
+          specific_date: string | null
           specific_time: string | null
           updated_at: string
           window_end: string
@@ -298,6 +299,7 @@ export type Database = {
           is_active?: boolean
           notes?: string | null
           resident_id: string
+          specific_date?: string | null
           specific_time?: string | null
           updated_at?: string
           window_end: string
@@ -313,6 +315,7 @@ export type Database = {
           is_active?: boolean
           notes?: string | null
           resident_id?: string
+          specific_date?: string | null
           specific_time?: string | null
           updated_at?: string
           window_end?: string
@@ -2383,6 +2386,7 @@ export type Database = {
     }
     Functions: {
       can_write: { Args: { _perm: string; _uid: string }; Returns: boolean }
+      flag_care_deviations: { Args: never; Returns: undefined }
       flag_due_care_reviews: { Args: never; Returns: undefined }
       has_permission: {
         Args: { _permission: string; _user_id: string }
