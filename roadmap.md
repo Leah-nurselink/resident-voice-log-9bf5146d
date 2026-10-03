@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Active
-- [ ] Make Safeguarding phone-friendly with accessible search, country filters and a direct dashboard return — 2026-10-03.
+- [x] Make Safeguarding phone-friendly with accessible search, country filters and a direct dashboard return — verified at 360, 384, 390 and 1280px, 2026-10-03.
 - [x] Show resident profile photos on the Residents cards and dashboard resident strip — 2026-10-03.
 - [x] Make shared navigation, Residents, resident profiles, tabs, and dialogs mobile-friendly at 360–390px — 2026-09-28.
 - [x] Make Devices actions, status cards, tabs, device details, rooms, and beacon registration mobile-friendly at 360–390px — 2026-09-28.
