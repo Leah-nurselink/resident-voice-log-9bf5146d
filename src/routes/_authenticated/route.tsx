@@ -9,6 +9,12 @@ export const Route = createFileRoute("/_authenticated")({
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
 
+    // Family / LPA accounts only ever see their own care summary page.
+    if (location.pathname !== "/family-portal") {
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
+      if (roles?.length && roles.every((r) => r.role === "family")) throw redirect({ to: "/family-portal" });
+    }
+
     // Android/iOS Capacitor shell → carer surface on first landing.
     if (
       isNativeShell() &&

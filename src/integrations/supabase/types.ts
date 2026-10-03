@@ -948,6 +948,66 @@ export type Database = {
           },
         ]
       }
+      family_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          family_member_id: string | null
+          id: string
+          manager_response: string | null
+          period: string
+          rating: number
+          resident_id: string
+          responded_at: string | null
+          responded_by: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          family_member_id?: string | null
+          id?: string
+          manager_response?: string | null
+          period: string
+          rating: number
+          resident_id: string
+          responded_at?: string | null
+          responded_by?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          family_member_id?: string | null
+          id?: string
+          manager_response?: string | null
+          period?: string
+          rating?: number
+          resident_id?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_feedback_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_feedback_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_members: {
         Row: {
           created_at: string
