@@ -1912,6 +1912,7 @@ export type Database = {
           medical_history: string | null
           nationality: string | null
           next_of_kin: Json | null
+          next_of_kin_email: string | null
           next_of_kin_phone: string | null
           next_of_kin_relationship: string | null
           next_of_kin_secondary: string | null
@@ -1970,6 +1971,7 @@ export type Database = {
           medical_history?: string | null
           nationality?: string | null
           next_of_kin?: Json | null
+          next_of_kin_email?: string | null
           next_of_kin_phone?: string | null
           next_of_kin_relationship?: string | null
           next_of_kin_secondary?: string | null
@@ -2028,6 +2030,7 @@ export type Database = {
           medical_history?: string | null
           nationality?: string | null
           next_of_kin?: Json | null
+          next_of_kin_email?: string | null
           next_of_kin_phone?: string | null
           next_of_kin_relationship?: string | null
           next_of_kin_secondary?: string | null
