@@ -266,6 +266,30 @@ function ReviewDialog({ incident, isManager, onClose, onSaved }: { incident: Inc
               <div key={k}><Label>{label}</Label><Textarea value={r[k]} onChange={(e) => setR((p) => ({ ...p, [k]: e.target.value }))} /></div>
             ) : <Row key={k} label={label.replace(" *", "")} value={r[k] || null} />
           ))}
+          {isManager && (
+            <div className="space-y-1.5 rounded-md border p-3">
+              <Label>Share lessons learned in Handover</Label>
+              {sharedUntil && <p className="text-xs text-muted-foreground">Currently shown until {new Date(sharedUntil).toLocaleString()}</p>}
+              <Select value={shareDays} onValueChange={setShareDays}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{sharedUntil ? "Keep as it is" : "Don't share"}</SelectItem>
+                  <SelectItem value="0">Stop sharing now</SelectItem>
+                  <SelectItem value="3">3 days</SelectItem>
+                  <SelectItem value="7">1 week</SelectItem>
+                  <SelectItem value="14">2 weeks</SelectItem>
+                  <SelectItem value="30">1 month</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Every staff member must mark it as read before they can continue using the app.</p>
+              {closed && <Button size="sm" variant="secondary" onClick={async () => {
+                if (shareDays === "none") return;
+                const { error } = await db.from("incidents").update({ lessons_shared_until: new Date(Date.now() + Number(shareDays) * 86400000).toISOString() }).eq("id", incident.id);
+                if (error) return toast.error(error.message);
+                toast.success("Sharing updated"); onSaved(); onClose();
+              }}>Update sharing</Button>}
+            </div>
+          )}
           {closed && incident.closed_at && <p className="text-xs text-muted-foreground">Closed {new Date(incident.closed_at).toLocaleString()}</p>}
         </div>
 
