@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2 } from "lucide-react";
@@ -27,6 +28,7 @@ type Props = {
 };
 
 export function ResidentPhoto({ residentId, path, initials, size = "lg", onUploaded }: Props) {
+  const queryClient = useQueryClient();
   const url = useResidentPhotoUrl(path);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,8 +41,23 @@ export function ResidentPhoto({ residentId, path, initials, size = "lg", onUploa
       const key = `${residentId}/${Date.now()}.${ext}`;
       const { error } = await supabase.storage.from("resident-photos").upload(key, file, { upsert: true });
       if (error) throw error;
+
+      const { error: saveError } = await supabase
+        .from("residents")
+        .update({ photo_url: key })
+        .eq("id", residentId);
+      if (saveError) {
+        await supabase.storage.from("resident-photos").remove([key]);
+        throw saveError;
+      }
+
       onUploaded?.(key);
-      toast.success("Photo uploaded");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["resident", residentId] }),
+        queryClient.invalidateQueries({ queryKey: ["residents"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-resident-photos"] }),
+      ]);
+      toast.success("Photo uploaded and saved");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
