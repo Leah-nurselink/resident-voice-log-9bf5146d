@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ExternalLink, Phone, Search, Shield } from "lucide-react";
+import { ArrowLeft, ExternalLink, Phone, Search } from "lucide-react";
+import { AppShell } from "@/components/AppShell";
 import { COUNCILS, type Council } from "@/lib/safeguarding-councils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,16 @@ import {
 } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/safeguarding")({
+  head: () => ({
+    meta: [
+      { title: "Safeguarding directory · CareCore" },
+      { name: "description", content: "Find local adult safeguarding contacts and referral pages in CareCore." },
+      { property: "og:title", content: "Safeguarding directory · CareCore" },
+      { property: "og:description", content: "Find local adult safeguarding contacts and referral pages in CareCore." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: SafeguardingPage,
   errorComponent: ({ error }) => (
     <div role="alert" className="p-6 text-sm text-destructive">
@@ -52,46 +63,44 @@ function SafeguardingPage() {
   );
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <header className="flex items-start gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
-          <Shield className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold">Safeguarding directory</h1>
-          <p className="text-sm text-muted-foreground">
-            Adult safeguarding referral pages for every local authority across
-            England, Scotland and Wales. Always verify the route locally before
-            raising a concern.
-          </p>
-        </div>
-      </header>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Find your council</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <AppShell
+      title="Safeguarding"
+      subtitle="Local safeguarding contacts"
+      action={
+        <Button asChild variant="outline" className="min-h-11">
+          <Link to="/dashboard"><ArrowLeft className="h-4 w-4" />Back to dashboard</Link>
+        </Button>
+      }
+    >
+      <div className="space-y-4 pb-20">
+        <p className="text-sm text-muted-foreground">
+          Adult safeguarding contacts across England, Scotland and Wales.
+          Always verify referral details locally before raising a concern.
+        </p>
+        <section aria-labelledby="council-search-heading" className="space-y-4">
+          <h2 id="council-search-heading" className="text-base font-semibold">Find your council</h2>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              type="search"
+              aria-label="Search by council or region"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by council or region…"
-              className="pl-9"
+              className="min-h-11 pl-9 text-base"
             />
           </div>
 
           <Tabs value={country} onValueChange={(v) => setCountry(v as Country)}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="All">All ({counts.All})</TabsTrigger>
-              <TabsTrigger value="England">England ({counts.England})</TabsTrigger>
-              <TabsTrigger value="Scotland">Scotland ({counts.Scotland})</TabsTrigger>
-              <TabsTrigger value="Wales">Wales ({counts.Wales})</TabsTrigger>
+            <TabsList aria-label="Filter councils by country" className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
+              <TabsTrigger className="min-h-11 min-w-0" value="All">All ({counts.All})</TabsTrigger>
+              <TabsTrigger className="min-h-11 min-w-0" value="England">England ({counts.England})</TabsTrigger>
+              <TabsTrigger className="min-h-11 min-w-0" value="Scotland">Scotland ({counts.Scotland})</TabsTrigger>
+              <TabsTrigger className="min-h-11 min-w-0" value="Wales">Wales ({counts.Wales})</TabsTrigger>
             </TabsList>
 
             <TabsContent value={country} className="mt-4">
-              <p className="mb-3 text-xs text-muted-foreground">
+              <p role="status" aria-live="polite" className="mb-3 text-sm text-muted-foreground">
                 {filtered.length} {filtered.length === 1 ? "council" : "councils"}
               </p>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -106,9 +115,9 @@ function SafeguardingPage() {
               </div>
             </TabsContent>
           </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+        </section>
+      </div>
+    </AppShell>
   );
 }
 
@@ -116,8 +125,8 @@ function CouncilCard({ council }: { council: Council }) {
   return (
     <Card className="flex h-full flex-col">
       <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-sm font-semibold leading-tight">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+          <CardTitle className="min-w-0 break-words text-base font-semibold leading-tight">
             {council.name}
           </CardTitle>
           <Badge variant="outline" className="shrink-0 text-[10px]">
@@ -132,7 +141,8 @@ function CouncilCard({ council }: { council: Council }) {
         {council.phone && (
           <a
             href={`tel:${council.phone.replace(/\s+/g, "")}`}
-            className="flex items-center gap-2 text-xs text-foreground hover:text-primary"
+            aria-label={`Call ${council.name} on ${council.phone}`}
+            className="flex min-h-11 items-center gap-2 rounded-md text-sm text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
           >
             <Phone className="h-3.5 w-3.5" />
             {council.phone}
@@ -142,7 +152,7 @@ function CouncilCard({ council }: { council: Council }) {
           asChild
           size="sm"
           variant="secondary"
-          className="w-full justify-between"
+          className="min-h-11 w-full justify-between"
         >
           <a
             href={`https://www.google.com/search?q=${encodeURIComponent(`${council.name} council adult safeguarding referral`)}`}
@@ -157,7 +167,7 @@ function CouncilCard({ council }: { council: Council }) {
           asChild
           size="sm"
           variant="ghost"
-          className="w-full justify-between text-xs"
+          className="min-h-11 w-full justify-between text-sm"
         >
           <a href={council.safeguardingUrl} target="_blank" rel="noreferrer">
             Try direct link
