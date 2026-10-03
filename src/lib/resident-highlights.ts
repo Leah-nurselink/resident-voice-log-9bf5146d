@@ -32,14 +32,23 @@ export type Highlights = {
   summary: string[];
 };
 
-export async function loadHighlights(residentId: string, period: HighlightPeriod): Promise<Highlights> {
-  const p = HIGHLIGHT_PERIODS.find((x) => x.id === period)!;
+export const FAMILY_PERIODS = [
+  { id: "24h", label: "Today", hours: 24 },
+  { id: "7d", label: "This week", hours: 168 },
+  { id: "14d", label: "Two weeks", hours: 336 },
+] as const;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function loadHighlights(residentId: string, period: string, client: any = supabase, approvedOnly = false): Promise<Highlights> {
+  const p = [...HIGHLIGHT_PERIODS, ...FAMILY_PERIODS].find((x) => x.id === period)!;
   const since = new Date(Date.now() - p.hours * 3600e3).toISOString();
+  let notesQ = client.from("daily_notes").select("content,category,domain,flags,status,created_at").eq("resident_id", residentId).gte("created_at", since);
+  if (approvedOnly) notesQ = notesQ.eq("status", "approved");
   const [notes, mar, comms, pain] = await Promise.all([
-    supabase.from("daily_notes").select("content,category,domain,flags,status,created_at").eq("resident_id", residentId).gte("created_at", since).order("created_at", { ascending: false }),
-    supabase.from("medication_administrations").select("status,medication_id,medications(is_prn)").eq("resident_id", residentId).gte("administered_at", since),
-    supabase.from("communications").select("contact_type,channel,professionals(role)").eq("resident_id", residentId).gte("created_at", since),
-    supabase.from("pain_assessments").select("total_score").eq("resident_id", residentId).gte("assessed_at", since),
+    notesQ.order("created_at", { ascending: false }),
+    client.from("medication_administrations").select("status,medication_id,medications(is_prn)").eq("resident_id", residentId).gte("administered_at", since),
+    client.from("communications").select("contact_type,channel,professionals(role)").eq("resident_id", residentId).gte("created_at", since),
+    client.from("pain_assessments").select("total_score").eq("resident_id", residentId).gte("assessed_at", since),
   ]);
   const ns = (notes.data ?? []) as Note[];
 
