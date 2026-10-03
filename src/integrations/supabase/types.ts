@@ -1113,6 +1113,8 @@ export type Database = {
           action_taken: string | null
           administered_at: string
           administered_by: string | null
+          count_after: number | null
+          count_before: number | null
           created_at: string
           dose_given: string | null
           effectiveness: string | null
@@ -1131,6 +1133,8 @@ export type Database = {
           action_taken?: string | null
           administered_at?: string
           administered_by?: string | null
+          count_after?: number | null
+          count_before?: number | null
           created_at?: string
           dose_given?: string | null
           effectiveness?: string | null
@@ -1149,6 +1153,8 @@ export type Database = {
           action_taken?: string | null
           administered_at?: string
           administered_by?: string | null
+          count_after?: number | null
+          count_before?: number | null
           created_at?: string
           dose_given?: string | null
           effectiveness?: string | null
@@ -1180,10 +1186,68 @@ export type Database = {
           },
         ]
       }
+      medication_stock_events: {
+        Row: {
+          count_after: number | null
+          count_before: number | null
+          created_at: string
+          id: string
+          kind: string
+          medication_id: string
+          notes: string | null
+          quantity: number | null
+          recorded_by: string | null
+          resident_id: string
+        }
+        Insert: {
+          count_after?: number | null
+          count_before?: number | null
+          created_at?: string
+          id?: string
+          kind: string
+          medication_id: string
+          notes?: string | null
+          quantity?: number | null
+          recorded_by?: string | null
+          resident_id: string
+        }
+        Update: {
+          count_after?: number | null
+          count_before?: number | null
+          created_at?: string
+          id?: string
+          kind?: string
+          medication_id?: string
+          notes?: string | null
+          quantity?: number | null
+          recorded_by?: string | null
+          resident_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_stock_events_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_stock_events_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medications: {
         Row: {
+          controlled_drug: boolean
           created_at: string
           created_by: string | null
+          cycle_end_date: string | null
+          cycle_quantity: number | null
+          cycle_start_date: string | null
           days_of_week: number[]
           dose: string | null
           end_date: string | null
@@ -1204,12 +1268,18 @@ export type Database = {
           route: string | null
           start_date: string | null
           status: string
+          stock_count: number | null
+          stock_counted_at: string | null
           times: string[]
           updated_at: string
         }
         Insert: {
+          controlled_drug?: boolean
           created_at?: string
           created_by?: string | null
+          cycle_end_date?: string | null
+          cycle_quantity?: number | null
+          cycle_start_date?: string | null
           days_of_week?: number[]
           dose?: string | null
           end_date?: string | null
@@ -1230,12 +1300,18 @@ export type Database = {
           route?: string | null
           start_date?: string | null
           status?: string
+          stock_count?: number | null
+          stock_counted_at?: string | null
           times?: string[]
           updated_at?: string
         }
         Update: {
+          controlled_drug?: boolean
           created_at?: string
           created_by?: string | null
+          cycle_end_date?: string | null
+          cycle_quantity?: number | null
+          cycle_start_date?: string | null
           days_of_week?: number[]
           dose?: string | null
           end_date?: string | null
@@ -1256,6 +1332,8 @@ export type Database = {
           route?: string | null
           start_date?: string | null
           status?: string
+          stock_count?: number | null
+          stock_counted_at?: string | null
           times?: string[]
           updated_at?: string
         }
@@ -1647,6 +1725,7 @@ export type Database = {
           last_name: string | null
           local_authority: string | null
           marital_status: string | null
+          medical_history: string | null
           nationality: string | null
           next_of_kin: Json | null
           next_of_kin_phone: string | null
@@ -1704,6 +1783,7 @@ export type Database = {
           last_name?: string | null
           local_authority?: string | null
           marital_status?: string | null
+          medical_history?: string | null
           nationality?: string | null
           next_of_kin?: Json | null
           next_of_kin_phone?: string | null
@@ -1761,6 +1841,7 @@ export type Database = {
           last_name?: string | null
           local_authority?: string | null
           marital_status?: string | null
+          medical_history?: string | null
           nationality?: string | null
           next_of_kin?: Json | null
           next_of_kin_phone?: string | null
