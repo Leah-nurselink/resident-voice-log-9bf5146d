@@ -65,7 +65,7 @@ function FamilyPage() {
                   setF({
                     ...f,
                     residentId: v,
-                    fullName: r?.next_of_kin ?? "",
+                    fullName: typeof r?.next_of_kin === "string" ? r.next_of_kin : "",
                     email: r?.next_of_kin_email ?? "",
                     phone: r?.next_of_kin_phone ?? "",
                     relationship: RELATIONSHIPS.includes(r?.next_of_kin_relationship ?? "") ? r!.next_of_kin_relationship! : f.relationship,
