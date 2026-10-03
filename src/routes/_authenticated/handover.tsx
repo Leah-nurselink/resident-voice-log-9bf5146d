@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
+import { HandoverLessons } from "@/components/LessonsLearned";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -111,6 +112,7 @@ function HandoverPage() {
   return (
     <AppShell title="Handover" subtitle="Drafted from approved records — a person checks it before it is used">
       <div className="space-y-4">
+        <HandoverLessons />
         <Card>
           <CardContent className="flex flex-wrap items-end gap-3 p-4">
             <div className="space-y-1.5">

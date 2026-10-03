@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotificationBell } from "@/components/NotificationBell";
+import { LessonsGate } from "@/components/LessonsLearned";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -110,6 +111,7 @@ export function AppShell({
           </header>
 
           <main className="min-w-0 flex-1 overflow-x-hidden bg-background p-3 sm:p-4 md:p-6">{children}</main>
+          <LessonsGate />
         </div>
       </div>
     </SidebarProvider>
