@@ -17,7 +17,8 @@ import {
   ROUTES, allergyConflict, describeSchedule, dueDosesForDay, hhmm, statusMeta,
   type Administration, type Medication,
 } from "@/lib/medications";
-import { RecordDoseDialog } from "@/components/MedicationAdministration";
+import { RecordDoseDialog, AiMedicationReview, SafetyFlagList, useResidentMedContext } from "@/components/MedicationAdministration";
+import { medicationSafetyFlags } from "@/lib/medication-safety";
 import { medicationObservations } from "@/lib/medication-insights";
 
 export function MedicationsTab({ residentId, allergies }: { residentId: string; allergies?: string | null }) {
@@ -48,6 +49,8 @@ export function MedicationsTab({ residentId, allergies }: { residentId: string; 
   });
 
   const active = (meds.data ?? []).filter((m) => m.status === "active");
+  const ctx = useResidentMedContext(residentId);
+  const allFlags = ctx.data ? active.flatMap((m) => medicationSafetyFlags(m, ctx.data!).map((f) => ({ ...f, text: `${m.name}: ${f.text}` }))) : [];
   const due = useMemo(
     () => dueDosesForDay(active, admins.data ?? [], today),
     [meds.data, admins.data],
@@ -63,6 +66,9 @@ export function MedicationsTab({ residentId, allergies }: { residentId: string; 
       <Button className="w-full" onClick={() => setEditing("new")}>
         <Plus className="mr-1 h-4 w-4" />Add medication
       </Button>
+
+      <SafetyFlagList flags={allFlags} />
+      <AiMedicationReview residentId={residentId} />
 
       {observations.length > 0 && (
         <div className="space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-3">
@@ -253,6 +259,7 @@ function MedicationDialog({
     prescriber: medication?.prescriber ?? "",
     notes: medication?.notes ?? "",
     status: medication?.status ?? "active",
+    controlled_drug: medication?.controlled_drug ?? false,
   });
 
   const set = (k: keyof typeof form, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
@@ -281,6 +288,7 @@ function MedicationDialog({
         prescriber: form.prescriber || null,
         notes: form.notes || null,
         status: form.status,
+        controlled_drug: form.controlled_drug,
       };
       if (medication) {
         const { error } = await supabase.from("medications").update(payload).eq("id", medication.id);
@@ -331,6 +339,10 @@ function MedicationDialog({
           <label className="flex items-center gap-2 rounded-lg border p-2 text-sm">
             <Checkbox checked={form.is_prn} onCheckedChange={(v) => set("is_prn", !!v)} />
             As required (PRN)
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border p-2 text-sm">
+            <Checkbox checked={form.controlled_drug} onCheckedChange={(v) => set("controlled_drug", !!v)} />
+            Controlled drug (count required at every dose)
           </label>
 
           {form.is_prn ? (

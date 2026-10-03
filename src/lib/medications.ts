@@ -22,6 +22,12 @@ export type Medication = {
   prescriber: string | null;
   notes: string | null;
   status: string;
+  stock_count?: number | null;
+  stock_counted_at?: string | null;
+  controlled_drug?: boolean;
+  cycle_start_date?: string | null;
+  cycle_end_date?: string | null;
+  cycle_quantity?: number | null;
 };
 
 export type Administration = {

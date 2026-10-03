@@ -209,6 +209,7 @@ export function PersonalInfoTab({ resident }: Props) {
           <Field label="GP phone"><Input value={form.gp_phone ?? ""} onChange={(e) => set("gp_phone", e.target.value)} /></Field>
         </Grid>
         <Field label="Allergies"><Textarea rows={2} value={form.allergies ?? ""} onChange={(e) => set("allergies", e.target.value)} /></Field>
+        <Field label="Medical history (used for medicine safety checks)"><Textarea rows={3} value={form.medical_history ?? ""} onChange={(e) => set("medical_history", e.target.value)} placeholder="e.g. kidney disease, stomach ulcer, asthma, swallowing difficulty" /></Field>
         <Field label="Dietary requirements"><Textarea rows={2} value={form.dietary_requirements ?? ""} onChange={(e) => set("dietary_requirements", e.target.value)} /></Field>
         <Field label="Communication needs"><Textarea rows={2} value={form.communication_needs ?? ""} onChange={(e) => set("communication_needs", e.target.value)} placeholder="Hearing aid, glasses, language..." /></Field>
         <Field label="Important preferences (likes, dislikes, routines, how they wish to be cared for)">
