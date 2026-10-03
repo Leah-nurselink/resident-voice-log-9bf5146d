@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useResidentPhotoUrl } from "@/components/ResidentPhoto";
 import {
   Dialog,
   DialogContent,
@@ -143,9 +144,11 @@ function ResidentsList() {
                     <CardHeader className="pb-3">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                         <div className="flex min-w-0 items-center gap-3">
-                          <Avatar className="h-12 w-12">
-                            <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
-                          </Avatar>
+                          <ResidentListAvatar
+                            name={r.full_name ?? "Resident"}
+                            photoPath={r.photo_url}
+                            initials={initials}
+                          />
                           <div className="min-w-0">
                             <CardTitle className="truncate text-base">
                               {r.full_name}
@@ -224,6 +227,25 @@ function ResidentsList() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+function ResidentListAvatar({
+  name,
+  photoPath,
+  initials,
+}: {
+  name: string;
+  photoPath?: string | null;
+  initials: string;
+}) {
+  const photoUrl = useResidentPhotoUrl(photoPath);
+
+  return (
+    <Avatar className="h-14 w-14 border-2 border-primary/15 bg-primary/10">
+      {photoUrl ? <AvatarImage src={photoUrl} alt={`${name}'s profile photo`} className="object-cover" /> : null}
+      <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
+    </Avatar>
   );
 }
 

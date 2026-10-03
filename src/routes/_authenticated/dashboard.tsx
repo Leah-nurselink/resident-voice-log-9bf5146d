@@ -28,7 +28,16 @@ import { TrendArea, DonutChart } from "@/components/analytics/AnalyticsCharts";
 import careHero from "@/assets/care-hero.jpg";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard · CareCore" }] }),
+  head: () => ({
+    meta: [
+      { title: "Dashboard · CareCore" },
+      { name: "description", content: "View residents, care activity, tasks and clinical priorities in CareCore." },
+      { property: "og:title", content: "Dashboard · CareCore" },
+      { property: "og:description", content: "View residents, care activity, tasks and clinical priorities in CareCore." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: Dashboard,
 });
 
