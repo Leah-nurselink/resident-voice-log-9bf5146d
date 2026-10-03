@@ -5,7 +5,16 @@ import { useResidentPhotoUrl } from "@/components/ResidentPhoto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 
-type R = { id: string; full_name: string; preferred_name: string | null; photo_url: string | null; room_number: string | null };
+type R = {
+  id: string;
+  full_name: string;
+  preferred_name: string | null;
+  photo_url: string | null;
+  room_number: string | null;
+  residency_status: string | null;
+};
+
+const ARCHIVED_STATUSES = ["Discharged", "Deceased"];
 
 function Avatar({ r }: { r: R }) {
   const url = useResidentPhotoUrl(r.photo_url);
@@ -27,11 +36,10 @@ export function ResidentPhotoStrip() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("residents")
-        .select("id, full_name, preferred_name, photo_url, room_number")
-        .is("discharge_date", null)
+        .select("id, full_name, preferred_name, photo_url, room_number, residency_status")
         .order("full_name");
       if (error) throw error;
-      return data as R[];
+      return (data as R[]).filter((resident) => !ARCHIVED_STATUSES.includes(resident.residency_status ?? ""));
     },
   });
   if (!data.length) return null;
