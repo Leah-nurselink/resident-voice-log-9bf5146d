@@ -1037,6 +1037,98 @@ export type Database = {
         }
         Relationships: []
       }
+      incidents: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          description: string
+          follow_up_actions: string | null
+          id: string
+          immediate_action: string | null
+          incident_type: string
+          injuries: string | null
+          lessons_learned: string | null
+          location: string | null
+          manager_review: string | null
+          occurred_at: string
+          people_notified: string | null
+          reported_by: string | null
+          reporter_name: string | null
+          resident_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          root_cause: string | null
+          safeguarding_concern: boolean
+          severity: string
+          status: string
+          updated_at: string
+          witnesses: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          description: string
+          follow_up_actions?: string | null
+          id?: string
+          immediate_action?: string | null
+          incident_type: string
+          injuries?: string | null
+          lessons_learned?: string | null
+          location?: string | null
+          manager_review?: string | null
+          occurred_at?: string
+          people_notified?: string | null
+          reported_by?: string | null
+          reporter_name?: string | null
+          resident_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          root_cause?: string | null
+          safeguarding_concern?: boolean
+          severity?: string
+          status?: string
+          updated_at?: string
+          witnesses?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          description?: string
+          follow_up_actions?: string | null
+          id?: string
+          immediate_action?: string | null
+          incident_type?: string
+          injuries?: string | null
+          lessons_learned?: string | null
+          location?: string | null
+          manager_review?: string | null
+          occurred_at?: string
+          people_notified?: string | null
+          reported_by?: string | null
+          reporter_name?: string | null
+          resident_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          root_cause?: string | null
+          safeguarding_concern?: boolean
+          severity?: string
+          status?: string
+          updated_at?: string
+          witnesses?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mca_assessments: {
         Row: {
           assessment_date: string
