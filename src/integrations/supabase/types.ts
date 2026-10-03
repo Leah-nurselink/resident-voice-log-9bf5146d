@@ -1037,6 +1037,35 @@ export type Database = {
         }
         Relationships: []
       }
+      incident_lesson_reads: {
+        Row: {
+          id: string
+          incident_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          incident_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          incident_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_lesson_reads_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           closed_at: string | null
@@ -1049,6 +1078,7 @@ export type Database = {
           incident_type: string
           injuries: string | null
           lessons_learned: string | null
+          lessons_shared_until: string | null
           location: string | null
           manager_review: string | null
           occurred_at: string
@@ -1076,6 +1106,7 @@ export type Database = {
           incident_type: string
           injuries?: string | null
           lessons_learned?: string | null
+          lessons_shared_until?: string | null
           location?: string | null
           manager_review?: string | null
           occurred_at?: string
@@ -1103,6 +1134,7 @@ export type Database = {
           incident_type?: string
           injuries?: string | null
           lessons_learned?: string | null
+          lessons_shared_until?: string | null
           location?: string | null
           manager_review?: string | null
           occurred_at?: string
