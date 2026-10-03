@@ -62,6 +62,7 @@ export function PersonalInfoTab({ resident }: Props) {
   const save = useMutation({
     mutationFn: async () => {
       const { id, created_at, updated_at, ...patch } = form;
+      patch.discharge_date = form.residency_status === "Permanent" ? null : form.discharge_date || null;
       const { error } = await supabase.from("residents").update(patch).eq("id", resident.id);
       if (error) throw error;
     },
@@ -69,6 +70,7 @@ export function PersonalInfoTab({ resident }: Props) {
       toast.success("Resident details updated");
       qc.invalidateQueries({ queryKey: ["resident", resident.id] });
       qc.invalidateQueries({ queryKey: ["residents"] });
+      qc.invalidateQueries({ queryKey: ["residents-min"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
   });
@@ -145,7 +147,7 @@ export function PersonalInfoTab({ resident }: Props) {
       <Section title="Stay in the care home" icon={Home}>
         <Grid>
           <Field label="Residency status">
-            <SelectBox value={form.residency_status} onChange={(v) => set("residency_status", v)} options={RESIDENCY_OPTIONS} />
+            <SelectBox value={form.residency_status} onChange={(v) => setForm((f: any) => ({ ...f, residency_status: v, discharge_date: v === "Permanent" ? null : f.discharge_date }))} options={RESIDENCY_OPTIONS} />
           </Field>
           <Field label="Admission type / funding">
             <SelectBox value={form.admission_type} onChange={(v) => set("admission_type", v)} options={ADMISSION_TYPE} />
@@ -178,7 +180,9 @@ export function PersonalInfoTab({ resident }: Props) {
             </div>
           </Field>
           <Field label="Admission date"><Input type="date" value={form.admission_date ?? ""} onChange={(e) => set("admission_date", e.target.value)} /></Field>
-          <Field label="Discharge date"><Input type="date" value={form.discharge_date ?? ""} onChange={(e) => set("discharge_date", e.target.value)} /></Field>
+          {form.residency_status && form.residency_status !== "Permanent" && (
+            <Field label="Discharge date"><Input type="date" value={form.discharge_date ?? ""} onChange={(e) => set("discharge_date", e.target.value || null)} /></Field>
+          )}
           <Field label="Funding source"><Input value={form.funding_source ?? ""} onChange={(e) => set("funding_source", e.target.value)} placeholder="Self / LA name" /></Field>
           <Field label="Local authority"><Input value={form.local_authority ?? ""} onChange={(e) => set("local_authority", e.target.value)} /></Field>
         </Grid>

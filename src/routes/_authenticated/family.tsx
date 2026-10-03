@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/family")({
-  head: () => ({ meta: [{ title: "Family · CareCore" }, { name: "description", content: "Give family members and LPAs access to a care summary." }] }),
+  head: () => ({ meta: [{ title: "Family · CareCore" }, { name: "description", content: "Give family members and LPAs access to a care summary." }, { property: "og:title", content: "Family · CareCore" }, { property: "og:description", content: "Give family members and LPAs access to a care summary." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: FamilyPage,
 });
 
@@ -29,7 +29,7 @@ function FamilyPage() {
 
   const residents = useQuery({
     queryKey: ["residents-min"],
-    queryFn: async () => (await supabase.from("residents").select("id, full_name, next_of_kin, next_of_kin_email, next_of_kin_relationship, next_of_kin_phone").is("discharge_date", null).order("full_name")).data ?? [],
+    queryFn: async () => (await supabase.from("residents").select("id, full_name, next_of_kin, next_of_kin_email, next_of_kin_relationship, next_of_kin_phone").or("discharge_date.is.null,residency_status.eq.Permanent").order("full_name")).data ?? [],
   });
   const members = useQuery({
     queryKey: ["family-members"],
