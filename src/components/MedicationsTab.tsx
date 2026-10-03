@@ -17,7 +17,8 @@ import {
   ROUTES, allergyConflict, describeSchedule, dueDosesForDay, hhmm, statusMeta,
   type Administration, type Medication,
 } from "@/lib/medications";
-import { RecordDoseDialog } from "@/components/MedicationAdministration";
+import { RecordDoseDialog, AiMedicationReview, SafetyFlagList, useResidentMedContext } from "@/components/MedicationAdministration";
+import { medicationSafetyFlags } from "@/lib/medication-safety";
 import { medicationObservations } from "@/lib/medication-insights";
 
 export function MedicationsTab({ residentId, allergies }: { residentId: string; allergies?: string | null }) {
@@ -48,6 +49,8 @@ export function MedicationsTab({ residentId, allergies }: { residentId: string; 
   });
 
   const active = (meds.data ?? []).filter((m) => m.status === "active");
+  const ctx = useResidentMedContext(residentId);
+  const allFlags = ctx.data ? active.flatMap((m) => medicationSafetyFlags(m, ctx.data!).map((f) => ({ ...f, text: `${m.name}: ${f.text}` }))) : [];
   const due = useMemo(
     () => dueDosesForDay(active, admins.data ?? [], today),
     [meds.data, admins.data],
@@ -63,6 +66,9 @@ export function MedicationsTab({ residentId, allergies }: { residentId: string; 
       <Button className="w-full" onClick={() => setEditing("new")}>
         <Plus className="mr-1 h-4 w-4" />Add medication
       </Button>
+
+      <SafetyFlagList flags={allFlags} />
+      <AiMedicationReview residentId={residentId} />
 
       {observations.length > 0 && (
         <div className="space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-3">
