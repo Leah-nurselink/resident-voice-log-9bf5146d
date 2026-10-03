@@ -8,6 +8,7 @@ import { SessionRecorder, type StructuredNote } from "@/components/SessionRecord
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { ResidentTimeline } from "@/components/ResidentTimeline";
 import { ResidentIntelligence } from "@/components/ResidentIntelligence";
+import { ResidentHighlights } from "@/components/ResidentHighlights";
 import { WoundsTab } from "@/components/WoundsTab";
 import { PersonalInfoTab } from "@/components/PersonalInfoTab";
 import { PainTab } from "@/components/PainTab";
@@ -258,7 +259,10 @@ function ResidentDetail() {
         </TabsList>
 
         <TabsContent value="intel" className="mt-4">
-          <ResidentIntelligence residentId={id} />
+          <div className="space-y-4">
+            <ResidentHighlights residentId={id} />
+            <ResidentIntelligence residentId={id} />
+          </div>
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-4">
