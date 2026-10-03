@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Printer } from "lucide-react";
+import { HIGHLIGHT_PERIODS, loadHighlights, type HighlightPeriod } from "@/lib/resident-highlights";
 
 type Row = Record<string, unknown>;
 type Col = [key: string, label: string];
@@ -28,6 +29,7 @@ type Section = { id: string; label: string; table?: string; order?: string; cols
 
 const SECTIONS: Section[] = [
   { id: "profile", label: "Resident profile" },
+  { id: "highlights", label: "Highlights summary" },
   { id: "care", label: "Care plan", table: "care_plans", order: "domain",
     cols: [["domain", "Area"], ["needs", "Needs"], ["risks", "Risks"], ["outcome", "Outcome"], ["content", "Plan of care"], ["last_review", "Reviewed"]] },
   { id: "risk", label: "Risk assessments", table: "risk_assessments", order: "type",
@@ -63,6 +65,7 @@ export function ResidentPdfDialog({ resident }: { resident: Row }) {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set(["profile"]));
   const [busy, setBusy] = useState(false);
+  const [hlPeriod, setHlPeriod] = useState<HighlightPeriod>("7d");
   const id = String(resident.id);
   const since = new Date(Date.now() - 30 * 864e5).toISOString();
 
@@ -99,6 +102,14 @@ export function ResidentPdfDialog({ resident }: { resident: Row }) {
         heading(s.label);
         if (s.id === "profile") {
           table(["Field", "Value"], PROFILE_FIELDS.map(([k, l]) => [l, fmt(resident[k])]).filter(([, v]) => v));
+        } else if (s.id === "highlights") {
+          const h = await loadHighlights(id, hlPeriod);
+          doc.setFontSize(9); doc.text(`Period: last ${h.periodLabel}`, 14, y); y += 4;
+          table(["Summary"], h.summary.map((x) => [x]));
+          table(["Area", "Records", "Possible concerns"], [
+            ...h.areas.map((a) => [a.label, String(a.count), String(a.concerns)]),
+            ["Health professional contacts", String(h.professionalTotal), ""],
+          ]);
         } else if (s.id === "story") {
           const [notes, mar, comms] = await Promise.all([
             load("daily_notes", "created_at"), load("medication_administrations", "administered_at"), load("communications", "created_at"),
@@ -141,6 +152,15 @@ export function ResidentPdfDialog({ resident }: { resident: Row }) {
               </label>
             ))}
           </div>
+          {picked.has("highlights") && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Highlights period:</span>
+              {HIGHLIGHT_PERIODS.map((p) => (
+                <button key={p.id} onClick={() => setHlPeriod(p.id)}
+                  className={`rounded-full border px-3 py-1 text-xs ${hlPeriod === p.id ? "bg-primary text-primary-foreground" : ""}`}>{p.label}</button>
+              ))}
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button onClick={generate} disabled={busy || picked.size === 0}>{busy ? "Creating…" : "Download PDF"}</Button>
