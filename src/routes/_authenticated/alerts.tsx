@@ -207,6 +207,7 @@ function AlertsPage() {
                         {name} <ChevronRight className="h-3 w-3" />
                       </Link>
                     )}
+                    {a.kind === "care_deviation" && <DeviationExplain alertId={a.id} initial={(a.payload as { ai_explanation?: string } | null)?.ai_explanation} />}
                     <p className="mt-1 text-[10px] opacity-70">
                       {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
                       {a.status === "acknowledged" && " · Acknowledged"}
