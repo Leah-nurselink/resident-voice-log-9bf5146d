@@ -29,7 +29,7 @@ function FamilyPage() {
 
   const residents = useQuery({
     queryKey: ["residents-min"],
-    queryFn: async () => (await supabase.from("residents").select("id, full_name").is("discharge_date", null).order("full_name")).data ?? [],
+    queryFn: async () => (await supabase.from("residents").select("id, full_name, next_of_kin, next_of_kin_email, next_of_kin_relationship, next_of_kin_phone").is("discharge_date", null).order("full_name")).data ?? [],
   });
   const members = useQuery({
     queryKey: ["family-members"],
@@ -60,7 +60,17 @@ function FamilyPage() {
             <p className="text-xs text-muted-foreground">Admins and Managers only. They will see a short care overview for their relative and can leave feedback.</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div><Label>Resident</Label>
-                <Select value={f.residentId} onValueChange={(v) => setF({ ...f, residentId: v })}>
+                <Select value={f.residentId} onValueChange={(v) => {
+                  const r = (residents.data ?? []).find((x) => x.id === v);
+                  setF({
+                    ...f,
+                    residentId: v,
+                    fullName: r?.next_of_kin ?? "",
+                    email: r?.next_of_kin_email ?? "",
+                    phone: r?.next_of_kin_phone ?? "",
+                    relationship: RELATIONSHIPS.includes(r?.next_of_kin_relationship ?? "") ? r!.next_of_kin_relationship! : f.relationship,
+                  });
+                }}>
                   <SelectTrigger><SelectValue placeholder="Choose resident" /></SelectTrigger>
                   <SelectContent>{(residents.data ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.full_name}</SelectItem>)}</SelectContent>
                 </Select>
