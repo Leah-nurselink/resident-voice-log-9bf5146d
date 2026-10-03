@@ -253,6 +253,7 @@ function MedicationDialog({
     prescriber: medication?.prescriber ?? "",
     notes: medication?.notes ?? "",
     status: medication?.status ?? "active",
+    controlled_drug: medication?.controlled_drug ?? false,
   });
 
   const set = (k: keyof typeof form, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
@@ -281,6 +282,7 @@ function MedicationDialog({
         prescriber: form.prescriber || null,
         notes: form.notes || null,
         status: form.status,
+        controlled_drug: form.controlled_drug,
       };
       if (medication) {
         const { error } = await supabase.from("medications").update(payload).eq("id", medication.id);
@@ -331,6 +333,10 @@ function MedicationDialog({
           <label className="flex items-center gap-2 rounded-lg border p-2 text-sm">
             <Checkbox checked={form.is_prn} onCheckedChange={(v) => set("is_prn", !!v)} />
             As required (PRN)
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border p-2 text-sm">
+            <Checkbox checked={form.controlled_drug} onCheckedChange={(v) => set("controlled_drug", !!v)} />
+            Controlled drug (count required at every dose)
           </label>
 
           {form.is_prn ? (
