@@ -53,7 +53,7 @@ const administrationItems = [
 
 const residentItems = [
   { title: "Residents", url: "/residents", icon: Users },
-  { title: "Care", url: "/care-plans", icon: FileText },
+  { title: "Care plans", url: "/care-plans", icon: FileText },
   { title: "Family", url: "/family", icon: Heart },
 ] as const;
 
