@@ -81,7 +81,7 @@ function IncidentReviewPage() {
     <AppShell
       title="Incident Review"
       subtitle="Anyone can report an incident; managers review and close"
-      actions={<Button onClick={() => setReportOpen(true)}><Plus className="mr-1 h-4 w-4" />Report incident</Button>}
+      action={<Button onClick={() => setReportOpen(true)}><Plus className="mr-1 h-4 w-4" />Report incident</Button>}
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
