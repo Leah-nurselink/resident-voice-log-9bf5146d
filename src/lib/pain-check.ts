@@ -109,5 +109,21 @@ export function painPatterns(
   }
   for (const [loc, n] of locs) if (n >= 3)
     out.push({ title: "Repeated location", detail: `${n} pain episodes were documented in the same location (${loc}) in the last 14 days. ${tail}` });
+  const fac = last7.filter((a) => a.facial_analysis_used && (a.facial_indicators ?? []).some((i: { level: string }) => i.level !== "not_seen")).length;
+  if (fac >= 2)
+    out.push({ title: "Facial pain indicators recorded", detail: `Facial pain indicators were recorded in ${fac} assessments in the last 7 days. ${tail}` });
   return out;
 }
+
+// ---- Prototype — facial-expression analysis (not facial recognition) ----
+export type FacialIndicator = { key: string; level: "not_seen" | "some" | "clear"; observation: string };
+export const FACIAL_LEVEL_LABEL = { not_seen: "Not seen", some: "Some", clear: "Clear" } as const;
+/** Facial indicators feed the existing "Facial expression" observation (0/1/2). Low-quality capture contributes nothing. */
+export function facialObsValue(ind: FacialIndicator[], quality: number | null): number | null {
+  if (quality == null || quality < 0.4) return null;
+  const clear = ind.filter((i) => i.level === "clear").length, some = ind.filter((i) => i.level === "some").length;
+  return clear >= 2 || (clear >= 1 && some >= 2) ? 2 : clear + some > 0 ? 1 : 0;
+}
+export const METHOD_LABEL: Record<string, string> = {
+  self_report: "Self-report", observational: "Observational", facial_observational: "Facial analysis + observational",
+};

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { analyseFacialPain, FACIAL_INDICATORS } from "@/lib/facial-pain.functions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,10 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AbbeyAssessments } from "@/components/PainTab";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import { ArrowRight, ChevronLeft, ChevronRight, Clock, Pill, Plus, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Clock, Pill, Plus, Sparkles, Camera, Loader2, Pencil, Check } from "lucide-react";
 import {
   INTERVENTIONS, LEVEL_CLASS, LEVEL_LABEL, OBSERVATIONS, OBS_LEVELS, OUTCOME_LABEL, REASONS,
-  interventionLabel, levelFromObs, levelFromSelf, levelOf, outcome, painPatterns,
+  interventionLabel, levelFromObs, facialObsValue, FACIAL_LEVEL_LABEL, METHOD_LABEL, type FacialIndicator, levelFromSelf, levelOf, outcome, painPatterns,
   type ObsKey, type PainLevel,
 } from "@/lib/pain-check";
 
@@ -40,7 +42,7 @@ function usePainData(residentId: string) {
 }
 
 const LevelBadge = ({ level }: { level: PainLevel }) => <Badge className={LEVEL_CLASS[level]}>{LEVEL_LABEL[level]}</Badge>;
-const typeLabel = (a: any) => (a.method === "self_report" ? "Self-report" : a.method === "observational" ? "Observational" : "Abbey Pain");
+const typeLabel = (a: any) => METHOD_LABEL[a.method] ?? "Abbey Pain";
 
 export function PainSummary({ residentId, onOpen }: { residentId: string; onOpen: () => void }) {
   const { data } = usePainData(residentId);
@@ -189,7 +191,7 @@ function Chain({ root, kids, detailed }: { root: any; kids: any[]; detailed?: bo
       {kids.map((k) => (
         <div key={k.id} className="mt-1 flex flex-wrap items-center gap-2 border-l-2 pl-2">
           <span className="font-medium">{format(new Date(k.assessed_at), "HH:mm")}</span><LevelBadge level={levelOf(k)} />
-          <span className="text-xs text-muted-foreground">following intervention</span>
+          <span className="text-xs text-muted-foreground">Reassessment{k.facial_analysis_used ? " · facial analysis" : ""}</span>
         </div>
       ))}
       {o && <p className="mt-1 text-xs font-medium">{OUTCOME_LABEL[o]}</p>}
@@ -229,28 +231,141 @@ function Big({ active, onClick, children }: { active?: boolean; onClick: () => v
   return <button type="button" onClick={onClick} className={`min-h-12 rounded-xl border px-3 py-2 text-sm font-medium ${active ? "border-primary bg-primary text-primary-foreground" : "bg-card"}`}>{children}</button>;
 }
 
+type Method = "self_report" | "observational" | "facial_observational";
+type Facial = { indicators: FacialIndicator[]; quality: number; issues: string[]; faceVisible: boolean; model: string };
+
+function FacialCapture({ residentId, onDone }: { residentId: string; onDone: (f: Facial) => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [state, setState] = useState<"starting" | "ready" | "capturing" | "analysing" | "error">("starting");
+  const [err, setErr] = useState("");
+  const analyse = useServerFn(analyseFacialPain);
+  const stop = () => { streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; };
+  useEffect(() => {
+    (async () => {
+      try {
+        const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 640 } }, audio: false });
+        streamRef.current = st;
+        if (videoRef.current) { videoRef.current.srcObject = st; await videoRef.current.play(); }
+        setState("ready");
+      } catch { setErr("Camera not available. Allow camera access, or go back and choose Observational."); setState("error"); }
+    })();
+    return stop;
+  }, []);
+  const capture = async () => {
+    const v = videoRef.current; if (!v) return;
+    setState("capturing");
+    const frames: string[] = [];
+    const c = document.createElement("canvas"); const w = 384; c.width = w; c.height = Math.round((v.videoHeight / v.videoWidth) * w) || 288;
+    for (let n = 0; n < 4; n++) {
+      c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
+      frames.push(c.toDataURL("image/jpeg", 0.7));
+      await new Promise((r) => setTimeout(r, 700));
+    }
+    stop(); setState("analysing");
+    try {
+      const r = await analyse({ data: { residentId, consentConfirmed: true, frames } });
+      frames.length = 0; // frames discarded — never stored
+      onDone({ indicators: r.indicators as FacialIndicator[], quality: r.quality, issues: r.quality_issues, faceVisible: r.face_visible, model: r.model });
+    } catch (e) { setErr(e instanceof Error ? e.message : "Analysis failed"); setState("error"); }
+  };
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium">Position the resident's face within the guide and ensure the face is clearly visible.</p>
+      <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted">
+        <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+        <div className="pointer-events-none absolute inset-[12%_18%] rounded-[50%] border-4 border-dashed border-primary/80" />
+        {state !== "ready" && state !== "error" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/60 text-sm font-medium">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />{{ starting: "Starting camera…", capturing: "Observing… hold still", analysing: "Analysing expression…" }[state]}
+          </div>
+        )}
+      </div>
+      {err && <p className="text-sm text-destructive">{err}</p>}
+      <Button className="h-12 w-full" disabled={state !== "ready"} onClick={capture}><Camera className="mr-2 h-4 w-4" />Capture 3-second observation</Button>
+      <p className="text-[11px] text-muted-foreground">Facial <b>expression</b> analysis only — not facial recognition. The person is not identified and no images or video are kept.</p>
+    </div>
+  );
+}
+
+function FacialSummary({ f, editable, onChange }: { f: Facial; editable?: boolean; onChange?: (f: Facial) => void }) {
+  const found = f.indicators.filter((i) => i.level !== "not_seen");
+  const q = f.quality >= 0.7 ? "Good" : f.quality >= 0.4 ? "Fair" : "Poor";
+  const cycle = (k: string) => onChange?.({ ...f, indicators: f.indicators.map((i) => i.key === k ? { ...i, level: i.level === "not_seen" ? "some" : i.level === "some" ? "clear" : "not_seen" } : i) });
+  return (
+    <div className="rounded-2xl border p-3">
+      <div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide">Facial observation</p><Badge variant="outline">Capture quality: {q} ({Math.round(f.quality * 100)}%)</Badge></div>
+      {!f.faceVisible || f.quality < 0.4
+        ? <p className="mt-2 text-sm">Face not clearly visible{f.issues.length ? ` (${f.issues.join(", ")})` : ""}. Facial findings are not used — rely on observations.</p>
+        : <>
+          <p className="mt-2 text-xs text-muted-foreground">Facial pain indicators detected{editable ? " — tap to adjust" : ""}:</p>
+          <ul className="mt-1 space-y-1">
+            {(editable ? f.indicators : found).map((i) => {
+              const label = FACIAL_INDICATORS.find((x) => x[0] === i.key)?.[1] ?? i.key;
+              return <li key={i.key} className="flex items-start justify-between gap-2 text-sm">
+                <span>{label}<span className="block text-[11px] text-muted-foreground">{i.observation}</span></span>
+                {editable ? <button type="button" onClick={() => cycle(i.key)} className="shrink-0 rounded-lg border px-2 py-1 text-xs">{FACIAL_LEVEL_LABEL[i.level]}</button>
+                  : <span className="shrink-0 text-xs font-medium">{FACIAL_LEVEL_LABEL[i.level]}</span>}
+              </li>;
+            })}
+            {!editable && !found.length && <li className="text-sm">No facial pain indicators seen</li>}
+          </ul>
+        </>}
+      <p className="mt-2 text-[10px] text-muted-foreground">Prototype — facial-expression analysis. Not a clinically validated device.</p>
+    </div>
+  );
+}
+
 function PainCheckWizard({ residentId, residentName, parent, prn, onClose }: { residentId: string; residentName: string; parent?: any; prn: any[]; onClose: () => void }) {
   const qc = useQueryClient();
   const [step, setStep] = useState(0);
   const [when, setWhen] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [reason, setReason] = useState(parent ? "Reassessment" : "");
-  const [pc, setPc] = useState(false);
-  const [can, setCan] = useState<"yes" | "no" | "unsure" | null>(null);
+  const [method, setMethod] = useState<Method | null>(parent?.method === "self_report" || parent?.method === "observational" || parent?.method === "facial_observational" ? parent.method : null);
+  const [consentTick, setConsentTick] = useState(false);
+  const [facial, setFacial] = useState<Facial | null>(null);
+  const [ctx, setCtx] = useState({ rest: false, movement: false, pc: false });
   const [score, setScore] = useState<number | null>(null);
   const [det, setDet] = useState({ location: parent?.location ?? "", description: "", onset: "", duration: "", modifiers: "" });
   const [obs, setObs] = useState<Partial<Record<ObsKey, number>>>({});
+  const [override, setOverride] = useState<PainLevel | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const [ints, setInts] = useState<string[]>([]);
   const [prnId, setPrnId] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [reassess, setReassess] = useState<number | null>(parent ? null : 60);
 
-  const self = can === "yes";
-  const res = self
+  const consentQ = useQuery({
+    queryKey: ["facial-consent", residentId],
+    queryFn: async () => (await supabase.from("consents").select("id,consent_type,date_given").eq("resident_id", residentId).eq("status", "given").ilike("consent_type", "%facial%").limit(1)).data?.[0] ?? null,
+  });
+
+  const self = method === "self_report";
+  const isFacial = method === "facial_observational";
+  const facialVal = facial ? facialObsValue(facial.indicators, facial.faceVisible ? facial.quality : 0) : null;
+  const obsAll = isFacial && facialVal != null ? { ...obs, facial: facialVal } : obs;
+  const auto = self
     ? { level: score == null ? ("unable" as PainLevel) : levelFromSelf(score), total: score ?? 0, factors: score == null ? [] : [`Resident rated pain ${score}/10`] }
-    : levelFromObs(obs);
-  const factors = [...res.factors, ...(det.location ? [`Location: ${det.location}`] : []), ...(pc ? ["Recorded during personal care"] : [])];
-  const o = parent ? outcome(levelOf(parent), res.level) : null;
+    : levelFromObs(obsAll);
+  const level = override ?? auto.level;
+  const factors = [...auto.factors, ...(det.location ? [`Location: ${det.location}`] : []), ...(ctx.rest ? ["At rest"] : []), ...(ctx.movement ? ["During movement"] : []), ...(ctx.pc ? ["During personal care"] : [])];
+  const o = parent ? outcome(levelOf(parent), level) : null;
   const recentPrn = prn.filter((p) => Date.now() - new Date(p.administered_at).getTime() < 6 * 36e5);
+
+  const flow = [
+    "start",
+    ...(isFacial ? ["facial"] : []),
+    self ? "rating" : "observations",
+    "review",
+    ...(parent ? [] : ["intervention"]),
+  ] as const;
+  const cur = flow[step] as string;
+  const last = step === flow.length - 1;
+  const canNext = ({
+    start: !!reason && !!method && (!isFacial || (!!consentQ.data && consentTick)),
+    facial: !!facial, rating: score != null, observations: true, review: confirmed, intervention: true,
+  } as Record<string, boolean>)[cur];
 
   const save = useMutation({
     mutationFn: async () => {
@@ -259,52 +374,61 @@ function PainCheckWizard({ residentId, residentName, parent, prn, onClose }: { r
       const { error } = await supabase.from("pain_assessments").insert({
         resident_id: residentId, assessed_by: u.user!.id, assessed_at: at,
         vocalisation: 0, facial_expression: 0, body_language: 0, behaviour_change: 0, physiological_change: 0, physical_change: 0,
-        total_score: res.total, severity: res.level, source: "manual",
-        method: self ? "self_report" : "observational", reason: reason || null, can_self_report: can,
+        total_score: auto.total, severity: level, source: isFacial ? "facial_prototype" : "manual",
+        method, reason: reason || null, can_self_report: self ? "yes" : "no",
         self_score: self ? score : null, ...Object.fromEntries(Object.entries(det).map(([k, v]) => [k, v || null])),
-        observations: self ? null : obs, result: res.level, interventions: parent ? [] : ints,
-        during_personal_care: pc, notes: note || null, parent_assessment_id: parent?.id ?? null,
+        observations: self ? null : obsAll, result: level, interventions: parent ? [] : ints,
+        during_personal_care: ctx.pc, context_rest: ctx.rest, context_movement: ctx.movement,
+        facial_analysis_used: isFacial && !!facial, facial_indicators: facial?.indicators ?? null,
+        facial_quality: facial?.quality ?? null, facial_model: facial?.model ?? null, facial_consent_confirmed: isFacial && consentTick,
+        ai_confidence: facial?.quality ?? null, approved: true, confirmed_by: u.user!.id, confirmed_at: new Date().toISOString(),
+        notes: [override && override !== auto.level ? `Staff adjusted result from ${LEVEL_LABEL[auto.level]} to ${LEVEL_LABEL[override]}.` : "", note].filter(Boolean).join(" ") || null,
+        parent_assessment_id: parent?.id ?? null,
         medication_administration_id: ints.includes("prn") ? prnId : null,
         reassess_due_at: !parent && reassess ? new Date(new Date(at).getTime() + reassess * 6e4).toISOString() : null,
       } as any);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Pain check saved"); qc.invalidateQueries({ queryKey: ["pain", residentId] }); onClose(); },
+    onSuccess: () => { toast.success("Pain assessment confirmed and saved"); qc.invalidateQueries({ queryKey: ["pain", residentId] }); onClose(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
 
-  const steps = ["Details", "Can they tell you?", self ? "Pain rating" : "What do you see?", "Result"];
-  const canNext = [!!reason, !!can, self ? score != null : true, true][step];
+  const TITLES: Record<string, string> = { start: "Start pain check", facial: "Facial analysis", rating: "Pain rating", observations: "Observations", review: "Review assessment", intervention: "What happened next?" };
 
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{parent ? "Reassessment" : "Digital Pain Check"} · {residentName}</DialogTitle>
-          <p className="text-xs text-muted-foreground">Step {step + 1} of 4 — {steps[step]}</p>
+          <p className="text-xs text-muted-foreground">Step {step + 1} of {flow.length} — {TITLES[cur]}</p>
         </DialogHeader>
 
-        {step === 0 && (
+        {cur === "start" && (
           <div className="space-y-3">
             <Input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
-            <p className="text-xs text-muted-foreground">Assessor: you (signed in)</p>
-            <div className="grid grid-cols-2 gap-2">{REASONS.map((r) => <Big key={r} active={reason === r} onClick={() => { setReason(r); if (r === "During personal care") setPc(true); }}>{r}</Big>)}</div>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={pc} onChange={(e) => setPc(e.target.checked)} className="h-5 w-5" />During personal care</label>
-          </div>
-        )}
-
-        {step === 1 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Is the resident able to reliably describe their pain?</p>
+            <div className="grid grid-cols-2 gap-2">{REASONS.map((r) => <Big key={r} active={reason === r} onClick={() => { setReason(r); if (r === "During personal care") setCtx({ ...ctx, pc: true }); }}>{r}</Big>)}</div>
+            <p className="pt-1 text-sm font-medium">Assessment method</p>
             <div className="grid gap-2">
-              <Big active={can === "yes"} onClick={() => setCan("yes")}>Yes</Big>
-              <Big active={can === "no"} onClick={() => setCan("no")}>No</Big>
-              <Big active={can === "unsure"} onClick={() => setCan("unsure")}>Unable to determine</Big>
+              <Big active={method === "self_report"} onClick={() => setMethod("self_report")}>Self-report <span className="block text-[11px] font-normal opacity-80">Preferred when the resident can reliably describe pain</span></Big>
+              <Big active={method === "observational"} onClick={() => setMethod("observational")}>Observational</Big>
+              <Big active={method === "facial_observational"} onClick={() => setMethod("facial_observational")}>Facial-expression analysis + observational <span className="block text-[11px] font-normal opacity-80">For residents who cannot reliably communicate pain · Prototype</span></Big>
             </div>
+            {isFacial && (consentQ.data ? (
+              <label className="flex items-start gap-2 rounded-xl border p-2 text-sm">
+                <input type="checkbox" checked={consentTick} onChange={(e) => setConsentTick(e.target.checked)} className="mt-0.5 h-5 w-5" />
+                <span>Consent recorded ({consentQ.data.consent_type}). I confirm the resident (or best-interests decision) still supports facial analysis today.</span>
+              </label>
+            ) : (
+              <p className="rounded-xl border border-warning/40 bg-warning/10 p-2 text-sm">No recorded consent for facial expression analysis. Add a consent named "Facial expression analysis" on the resident's Consents section first, or choose Observational.</p>
+            ))}
           </div>
         )}
 
-        {step === 2 && self && (
+        {cur === "facial" && (facial
+          ? <div className="space-y-2"><FacialSummary f={facial} /><Button variant="outline" className="w-full" onClick={() => setFacial(null)}>Retake</Button></div>
+          : <FacialCapture residentId={residentId} onDone={setFacial} />)}
+
+        {cur === "rating" && (
           <div className="space-y-3">
             <div className="grid grid-cols-6 gap-1.5">
               {Array.from({ length: 11 }, (_, n) => (
@@ -319,9 +443,14 @@ function PainCheckWizard({ residentId, residentName, parent, prn, onClose }: { r
           </div>
         )}
 
-        {step === 2 && !self && (
+        {cur === "observations" && (
           <div className="space-y-2">
-            {OBSERVATIONS.map((o) => (
+            <div className="grid grid-cols-3 gap-1.5">
+              <Big active={ctx.rest} onClick={() => setCtx({ ...ctx, rest: !ctx.rest })}>At rest</Big>
+              <Big active={ctx.movement} onClick={() => setCtx({ ...ctx, movement: !ctx.movement })}>Movement</Big>
+              <Big active={ctx.pc} onClick={() => setCtx({ ...ctx, pc: !ctx.pc })}>Personal care</Big>
+            </div>
+            {OBSERVATIONS.filter((o) => !(isFacial && facialVal != null && o.key === "facial")).map((o) => (
               <div key={o.key} className="rounded-xl border p-2">
                 <p className="text-sm font-medium">{o.label} <span className="text-[11px] font-normal text-muted-foreground">— {o.hint}</span></p>
                 <div className="mt-1.5 grid grid-cols-3 gap-1.5">
@@ -332,48 +461,67 @@ function PainCheckWizard({ residentId, residentName, parent, prn, onClose }: { r
                 </div>
               </div>
             ))}
+            {isFacial && facialVal != null && <p className="text-xs text-muted-foreground">Facial expression is taken from the facial analysis ({OBS_LEVELS[facialVal].label.toLowerCase()}).</p>}
             <Input placeholder="Where does it seem to hurt? (optional)" value={det.location} onChange={(e) => setDet({ ...det, location: e.target.value })} />
           </div>
         )}
 
-        {step === 3 && (
+        {cur === "review" && (
           <div className="space-y-3">
-            <div className="rounded-2xl border bg-muted/30 p-3">
-              <p className="text-xs text-muted-foreground">Recorded result</p>
-              <div className="mt-1"><LevelBadge level={res.level} /></div>
-              {parent && o && <p className="mt-2 text-sm">{format(new Date(parent.assessed_at), "HH:mm")} — {LEVEL_LABEL[levelOf(parent)]} → now {LEVEL_LABEL[res.level]}: <b>{OUTCOME_LABEL[o]}</b></p>}
-              <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground">{factors.length ? factors.map((f) => <li key={f}>{f}</li>) : <li>No signs recorded</li>}</ul>
-              <p className="mt-2 text-[11px] text-muted-foreground">Based only on what you recorded — not a diagnosis.</p>
-            </div>
-            {!parent && (
-              <>
-                <p className="text-sm font-medium">What happened next?</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {INTERVENTIONS.map((i) => <Big key={i.key} active={ints.includes(i.key)} onClick={() => setInts(i.key === "none" ? ["none"] : ints.includes(i.key) ? ints.filter((x) => x !== i.key) : [...ints.filter((x) => x !== "none"), i.key])}>{i.label}</Big>)}
-                </div>
-                {ints.includes("prn") && (
-                  recentPrn.length ? (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Link the PRN dose recorded on the MAR:</p>
-                      {recentPrn.map((p) => <Big key={p.id} active={prnId === p.id} onClick={() => setPrnId(p.id)}>{p.medications?.name} · {format(new Date(p.administered_at), "HH:mm")}</Big>)}
-                    </div>
-                  ) : <p className="text-xs text-muted-foreground">Record the PRN dose on the Meds tab — it will appear in PRN review.</p>
-                )}
-                <div>
-                  <p className="mb-1 text-sm font-medium">Reassess in</p>
-                  <div className="grid grid-cols-4 gap-2">{[[30, "30 min"], [60, "1 hr"], [120, "2 hr"], [null, "Not needed"]].map(([v, l]) => <Big key={String(v)} active={reassess === v} onClick={() => setReassess(v as number | null)}>{l}</Big>)}</div>
-                </div>
-              </>
+            {facial && <FacialSummary f={facial} editable={editing} onChange={setFacial} />}
+            {!self && (
+              <div className="rounded-2xl border p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide">Behavioural observations</p>
+                <ul className="mt-1 list-disc pl-5 text-sm">{auto.factors.length ? auto.factors.map((f) => <li key={f}>{f}</li>) : <li>No signs recorded</li>}</ul>
+              </div>
             )}
-            <Textarea rows={2} placeholder="Anything else to add (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+            {self && <div className="rounded-2xl border p-3"><p className="text-xs font-semibold uppercase tracking-wide">Self-report</p><p className="mt-1 text-sm">Resident rated pain {score}/10{det.location ? ` · ${det.location}` : ""}</p></div>}
+            <div className="rounded-2xl border bg-muted/30 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide">Overall assessment</p>
+              <div className="mt-1"><LevelBadge level={level} /></div>
+              {parent && o && <p className="mt-2 text-sm">{format(new Date(parent.assessed_at), "HH:mm")} {LEVEL_LABEL[levelOf(parent)]} → now {LEVEL_LABEL[level]}: <b>{OUTCOME_LABEL[o]}</b></p>}
+              {factors.length > auto.factors.length && <p className="mt-1 text-xs text-muted-foreground">{factors.slice(auto.factors.length).join(" · ")}</p>}
+              <p className="mt-2 text-[11px] text-muted-foreground">Assessment result based on recorded observations — not a diagnosis.{isFacial ? " Facial-expression analysis (prototype) was used." : ""}</p>
+              {editing && (
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  {(Object.keys(LEVEL_LABEL) as PainLevel[]).map((l) => <Big key={l} active={level === l} onClick={() => setOverride(l === auto.level ? null : l)}>{LEVEL_LABEL[l]}</Big>)}
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" className="h-12" onClick={() => { setEditing(!editing); setConfirmed(false); }}><Pencil className="mr-1 h-4 w-4" />{editing ? "Done editing" : "Edit assessment"}</Button>
+              <Button className="h-12" variant={confirmed ? "secondary" : "default"} onClick={() => { setConfirmed(true); setEditing(false); if (!last) setStep(step + 1); }}><Check className="mr-1 h-4 w-4" />{confirmed ? "Confirmed" : "Confirm assessment"}</Button>
+            </div>
+            {parent && <Textarea rows={2} placeholder="Notes (optional)" value={note} onChange={(e) => setNote(e.target.value)} />}
+          </div>
+        )}
+
+        {cur === "intervention" && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              {INTERVENTIONS.map((i) => <Big key={i.key} active={ints.includes(i.key)} onClick={() => setInts(i.key === "none" ? ["none"] : ints.includes(i.key) ? ints.filter((x) => x !== i.key) : [...ints.filter((x) => x !== "none"), i.key])}>{i.label}</Big>)}
+            </div>
+            {ints.includes("prn") && (
+              recentPrn.length ? (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Link the PRN dose recorded on the MAR:</p>
+                  {recentPrn.map((p) => <Big key={p.id} active={prnId === p.id} onClick={() => setPrnId(p.id)}>{p.medications?.name} · {format(new Date(p.administered_at), "HH:mm")}</Big>)}
+                </div>
+              ) : <p className="text-xs text-muted-foreground">Record the PRN dose on the Meds tab — it will appear in PRN review.</p>
+            )}
+            <div>
+              <p className="mb-1 text-sm font-medium">Schedule reassessment</p>
+              <div className="grid grid-cols-4 gap-2">{[[30, "30 min"], [60, "1 hr"], [120, "2 hr"], [null, "Not needed"]].map(([v, l]) => <Big key={String(v)} active={reassess === v} onClick={() => setReassess(v as number | null)}>{l}</Big>)}</div>
+            </div>
+            <Textarea rows={2} placeholder="Notes (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
         )}
 
         <div className="flex gap-2 pt-2">
           {step > 0 && <Button variant="outline" className="h-12 flex-1" onClick={() => setStep(step - 1)}><ChevronLeft className="mr-1 h-4 w-4" />Back</Button>}
-          {step < 3
-            ? <Button className="h-12 flex-1" disabled={!canNext} onClick={() => setStep(step + 1)}>Next<ChevronRight className="ml-1 h-4 w-4" /></Button>
-            : <Button className="h-12 flex-1" disabled={save.isPending} onClick={() => save.mutate()}>Save pain check</Button>}
+          {!last
+            ? cur !== "review" && <Button className="h-12 flex-1" disabled={!canNext} onClick={() => setStep(step + 1)}>Next<ChevronRight className="ml-1 h-4 w-4" /></Button>
+            : <Button className="h-12 flex-1" disabled={save.isPending || !confirmed} onClick={() => save.mutate()}>Save</Button>}
         </div>
       </DialogContent>
     </Dialog>

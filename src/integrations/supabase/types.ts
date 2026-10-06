@@ -1612,11 +1612,20 @@ export type Database = {
           behaviour_change: number
           body_language: number
           can_self_report: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          context_movement: boolean
+          context_rest: boolean
           created_at: string
           description: string | null
           duration: string | null
           during_personal_care: boolean
+          facial_analysis_used: boolean
+          facial_consent_confirmed: boolean
           facial_expression: number
+          facial_indicators: Json | null
+          facial_model: string | null
+          facial_quality: number | null
           id: string
           intervention: string | null
           interventions: string[]
@@ -1653,11 +1662,20 @@ export type Database = {
           behaviour_change?: number
           body_language?: number
           can_self_report?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          context_movement?: boolean
+          context_rest?: boolean
           created_at?: string
           description?: string | null
           duration?: string | null
           during_personal_care?: boolean
+          facial_analysis_used?: boolean
+          facial_consent_confirmed?: boolean
           facial_expression?: number
+          facial_indicators?: Json | null
+          facial_model?: string | null
+          facial_quality?: number | null
           id?: string
           intervention?: string | null
           interventions?: string[]
@@ -1694,11 +1712,20 @@ export type Database = {
           behaviour_change?: number
           body_language?: number
           can_self_report?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          context_movement?: boolean
+          context_rest?: boolean
           created_at?: string
           description?: string | null
           duration?: string | null
           during_personal_care?: boolean
+          facial_analysis_used?: boolean
+          facial_consent_confirmed?: boolean
           facial_expression?: number
+          facial_indicators?: Json | null
+          facial_model?: string | null
+          facial_quality?: number | null
           id?: string
           intervention?: string | null
           interventions?: string[]
