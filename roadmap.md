@@ -1,6 +1,12 @@
 # Roadmap
 
 ## Active
+- [x] Rota system Phase 1 (shared core): services (domiciliary / care home per service), staff leave, staff skills/zones/hours/extra-shifts flag, service-based Rota page + carer My rota page, shared assignment rules with tests — 2026-10-06.
+- [ ] Rota Phase 2 (domiciliary): clients, visits, recurring + double-up visits, zone/run daily view, drag-and-drop + tap assignment, unallocated list, preferred-carer warnings — awaiting user confirmation.
+- [ ] Rota Phase 3 (care home): shift types, per-day staffing requirements, weekly staffing grid red/amber/green, requirement warnings — awaiting user confirmation.
+- [ ] Rota Phase 4: cover assistant (replace vs redistribute plans, offers, first-yes-wins, fairness limits) — awaiting user confirmation.
+- [ ] Rota Phase 5: late arrival escalation (arrival events, timed follow-ups, escalation log) — awaiting user confirmation.
+- [ ] Rota Phase 6: per-service manager dashboard + per-service settings (late thresholds, offer expiry, rest gap, automation level) — awaiting user confirmation.
 - [x] Replace Calendar placeholder with resident-linked appointments and reviews, month navigation and a dated agenda — live records, filters and navigation checked, 2026-10-06.
 - [x] Hide discharge dates for permanent residents and clear on profile save; include permanent residents in family selection — John dec verified selectable, 2026-10-03.
 - [x] Make Safeguarding phone-friendly with accessible search, country filters and a direct dashboard return — verified at 360, 384, 390 and 1280px, 2026-10-03.
