@@ -61,22 +61,55 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     const ext = extMap[baseMime] ?? "webm";
 
     const bin = Uint8Array.from(atob(data.audioBase64), (c) => c.charCodeAt(0));
-    const blob = new Blob([bin], { type: baseMime });
+    const blob = new Blob([bin], { type: baseMime.replace(/^video\//, "audio/") });
     const form = new FormData();
-    form.append("model", "openai/gpt-4o-mini-transcribe");
+    form.append("model", "openai/gpt-transcribe");
     form.append("file", blob, `recording.${ext}`);
+    form.append("stream", "true");
+    form.append(
+      "prompt",
+      "A UK care worker or nurse describing care given to a resident in a care home. Speakers may have strong regional, African, Caribbean, South Asian, Eastern European or other accents, speak quietly, or include an elderly resident. Transcribe every word fully and verbatim, including hesitations that carry meaning. Use UK English spelling.",
+    );
+    form.append(
+      "keywords",
+      "resident, carer, nurse, GP, MAR, PRN, paracetamol, continence, pad, catheter, commode, hoist, repositioned, pressure area, sacrum, Waterlow, MUST, fluids, mls, dementia, agitation, safeguarding, district nurse, SALT",
+    );
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}` },
       body: form,
     });
-    if (!res.ok) {
+    if (!res.ok || !res.body) {
       const t = await res.text().catch(() => "");
       throw new Error(`Transcription failed: ${res.status} ${t}`);
     }
-    const json = (await res.json()) as { text?: string };
-    return { text: json.text ?? "" };
+    // Read the streamed transcript events until the final text arrives.
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "", deltas = "", final = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, i).trim();
+        buf = buf.slice(i + 1);
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const ev = JSON.parse(payload) as { type?: string; delta?: string; text?: string };
+          if (ev.type === "transcript.text.delta" && ev.delta) deltas += ev.delta;
+          else if (ev.type === "transcript.text.done" && ev.text) final = ev.text;
+          else if (ev.type === "error") throw new Error("Transcription failed");
+        } catch (e) {
+          if (e instanceof Error && e.message === "Transcription failed") throw e;
+        }
+      }
+    }
+    return { text: final || deltas };
   });
 
 // Structure a care note: professional rewrite + auto-link to care plan domain + risks + flags

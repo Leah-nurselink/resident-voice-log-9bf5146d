@@ -91,8 +91,10 @@ export function SessionRecorder({
     if (elapsedTimer.current) clearInterval(elapsedTimer.current);
     const audio = await sessionRef.current.stop();
     sessionRef.current = null;
-    if (audio.blob.size < 2048 || audio.segments.length === 0) {
-      toast.error(audio.segments.length === 0 ? "No speech detected" : "Recording too short");
+    // Always send real recordings to transcription — the speech meter can
+    // miss quiet voices, so only reject genuinely tiny/empty captures.
+    if (audio.blob.size < 2048 || audio.durationSec < 1) {
+      toast.error("Recording too short");
       setState("idle");
       return;
     }

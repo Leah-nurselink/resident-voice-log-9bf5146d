@@ -83,7 +83,7 @@ export class AudioIntelligenceSession {
     const lowshelf = this.ctx.createBiquadFilter();
     lowshelf.type = "lowshelf";
     lowshelf.frequency.value = 200;
-    lowshelf.gain.value = -8;
+    lowshelf.gain.value = -3; // gentle — deeper voices keep their body
 
     // Automatic Gain Control: compressor tames spikes, then makeup gain
     // lifts quiet speech into a healthy range for transcription.
@@ -130,7 +130,8 @@ export class AudioIntelligenceSession {
     const rms = Math.sqrt(sum / buf.length);
 
     // Adapt noise floor when not speaking; track signal quickly.
-    const speakingNow = rms > this.noiseFloor * 2.2 && rms > 0.012;
+    // Sensitive thresholds so quiet or softly-spoken voices still count.
+    const speakingNow = rms > this.noiseFloor * 1.6 && rms > 0.005;
     if (!speakingNow) this.noiseFloor = this.noiseFloor + NOISE_EMA * (rms - this.noiseFloor);
     this.signalLevel = this.signalLevel + SIGNAL_EMA * (rms - this.signalLevel);
 
