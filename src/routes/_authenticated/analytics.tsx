@@ -105,7 +105,7 @@ function AnalyticsPage() {
     });
     return Array.from(buckets.entries()).map(([k, v]) => ({
       label: new Date(k).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-      value: v || Math.max(2, Math.round(8 + Math.random() * 6)),
+      value: v,
     }));
   }, [notes.data, days]);
 

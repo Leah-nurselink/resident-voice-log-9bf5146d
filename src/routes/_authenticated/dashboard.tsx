@@ -86,6 +86,66 @@ function Dashboard() {
     },
   });
 
+  const snapshot = useQuery({
+    queryKey: ["dashboard-notes-snapshot"],
+    queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 13);
+      since.setHours(0, 0, 0, 0);
+      const { data, error } = await supabase
+        .from("daily_notes")
+        .select("created_at, domain")
+        .gte("created_at", since.toISOString());
+      if (error) throw error;
+      const buckets = new Map<string, number>();
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(since);
+        d.setDate(since.getDate() + i);
+        buckets.set(d.toISOString().slice(0, 10), 0);
+      }
+      const mixMap = new Map<string, number>();
+      (data ?? []).forEach((n) => {
+        const k = n.created_at.slice(0, 10);
+        if (buckets.has(k)) buckets.set(k, (buckets.get(k) ?? 0) + 1);
+        const dom = (n.domain ?? "general").replace(/_/g, " ");
+        mixMap.set(dom, (mixMap.get(dom) ?? 0) + 1);
+      });
+      return {
+        perDay: Array.from(buckets.entries()).map(([k, v]) => ({
+          label: new Date(k).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+          value: v,
+        })),
+        mix: Array.from(mixMap.entries())
+          .map(([name, value]) => ({ name: name[0].toUpperCase() + name.slice(1), value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 6),
+      };
+    },
+  });
+
+  const governance = useQuery({
+    queryKey: ["dashboard-governance"],
+    queryFn: async () => {
+      const [fb, inc] = await Promise.all([
+        supabase.from("family_feedback").select("rating, manager_response"),
+        supabase.from("incidents").select("status, closed_at"),
+      ]);
+      if (fb.error) throw fb.error;
+      if (inc.error) throw inc.error;
+      const ratings = fb.data ?? [];
+      const cutoff = Date.now() - 30 * 86400000;
+      const incidents = inc.data ?? [];
+      return {
+        feedbackCount: ratings.length,
+        avgRating: ratings.length ? (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1) : null,
+        awaitingReply: ratings.filter((r) => !r.manager_response).length,
+        open: incidents.filter((i) => i.status !== "closed").length,
+        review: incidents.filter((i) => i.status === "under_review").length,
+        closed30: incidents.filter((i) => i.status === "closed" && i.closed_at && new Date(i.closed_at).getTime() > cutoff).length,
+      };
+    },
+  });
+
   return (
     <AppShell title="Dashboard" subtitle="Person-centred care at a glance">
       <div className="space-y-6">
