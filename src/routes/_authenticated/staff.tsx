@@ -238,6 +238,29 @@ function DetailsForm({ staff, canManage, onSaved }: { staff: StaffRow; canManage
         <div><Label>Start date</Label><Input disabled={!canManage} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
         <div><Label>Leaving date</Label><Input disabled={!canManage} type="date" value={leavingDate} onChange={(e) => setLeavingDate(e.target.value)} /></div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Home zone</Label><Input disabled={!canManage} placeholder="e.g. North" value={homeZone} onChange={(e) => setHomeZone(e.target.value)} /></div>
+        <div><Label>Max weekly hours</Label><Input disabled={!canManage} type="number" value={maxWeekly} onChange={(e) => setMaxWeekly(e.target.value)} /></div>
+      </div>
+      <div>
+        <Label>Skills</Label>
+        <div className="mt-1 grid grid-cols-2 gap-1">
+          {SKILL_OPTIONS.map((s) => (
+            <label key={s.value} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                disabled={!canManage}
+                checked={skills.includes(s.value)}
+                onCheckedChange={(v) => setSkills((prev) => (v ? [...prev, s.value] : prev.filter((x) => x !== s.value)))}
+              />
+              {s.label}
+            </label>
+          ))}
+        </div>
+      </div>
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox disabled={!canManage} checked={extraShifts} onCheckedChange={(v) => setExtraShifts(!!v)} />
+        Wants extra shifts (asked first for cover)
+      </label>
       {canManage && <Button onClick={save}>Save details</Button>}
     </div>
   );
