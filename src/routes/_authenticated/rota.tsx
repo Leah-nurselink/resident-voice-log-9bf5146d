@@ -126,7 +126,7 @@ function RotaPage() {
         .map((p) => ({
           id: p.id,
           full_name: p.full_name,
-          role: ((roles ?? []).find((r) => r.user_id === p.id && r.approved && r.is_active)?.role ?? null) as Role | null,
+          role: ((roles ?? []).find((r) => r.user_id === p.id)?.role ?? null) as Role | null,
           profile: (sp ?? []).find((s) => s.user_id === p.id) ?? null,
           serviceIds: (links ?? []).filter((l) => l.user_id === p.id).map((l) => l.service_id),
         }))
