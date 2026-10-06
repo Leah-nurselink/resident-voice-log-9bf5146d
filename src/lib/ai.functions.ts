@@ -87,9 +87,21 @@ export const structureNote = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
-    const { generateText, Output } = await import("ai");
-    const gateway = createLovableAiGatewayProvider(key);
+    const { createOpenAI } = await import("@ai-sdk/openai");
+    const { streamText, Output } = await import("ai");
+    let runId: string | undefined;
+    const provider = createOpenAI({
+      baseURL: "https://ai.gateway.lovable.dev/v1",
+      apiKey: key,
+      headers: { "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+      fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        if (runId) headers.set("X-Lovable-AIG-Run-ID", runId);
+        const res = await fetch(input, { ...init, headers });
+        runId ??= res.headers.get("X-Lovable-AIG-Run-ID")?.trim() || undefined;
+        return res;
+      },
+    });
 
     const schema = z.object({
       content: z.string().describe("Rewritten care note in professional UK care-sector language, 1-4 short sentences. No invented facts."),
@@ -105,20 +117,32 @@ export const structureNote = createServerFn({ method: "POST" })
     const userPrompt = `<carer_input>\nResident: ${safeName}\n\nCarer said:\n${safeTranscript}\n</carer_input>`;
 
     try {
-      const { experimental_output: out } = await generateText({
-        model: gateway("google/gemini-3-flash-preview"),
+      const result = streamText({
+        model: provider.responses("openai/gpt-6-astra"),
         system: sys,
         prompt: userPrompt,
-        experimental_output: Output.object({ schema }),
+        output: Output.object({ schema }),
+        providerOptions: {
+          openai: {
+            forceReasoning: true,
+            reasoningEffort: "low",
+            reasoningSummary: "auto",
+            store: false,
+            include: ["reasoning.encrypted_content"],
+            strictJsonSchema: true,
+          },
+        },
       });
-      return out;
+      return await result.output;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes("429")) throw new Error("AI rate limit reached. Try again shortly.");
       if (msg.includes("402")) throw new Error("AI credits exhausted. Add credits to continue.");
-      throw e;
+      if (msg.includes("403")) throw new Error("AI access is blocked for this workspace. Ask an admin to check AI settings.");
+      throw new Error("Couldn't turn the recording into a note. Your words were captured — please try again or type the note.");
     }
   });
+
 
 // Abbey Pain Scale AI assistant — analyzes recent notes + transcript and suggests domain scores
 const AbbeyInput = z.object({
