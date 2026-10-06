@@ -1,6 +1,7 @@
 import { hhmm, mismatchFlags, shiftEnd, shiftStart, type ShiftRow, type StaffContext } from "@/lib/rota";
 
 export type LeaveRow = {
+  id: string;
   user_id: string;
   leave_type: string;
   start_date: string;

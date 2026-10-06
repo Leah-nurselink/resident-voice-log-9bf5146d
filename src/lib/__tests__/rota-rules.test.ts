@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignmentFlags, leaveCovering, shiftHours, weeklyHoursFor, type LeaveRow } from "@/lib/rota-rules";
+import { assignmentFlags, fmtDate, leaveCovering, shiftHours, weeklyHoursFor, type LeaveRow } from "@/lib/rota-rules";
 import type { ShiftRow, StaffContext } from "@/lib/rota";
 
 const shift = (over: Partial<ShiftRow>): ShiftRow => ({
@@ -20,7 +20,7 @@ const shift = (over: Partial<ShiftRow>): ShiftRow => ({
   ...over,
 });
 
-const ctx = (over: Partial<StaffContext> = {}): StaffContext => ({
+const ctx = (over: Partial<StaffContext> & { max_weekly_hours?: number | null } = {}): StaffContext & { max_weekly_hours?: number | null } => ({
   role: "carer",
   availability: [],
   qualifications: [],
@@ -40,8 +40,8 @@ describe("shiftHours", () => {
 
 describe("leaveCovering", () => {
   const leave: LeaveRow[] = [
-    { user_id: "u1", leave_type: "annual_leave", start_date: "2026-10-06", end_date: "2026-10-08" },
-    { user_id: "u2", leave_type: "sick", start_date: "2026-10-06", end_date: "2026-10-06" },
+    { id: "l1", user_id: "u1", leave_type: "annual_leave", start_date: "2026-10-06", end_date: "2026-10-08" },
+    { id: "l2", user_id: "u2", leave_type: "sick", start_date: "2026-10-06", end_date: "2026-10-06" },
   ];
 
   it("blocks a shift inside the leave period", () => {
@@ -72,7 +72,7 @@ describe("weeklyHoursFor", () => {
 describe("assignmentFlags", () => {
   it("flags leave, rest gap and weekly hours", () => {
     const target = shift({ id: "t", staff_user_id: "u1", shift_date: "2026-10-06", start_time: "07:00", end_time: "15:00" });
-    const leave: LeaveRow[] = [{ user_id: "u1", leave_type: "annual_leave", start_date: "2026-10-06", end_date: "2026-10-06" }];
+    const leave: LeaveRow[] = [{ id: "l3", user_id: "u1", leave_type: "annual_leave", start_date: "2026-10-06", end_date: "2026-10-06" }];
     const others = [
       shift({ id: "p", staff_user_id: "u1", shift_date: "2026-10-05", start_time: "14:00", end_time: "22:00" }), // 9h rest
       shift({ id: "w", staff_user_id: "u1", shift_date: "2026-10-05", start_time: "07:00", end_time: "15:00" }), // 8h this week
@@ -90,10 +90,9 @@ describe("assignmentFlags", () => {
   });
 
   it("keeps the unfilled-within-24h flag for empty shifts", () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const iso = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-    const flags = assignmentFlags(shift({ shift_date: iso, start_time: "23:00", end_time: "23:30" }), null, [], []);
+    const soon = new Date(Date.now() + 2 * 3_600_000);
+    const hh = `${String(soon.getHours()).padStart(2, "0")}:${String(soon.getMinutes()).padStart(2, "0")}`;
+    const flags = assignmentFlags(shift({ shift_date: fmtDate(soon), start_time: hh, end_time: "23:59" }), null, [], []);
     expect(flags.some((f) => f.includes("Unfilled shift"))).toBe(true);
   });
 });
