@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarClock, FileText, Shield, FileSignature, Brain, Pill, Bandage } from "lucide-react";
 import { format, differenceInCalendarDays, addDays } from "date-fns";
 import { domainLabel, riskLabel, type CarePlanDomain, type RiskType } from "@/lib/care-domains";
+import { CARE_PLAN_REVIEW_DAYS } from "@/lib/resident-calendar";
 
 export const Route = createFileRoute("/_authenticated/reviews")({
   head: () => ({
@@ -40,8 +41,6 @@ const ICON: Record<Item["type"], React.ReactNode> = {
   Medication: <Pill className="h-3.5 w-3.5" />,
   Wound: <Bandage className="h-3.5 w-3.5" />,
 };
-
-const CARE_PLAN_REVIEW_DAYS = 90;
 
 function ReviewsPage() {
   const { data } = useQuery({
