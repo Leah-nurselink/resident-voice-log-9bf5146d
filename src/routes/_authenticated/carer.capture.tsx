@@ -133,8 +133,28 @@ function CapturePage() {
     })();
   }, []);
 
-  const active = sessionState.activeSessions[0] ?? null;
-  const isManual = active?.rule === "manual_resolution";
+  // Registered beacons currently in range, for the manual picker.
+  const nearbyRegisteredDevices = useMemo(() => {
+    return devices
+      .map((d) => {
+        const o = obs.find((x) => x.key === deviceKey(d));
+        return o ? { device: d, obs: o } : null;
+      })
+      .filter((x): x is { device: RegisteredDevice; obs: BeaconObservation } => x !== null)
+      .sort((a, b) => b.obs.rssi - a.obs.rssi);
+  }, [devices, obs]);
+
+  // The carer decides who they're recording for. Only auto-pick when exactly
+  // one beacon/session is around; with several beacons heard, wait for a choice.
+  const [chosenResidentId, setChosenResidentId] = useState<string | null>(null);
+  const sessionsList = sessionState.activeSessions;
+  const active =
+    (chosenResidentId ? sessionsList.find((s) => s.residentId === chosenResidentId) : null) ??
+    (!chosenResidentId && sessionsList.length === 1 && nearbyRegisteredDevices.length <= 1
+      ? sessionsList[0]
+      : null) ??
+    null;
+  const isManual = active?.rule === "manual_resolution" || (!!active && !!chosenResidentId);
 
   const residentName = active?.residentId ? (residents.get(active.residentId) ?? "Resident") : null;
   const roomName = active?.roomId ? rooms.get(active.roomId) : null;
@@ -146,25 +166,13 @@ function CapturePage() {
     return Math.round(pct);
   }, [active]);
 
-  // Registered beacons currently in range, for the manual picker. Shown only
-  // while there's no active session yet — once one opens (auto or manual)
-  // it takes over the presence panel, same as before.
-  const nearbyRegisteredDevices = useMemo(() => {
-    return devices
-      .map((d) => {
-        const o = obs.find((x) => x.key === deviceKey(d));
-        return o ? { device: d, obs: o } : null;
-      })
-      .filter((x): x is { device: RegisteredDevice; obs: BeaconObservation } => x !== null)
-      .sort((a, b) => b.obs.rssi - a.obs.rssi);
-  }, [devices, obs]);
-
   async function selectDevice(device: RegisteredDevice) {
     setSelectingId(device.id);
     const result = await manuallyAssignDevice(device.id);
     setSelectingId(null);
     if (result.ok) {
       setAmbiguous(null);
+      setChosenResidentId(result.residentId);
       toast.success(`Recording set for ${residents.get(result.residentId) ?? device.label}`);
       return;
     }
@@ -181,6 +189,7 @@ function CapturePage() {
     setSelectingId(null);
     if (result.ok) {
       setAmbiguous(null);
+      setChosenResidentId(result.residentId);
       toast.success(`Recording set for ${residents.get(result.residentId) ?? device.label}`);
     } else {
       toast.error(result.error);
@@ -190,6 +199,7 @@ function CapturePage() {
   async function endManualSession() {
     if (!active?.deviceId) return;
     await endTriggerManually(active.deviceId);
+    setChosenResidentId(null);
     toast.message("Session ended");
   }
 
@@ -288,11 +298,18 @@ function CapturePage() {
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-emerald-200">
                 <div className="h-full bg-emerald-600 transition-all" style={{ width: `${confidencePct}%` }} />
               </div>
-              {isManual && (
-                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={endManualSession}>
-                  End session
-                </Button>
-              )}
+              <div className="flex flex-wrap gap-1">
+                {nearbyRegisteredDevices.length > 1 && (
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setChosenResidentId(null)}>
+                    Change resident
+                  </Button>
+                )}
+                {isManual && (
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={endManualSession}>
+                    End session
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
@@ -377,6 +394,7 @@ function CapturePage() {
 
       {active?.residentId ? (
         <SessionRecorder
+          key={active.residentId}
           residentName={residentName ?? undefined}
           autoStart
           onResult={(n) => { setPending(n); setEditing(false); setEditText(n.content); }}
