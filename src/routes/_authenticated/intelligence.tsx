@@ -3,11 +3,22 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { analyseResident, type ResidentIntelligence } from "@/lib/care-intelligence";
-import { TrendingDown, AlertTriangle, ShieldAlert, FileText, ChevronRight, Sparkles } from "lucide-react";
+import { detectDeviations, CATEGORY_LABELS, type Deviation, type DeviationCategory } from "@/lib/care-deviations";
+import { useState } from "react";
+import { TrendingDown, AlertTriangle, ShieldAlert, FileText, ChevronRight, Sparkles, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/intelligence")({
-  head: () => ({ meta: [{ title: "Care Intelligence · ForgeAI" }] }),
+  head: () => ({
+    meta: [
+      { title: "Care Intelligence · CareCore" },
+      { name: "description", content: "Deviations in resident care flagged by category for clinical review." },
+      { property: "og:title", content: "Care Intelligence · CareCore" },
+      { property: "og:description", content: "Deviations in resident care flagged by category for clinical review." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: IntelligencePage,
 });
 
@@ -16,6 +27,7 @@ type Row = {
   name: string;
   room: string | null;
   intel: ResidentIntelligence;
+  deviations: Deviation[];
 };
 
 function IntelligencePage() {
@@ -28,7 +40,7 @@ function IntelligencePage() {
       const ids = (residents ?? []).map((r) => r.id);
       if (ids.length === 0) return [] as Row[];
       const [notes, plans, risks] = await Promise.all([
-        supabase.from("daily_notes").select("id,resident_id,created_at,content,domain,risks,flags").in("resident_id", ids).order("created_at", { ascending: false }).limit(2000),
+        supabase.from("daily_notes").select("id,resident_id,created_at,content,domain,category,risks,flags").in("resident_id", ids).order("created_at", { ascending: false }).limit(2000),
         supabase.from("care_plans").select("id,resident_id,domain,updated_at").in("resident_id", ids),
         supabase.from("risk_assessments").select("id,resident_id,type,level,updated_at").in("resident_id", ids),
       ]);
@@ -37,7 +49,7 @@ function IntelligencePage() {
         const rPlans = (plans.data ?? []).filter((p) => p.resident_id === r.id);
         const rRisks = (risks.data ?? []).filter((rk) => rk.resident_id === r.id);
         const intel = analyseResident(rNotes as never, rPlans as never, rRisks as never);
-        return { id: r.id, name: r.preferred_name || r.full_name || "Unnamed", room: r.room_number, intel };
+        return { id: r.id, name: r.preferred_name || r.full_name || "Unnamed", room: r.room_number, intel, deviations: detectDeviations(rNotes) };
       });
     },
   });
