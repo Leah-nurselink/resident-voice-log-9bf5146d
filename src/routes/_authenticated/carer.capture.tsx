@@ -172,6 +172,7 @@ function CapturePage() {
     setSelectingId(null);
     if (result.ok) {
       setAmbiguous(null);
+      setChosenResidentId(result.residentId);
       toast.success(`Recording set for ${residents.get(result.residentId) ?? device.label}`);
       return;
     }
@@ -188,6 +189,7 @@ function CapturePage() {
     setSelectingId(null);
     if (result.ok) {
       setAmbiguous(null);
+      setChosenResidentId(result.residentId);
       toast.success(`Recording set for ${residents.get(result.residentId) ?? device.label}`);
     } else {
       toast.error(result.error);
@@ -197,6 +199,7 @@ function CapturePage() {
   async function endManualSession() {
     if (!active?.deviceId) return;
     await endTriggerManually(active.deviceId);
+    setChosenResidentId(null);
     toast.message("Session ended");
   }
 
@@ -295,11 +298,18 @@ function CapturePage() {
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-emerald-200">
                 <div className="h-full bg-emerald-600 transition-all" style={{ width: `${confidencePct}%` }} />
               </div>
-              {isManual && (
-                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={endManualSession}>
-                  End session
-                </Button>
-              )}
+              <div className="flex flex-wrap gap-1">
+                {nearbyRegisteredDevices.length > 1 && (
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setChosenResidentId(null)}>
+                    Change resident
+                  </Button>
+                )}
+                {isManual && (
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={endManualSession}>
+                    End session
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
@@ -384,6 +394,7 @@ function CapturePage() {
 
       {active?.residentId ? (
         <SessionRecorder
+          key={active.residentId}
           residentName={residentName ?? undefined}
           autoStart
           onResult={(n) => { setPending(n); setEditing(false); setEditText(n.content); }}
