@@ -145,7 +145,7 @@ function Dashboard() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 Analytics snapshot
               </h3>
-              <p className="text-xs text-muted-foreground">Last 14 days · live signals from notes & risks</p>
+              <p className="text-xs text-muted-foreground">Last 14 days · from recorded notes</p>
             </div>
             <Button asChild variant="outline" size="sm">
               <Link to="/analytics">Open analytics</Link>
@@ -159,18 +159,7 @@ function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <TrendArea
-                  data={Array.from({ length: 14 }, (_, i) => {
-                    const d = new Date();
-                    d.setDate(d.getDate() - (13 - i));
-                    return {
-                      label: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-                      value: Math.round(10 + Math.sin(i / 2) * 4 + Math.random() * 5),
-                    };
-                  })}
-                  dataKey="value"
-                  height={200}
-                />
+                <TrendArea data={snapshot.data?.perDay ?? []} dataKey="value" height={200} />
               </CardContent>
             </Card>
             <Card>
@@ -180,89 +169,14 @@ function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <DonutChart
-                  height={200}
-                  data={[
-                    { name: "Personal care", value: 42 },
-                    { name: "Medication", value: 24 },
-                    { name: "Nutrition", value: 18 },
-                    { name: "Wellbeing", value: 16 },
-                  ]}
-                />
+                {snapshot.data?.mix.length ? (
+                  <DonutChart height={200} data={snapshot.data.mix} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">No notes recorded yet.</p>
+                )}
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* Bottom row */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Calendar className="h-4 w-4 text-primary" /> Today's Schedule
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {[
-                ["Morning handover", "07:30"],
-                ["Doctor's visit", "10:00"],
-                ["Family meeting", "14:00"],
-                ["Evening handover", "19:30"],
-              ].map(([label, time]) => (
-                <div key={label} className="flex items-center justify-between">
-                  <span>{label}</span>
-                  <span className="text-muted-foreground">{time}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MessageSquare className="h-4 w-4 text-primary" /> Communication
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <p className="font-medium">Family Updates</p>
-                <p className="text-xs text-muted-foreground">3 families contacted today</p>
-              </div>
-              <div>
-                <p className="font-medium">MDT Notes</p>
-                <p className="text-xs text-muted-foreground">2 new physiotherapy reports</p>
-              </div>
-              <div>
-                <p className="font-medium">Staff Messages</p>
-                <p className="text-xs text-muted-foreground">5 internal communications</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <TrendingUp className="h-4 w-4 text-primary" /> Performance
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                ["Care Quality", "Excellent", 92],
-                ["Staff Satisfaction", "High", 88],
-                ["Compliance", "100%", 100],
-              ].map(([label, status, pct]) => (
-                <div key={label as string} className="text-sm">
-                  <div className="mb-1 flex justify-between">
-                    <span>{label}</span>
-                    <span className="font-medium text-care-on-track">{status}</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div className="h-2 rounded-full bg-care-on-track" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
         </div>
 
         {/* Governance row */}
@@ -270,82 +184,19 @@ function Dashboard() {
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
             Governance & Quality
           </h3>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <ClipboardList className="h-4 w-4 text-primary" /> Audits
+                  <MessageCircle className="h-4 w-4 text-primary" /> Family feedback
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Completed this month</span>
-                  <span className="font-semibold">12</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Due this week</span>
-                  <span className="font-semibold text-care-attention">3</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Overdue</span>
-                  <span className="font-semibold text-care-urgent">1</span>
-                </div>
-                <p className="pt-1 text-xs text-muted-foreground">
-                  Medication, infection control & care plan audits.
-                </p>
+                <Row label="Responses" value={governance.data?.feedbackCount ?? 0} />
+                <Row label="Avg satisfaction" value={governance.data?.avgRating ? `${governance.data.avgRating} / 5` : "—"} />
+                <Row label="Awaiting reply" value={governance.data?.awaitingReply ?? 0} />
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <MessageCircle className="h-4 w-4 text-primary" /> Feedback
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Family responses</span>
-                  <span className="font-semibold">18</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Avg satisfaction</span>
-                  <span className="font-semibold text-care-on-track">4.7 / 5</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Open complaints</span>
-                  <span className="font-semibold text-care-attention">2</span>
-                </div>
-                <p className="pt-1 text-xs text-muted-foreground">
-                  Residents, families and staff voices.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Scale className="h-4 w-4 text-primary" /> Regulatory
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">CQC rating</span>
-                  <span className="font-semibold text-care-on-track">Good</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Notifications submitted</span>
-                  <span className="font-semibold">4</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Actions outstanding</span>
-                  <span className="font-semibold text-care-attention">2</span>
-                </div>
-                <p className="pt-1 text-xs text-muted-foreground">
-                  CQC, safeguarding & DoLS tracking.
-                </p>
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -353,21 +204,9 @@ function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Open incidents</span>
-                  <span className="font-semibold text-care-urgent">5</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Awaiting review</span>
-                  <span className="font-semibold text-care-attention">3</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Closed (30d)</span>
-                  <span className="font-semibold">14</span>
-                </div>
-                <p className="pt-1 text-xs text-muted-foreground">
-                  Falls, medication errors & safeguarding.
-                </p>
+                <Row label="Open incidents" value={governance.data?.open ?? 0} />
+                <Row label="Under review" value={governance.data?.review ?? 0} />
+                <Row label="Closed (30d)" value={governance.data?.closed30 ?? 0} />
               </CardContent>
             </Card>
           </div>
