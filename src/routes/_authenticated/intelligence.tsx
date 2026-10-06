@@ -77,6 +77,8 @@ function IntelligencePage() {
           <Metric label="Plans to review" value={needPlanReview.length} tone={needPlanReview.length ? "warn" : "good"} />
         </div>
 
+        <DeviationsSection rows={rows} />
+
         <Group icon={<TrendingDown className="h-4 w-4" />} title="Declining wellbeing" rows={declining}
           render={(r) => `${r.intel.wellbeing.score}/100 · ${r.intel.wellbeing.label}`} />
         <Group icon={<AlertTriangle className="h-4 w-4" />} title="Escalating risks" rows={escalating}
