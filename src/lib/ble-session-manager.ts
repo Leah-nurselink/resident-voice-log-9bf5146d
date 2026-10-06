@@ -144,16 +144,18 @@ async function reloadRegistered() {
   const { data: rooms } = await supabase.from("rooms").select("id, name");
   const { data: residents } = await supabase
     .from("residents")
-    .select("id, room_number, residency_status")
-    .in("residency_status", ["permanent", "respite", "temporary"]);
+    .select("id, room_number, residency_status");
+  const normRoom = (s: string) => s.trim().toLowerCase().replace(/^room\s*/, "").replace(/^0+(?=\d)/, "");
   const nameToRoomId = new Map<string, string>();
   for (const r of (rooms ?? []) as Array<{ id: string; name: string }>) {
-    nameToRoomId.set(r.name, r.id);
+    nameToRoomId.set(normRoom(r.name), r.id);
   }
   roomOccupants = new Map();
-  for (const r of (residents ?? []) as Array<{ id: string; room_number: string | null }>) {
+  for (const r of (residents ?? []) as Array<{ id: string; room_number: string | null; residency_status: string | null }>) {
     if (!r.room_number) continue;
-    const rid = nameToRoomId.get(r.room_number);
+    const status = (r.residency_status ?? "").toLowerCase();
+    if (!["permanent", "respite", "temporary"].includes(status)) continue;
+    const rid = nameToRoomId.get(normRoom(r.room_number));
     if (!rid) continue;
     const list = roomOccupants.get(rid) ?? [];
     list.push(r.id);
