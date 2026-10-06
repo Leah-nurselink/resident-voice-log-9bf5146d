@@ -2800,6 +2800,13 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _uid: string }; Returns: boolean }
+      list_staff_roles: {
+        Args: never
+        Returns: {
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       alert_severity: "info" | "warning" | "critical"
