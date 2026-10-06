@@ -116,7 +116,8 @@ function RotaPage() {
     queryFn: async () => {
       const [{ data: profiles, error: pe }, { data: roles }, { data: sp }, { data: links }] = await Promise.all([
         supabase.from("profiles").select("id, full_name").order("full_name"),
-        supabase.from("user_roles").select("user_id, role, approved, is_active"),
+        // user_roles RLS only returns your own row; use the staff-safe helper for the team.
+        supabase.rpc("list_staff_roles"),
         supabase.from("staff_profiles").select("user_id, skills, home_zone, max_weekly_hours, wants_extra_shifts, employment_status, restriction_tags, restrictions"),
         supabase.from("staff_services").select("user_id, service_id"),
       ]);
