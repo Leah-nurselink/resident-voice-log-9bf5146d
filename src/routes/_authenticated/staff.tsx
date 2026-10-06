@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
-import { DAY_LABELS, EMPLOYMENT_STATUSES, RESTRICTION_TAGS, hhmm } from "@/lib/rota";
+import { DAY_LABELS, EMPLOYMENT_STATUSES, RESTRICTION_TAGS, SKILL_OPTIONS, hhmm } from "@/lib/rota";
 import { useCanWrite } from "@/hooks/useCanWrite";
 
 export const Route = createFileRoute("/_authenticated/staff")({
@@ -48,6 +48,10 @@ type StaffRow = {
     restrictions: string | null;
     restriction_tags: string[];
     notes: string | null;
+    skills: string[] | null;
+    home_zone: string | null;
+    max_weekly_hours: number | null;
+    wants_extra_shifts: boolean | null;
   } | null;
 };
 
