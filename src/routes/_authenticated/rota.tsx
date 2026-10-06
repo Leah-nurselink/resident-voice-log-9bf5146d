@@ -130,6 +130,8 @@ function RotaPage() {
           serviceIds: (links ?? []).filter((l) => l.user_id === p.id).map((l) => l.service_id),
         }))
         .filter((s) => s.role && s.role !== "family")) as unknown as RotaStaff[];
+    },
+  });
 
   const shifts = useQuery({
     queryKey: ["rota-shifts", service?.id, fromISO],
