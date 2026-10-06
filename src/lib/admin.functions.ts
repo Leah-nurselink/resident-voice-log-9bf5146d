@@ -13,6 +13,16 @@ async function assertAdmin(context: { supabase: import("@supabase/supabase-js").
   if (!data) throw new Error("Forbidden: admin role required");
 }
 
+/** Make a user's permissions exactly match their role (grants role defaults, removes everything else). */
+async function applyRolePermissions(admin: import("@supabase/supabase-js").SupabaseClient, userId: string, role: Role) {
+  const allowed = new Set<string>(DEFAULT_ROLE_PERMISSIONS[role]);
+  const { error } = await admin.from("user_permissions").upsert(
+    PERMISSIONS.map((p) => ({ user_id: userId, permission: p.key, granted: allowed.has(p.key) })),
+    { onConflict: "user_id,permission" },
+  );
+  if (error) throw new Error(error.message);
+}
+
 export const listStaff = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -89,14 +99,7 @@ export const inviteStaff = createServerFn({ method: "POST" })
       .insert({ user_id: newUser.id, role: data.role, approved: true, is_active: true });
     if (roleErr) throw new Error(roleErr.message);
 
-    // Seed default permissions for this role
-    const defaults = DEFAULT_ROLE_PERMISSIONS[data.role];
-    if (defaults.length > 0) {
-      await supabaseAdmin.from("user_permissions").upsert(
-        defaults.map((p) => ({ user_id: newUser.id, permission: p, granted: true })),
-        { onConflict: "user_id,permission" },
-      );
-    }
+    await applyRolePermissions(supabaseAdmin, newUser.id, data.role);
     return { userId: newUser.id };
   });
 
@@ -111,13 +114,7 @@ export const setStaffRole = createServerFn({ method: "POST" })
       .from("user_roles")
       .insert({ user_id: data.userId, role: data.role, approved: true, is_active: true });
     if (error) throw new Error(error.message);
-    const defaults = DEFAULT_ROLE_PERMISSIONS[data.role];
-    if (defaults.length > 0) {
-      await supabaseAdmin.from("user_permissions").upsert(
-        defaults.map((p) => ({ user_id: data.userId, permission: p, granted: true })),
-        { onConflict: "user_id,permission" },
-      );
-    }
+    await applyRolePermissions(supabaseAdmin, data.userId, data.role);
     return { ok: true };
   });
 
@@ -191,9 +188,18 @@ export const claimFirstAdmin = createServerFn({ method: "POST" })
       .insert({ user_id: context.userId, role: "admin", approved: true, is_active: true });
     if (error) throw new Error(error.message);
 
-    await supabaseAdmin.from("user_permissions").upsert(
-      DEFAULT_ROLE_PERMISSIONS.admin.map((p) => ({ user_id: context.userId, permission: p, granted: true })),
-      { onConflict: "user_id,permission" },
-    );
+    await applyRolePermissions(supabaseAdmin, context.userId, "admin");
     return { ok: true };
+  });
+
+// Re-apply role-based access to every staff account so permissions always follow the role.
+export const syncAllRolePermissions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: roles, error } = await supabaseAdmin.from("user_roles").select("user_id, role");
+    if (error) throw new Error(error.message);
+    for (const r of roles ?? []) await applyRolePermissions(supabaseAdmin, r.user_id, r.role as Role);
+    return { updated: roles?.length ?? 0 };
   });
