@@ -12,7 +12,6 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, UserPlus, Shield, ShieldOff, KeyRound, Trash2, Mail } from "lucide-react";
 import { toast } from "sonner";
@@ -149,7 +148,7 @@ function RoleGuide() {
             </div>
           ))}
           <p className="text-xs text-muted-foreground sm:col-span-2">
-            These are the starting points when you pick a role. You can switch any single item on or off per person below.
+            These are the starting points when you pick a role. A person's access always matches their role.
           </p>
         </CardContent>
       )}
@@ -185,9 +184,6 @@ function StaffCard({ user, onChange }: { user: Row; onChange: () => void }) {
   const setActive = useServerFn(setStaffActive);
   const remove = useServerFn(removeStaff);
 
-  const roleSet = new Set<string>(DEFAULT_ROLE_PERMISSIONS[user.role] ?? []);
-  const grantedSet = new Set(user.permissions.filter((p) => p.granted).map((p) => p.permission));
-  const outOfSync = PERMISSIONS.some((p) => roleSet.has(p.key) !== grantedSet.has(p.key));
 
   async function changeRole(role: Role) {
     try { await setRole({ data: { userId: user.userId, role } }); toast.success("Role updated"); onChange(); }
@@ -245,26 +241,9 @@ function StaffCard({ user, onChange }: { user: Row; onChange: () => void }) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Access from role: {ROLE_LABELS[user.role] ?? user.role}
-          </p>
-          {outOfSync && (
-            <Button size="sm" variant="outline" onClick={() => changeRole(user.role)}>Apply role access</Button>
-          )}
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {PERMISSIONS.map((p) => {
-            const granted = roleSet.has(p.key);
-            return (
-              <div key={p.key} className="flex items-center justify-between rounded-md border px-3 py-1.5">
-                <span className="text-sm">{p.label}</span>
-                <Switch checked={granted} disabled aria-readonly />
-              </div>
-            );
-          })}
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">To change access, change the role.</p>
+        <p className="text-xs text-muted-foreground">
+          Access comes from the {ROLE_LABELS[user.role] ?? user.role} role — see "What each role can do" above.
+        </p>
       </CardContent>
     </Card>
   );
