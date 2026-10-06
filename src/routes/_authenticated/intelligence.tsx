@@ -42,7 +42,7 @@ function IntelligencePage() {
         .from("residents").select("id,full_name,preferred_name,room_number,residency_status")
         .neq("residency_status", "Discharged").neq("residency_status", "Deceased");
       const ids = (residents ?? []).map((r) => r.id);
-      if (ids.length === 0) return [] as Row[];
+      if (ids.length === 0) return { rows: [] as Row[], draftCount: 0, openTasks: 0 };
       const since14 = new Date(Date.now() - 14 * 86_400_000).toISOString();
       const today = new Date().toISOString().slice(0, 10);
       const [notes, plans, risks, meds, admins, drafts, wounds, tasks] = await Promise.all([
