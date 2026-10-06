@@ -151,15 +151,10 @@ function CouncilCard({ council }: { council: Council }) {
         <Button
           asChild
           size="sm"
-          variant="secondary"
           className="min-h-11 w-full justify-between"
         >
-          <a
-            href={`https://www.google.com/search?q=${encodeURIComponent(`${council.name} council adult safeguarding referral`)}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Find referral page
+          <a href={council.safeguardingUrl} target="_blank" rel="noreferrer">
+            Go to safeguarding page
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </Button>
@@ -169,9 +164,13 @@ function CouncilCard({ council }: { council: Council }) {
           variant="ghost"
           className="min-h-11 w-full justify-between text-sm"
         >
-          <a href={council.safeguardingUrl} target="_blank" rel="noreferrer">
-            Try direct link
-            <ExternalLink className="h-3.5 w-3.5" />
+          <a
+            href={`https://www.google.com/search?q=${encodeURIComponent(`${council.name} council adult safeguarding referral`)}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Search instead
+            <Search className="h-3.5 w-3.5" />
           </a>
         </Button>
       </CardContent>
