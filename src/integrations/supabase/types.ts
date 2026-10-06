@@ -1611,17 +1611,33 @@ export type Database = {
           assessed_by: string | null
           behaviour_change: number
           body_language: number
+          can_self_report: string | null
           created_at: string
+          description: string | null
+          duration: string | null
+          during_personal_care: boolean
           facial_expression: number
           id: string
           intervention: string | null
+          interventions: string[]
+          location: string | null
+          medication_administration_id: string | null
+          method: string
+          modifiers: string | null
           notes: string | null
+          observations: Json | null
+          onset: string | null
           pain_type: string | null
+          parent_assessment_id: string | null
           physical_change: number
           physiological_change: number
+          reason: string | null
+          reassess_due_at: string | null
           resident_id: string
           response: string | null
           response_at: string | null
+          result: string | null
+          self_score: number | null
           severity: string
           source: string
           total_score: number
@@ -1636,17 +1652,33 @@ export type Database = {
           assessed_by?: string | null
           behaviour_change?: number
           body_language?: number
+          can_self_report?: string | null
           created_at?: string
+          description?: string | null
+          duration?: string | null
+          during_personal_care?: boolean
           facial_expression?: number
           id?: string
           intervention?: string | null
+          interventions?: string[]
+          location?: string | null
+          medication_administration_id?: string | null
+          method?: string
+          modifiers?: string | null
           notes?: string | null
+          observations?: Json | null
+          onset?: string | null
           pain_type?: string | null
+          parent_assessment_id?: string | null
           physical_change?: number
           physiological_change?: number
+          reason?: string | null
+          reassess_due_at?: string | null
           resident_id: string
           response?: string | null
           response_at?: string | null
+          result?: string | null
+          self_score?: number | null
           severity?: string
           source?: string
           total_score?: number
@@ -1661,17 +1693,33 @@ export type Database = {
           assessed_by?: string | null
           behaviour_change?: number
           body_language?: number
+          can_self_report?: string | null
           created_at?: string
+          description?: string | null
+          duration?: string | null
+          during_personal_care?: boolean
           facial_expression?: number
           id?: string
           intervention?: string | null
+          interventions?: string[]
+          location?: string | null
+          medication_administration_id?: string | null
+          method?: string
+          modifiers?: string | null
           notes?: string | null
+          observations?: Json | null
+          onset?: string | null
           pain_type?: string | null
+          parent_assessment_id?: string | null
           physical_change?: number
           physiological_change?: number
+          reason?: string | null
+          reassess_due_at?: string | null
           resident_id?: string
           response?: string | null
           response_at?: string | null
+          result?: string | null
+          self_score?: number | null
           severity?: string
           source?: string
           total_score?: number
@@ -1679,6 +1727,20 @@ export type Database = {
           vocalisation?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "pain_assessments_medication_administration_id_fkey"
+            columns: ["medication_administration_id"]
+            isOneToOne: false
+            referencedRelation: "medication_administrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pain_assessments_parent_assessment_id_fkey"
+            columns: ["parent_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "pain_assessments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pain_assessments_resident_id_fkey"
             columns: ["resident_id"]

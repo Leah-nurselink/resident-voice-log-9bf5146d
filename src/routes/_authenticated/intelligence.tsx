@@ -8,6 +8,7 @@ import { useState } from "react";
 import { TrendingDown, AlertTriangle, ShieldAlert, FileText, ChevronRight, Sparkles, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { painPatterns, type PainPattern } from "@/lib/pain-check";
 import { medicationObservations, type MedicationObservation } from "@/lib/medication-insights";
 
 export const Route = createFileRoute("/_authenticated/intelligence")({
@@ -32,6 +33,7 @@ type Row = {
   deviations: Deviation[];
   medObs: MedicationObservation[];
   woundsDue: number;
+  pain: PainPattern[];
 };
 
 function IntelligencePage() {
@@ -45,7 +47,7 @@ function IntelligencePage() {
       if (ids.length === 0) return { rows: [] as Row[], draftCount: 0, openTasks: 0 };
       const since14 = new Date(Date.now() - 14 * 86_400_000).toISOString();
       const today = new Date().toISOString().slice(0, 10);
-      const [notes, plans, risks, meds, admins, drafts, wounds, tasks] = await Promise.all([
+      const [notes, plans, risks, meds, admins, drafts, wounds, tasks, pains] = await Promise.all([
         supabase.from("daily_notes").select("id,resident_id,created_at,content,domain,category,risks,flags").in("resident_id", ids).order("created_at", { ascending: false }).limit(2000),
         supabase.from("care_plans").select("id,resident_id,domain,updated_at").in("resident_id", ids),
         supabase.from("risk_assessments").select("id,resident_id,type,level,updated_at").in("resident_id", ids),
@@ -54,6 +56,7 @@ function IntelligencePage() {
         supabase.from("daily_notes").select("id", { count: "exact", head: true }).in("resident_id", ids).eq("status", "draft"),
         supabase.from("wounds").select("id,resident_id").in("resident_id", ids).neq("status", "healed").lte("review_date", today),
         supabase.from("communication_tasks").select("id", { count: "exact", head: true }).neq("status", "done").neq("status", "completed"),
+        supabase.from("pain_assessments").select("*").in("resident_id", ids).gte("assessed_at", since14),
       ]);
       const rows = (residents ?? []).map<Row>((r) => {
         const rNotes = (notes.data ?? []).filter((n) => n.resident_id === r.id);
@@ -65,7 +68,10 @@ function IntelligencePage() {
           (admins.data ?? []).filter((a) => a.resident_id === r.id) as never,
         );
         const woundsDue = (wounds.data ?? []).filter((w) => w.resident_id === r.id).length;
-        return { id: r.id, name: r.preferred_name || r.full_name || "Unnamed", room: r.room_number, intel, deviations: detectDeviations(rNotes), medObs, woundsDue };
+        const prnIds = new Set((meds.data ?? []).filter((m) => m.resident_id === r.id && m.is_prn).map((m) => m.id));
+        const prnGiven = (admins.data ?? []).filter((a) => prnIds.has(a.medication_id) && a.status === "given");
+        const pain = painPatterns((pains.data ?? []).filter((p) => p.resident_id === r.id), prnGiven);
+        return { id: r.id, name: r.preferred_name || r.full_name || "Unnamed", room: r.room_number, intel, deviations: detectDeviations(rNotes), medObs, woundsDue, pain };
       });
       return { rows, draftCount: drafts.count ?? 0, openTasks: tasks.count ?? 0 };
     },
@@ -85,6 +91,7 @@ function IntelligencePage() {
     for (const s of r.intel.safeguarding) attention.push({ r, level: "high", title: `Safeguarding: ${s.signal}`, detail: `${s.count} related signals in recent records.`, kind: "Pattern identified" });
     for (const d of r.deviations) attention.push({ r, level: d.severity, title: `${CATEGORY_LABELS[d.category]} change`, detail: `${d.recent} mention${d.recent === 1 ? "" : "s"} in the last 3 days (usually ${d.baselinePerPeriod}). Latest ${format(new Date(d.latest.at), "d MMM")}: “${d.latest.excerpt}”`, kind: "Change identified" });
     for (const m of r.medObs) attention.push({ r, level: "medium", title: m.title, detail: m.detail, kind: "Pattern identified" });
+    for (const p of r.pain) attention.push({ r, level: "medium", title: `Pain: ${p.title}`, detail: p.detail, kind: "Pain pattern identified" });
     for (const p of r.intel.planReviews) attention.push({ r, level: "low", title: `Care plan review suggested: ${p.domain}`, detail: p.reason, kind: "Review suggested" });
   }
   const rank = { high: 0, medium: 1, low: 2 } as const;
@@ -143,6 +150,8 @@ function IntelligencePage() {
 
         <DeviationsSection rows={rows} />
 
+        <Group icon={<Activity className="h-4 w-4" />} title="Pain patterns (for staff review)" rows={rows.filter((r) => r.pain.length)}
+          render={(r) => r.pain.map((p) => p.title).join(" · ")} />
         <Group icon={<TrendingDown className="h-4 w-4" />} title="Declining wellbeing" rows={declining}
           render={(r) => `${r.intel.wellbeing.score}/100 · ${r.intel.wellbeing.label}`} />
         <Group icon={<AlertTriangle className="h-4 w-4" />} title="Escalating risks" rows={escalating}

@@ -33,3 +33,4 @@
 - [x] Handover page: AI-drafted shift handover across the eight sections, staff edit and approve, saved history — 2026-09-17.
 - [x] Care plans: per-section "Draft with AI" (person-centred, from risks + concerns + notes + preferences), stays a draft until clinician approves; linked risks shown on each section — 2026-09-29.
 - [x] Medication round: physical counts, stock/cycle alerts (25%), safety checks, rights checklist, AI review on request
+- [x] Pain: Digital Pain Check (self-report or observation, result with factors, interventions, PRN link, reassessment), timeline, PRN review, trends, pattern insights, Overview summary, Care Intelligence pain patterns — 2026-10-06.

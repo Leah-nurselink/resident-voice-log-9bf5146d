@@ -11,7 +11,7 @@ import { ResidentIntelligence } from "@/components/ResidentIntelligence";
 import { ResidentHighlights } from "@/components/ResidentHighlights";
 import { WoundsTab } from "@/components/WoundsTab";
 import { PersonalInfoTab } from "@/components/PersonalInfoTab";
-import { PainTab } from "@/components/PainTab";
+import { PainModule, PainSummary } from "@/components/PainModule";
 import { MedicationsTab } from "@/components/MedicationsTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -261,6 +261,7 @@ function ResidentDetail() {
 
         <TabsContent value="intel" className="mt-4">
           <div className="space-y-4">
+            <PainSummary residentId={id} onOpen={() => setActiveTab("pain")} />
             <ResidentHighlights residentId={id} />
             <ResidentIntelligence residentId={id} />
           </div>
@@ -364,7 +365,7 @@ function ResidentDetail() {
         </TabsContent>
 
         <TabsContent value="pain" className="mt-4">
-          <PainTab residentId={id} residentName={r.full_name} />
+          <PainModule residentId={id} residentName={r.full_name} onOpenTab={setActiveTab} />
         </TabsContent>
 
         <TabsContent value="meds" className="mt-4">
