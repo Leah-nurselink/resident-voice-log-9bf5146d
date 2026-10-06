@@ -12,3 +12,4 @@
 ## Project architecture decisions
 
 - Shared authenticated pages use `AppShell` for phone-safe headers, action wrapping, and horizontal overflow containment so each page does not reinvent mobile framing.
+- The resident calendar reads existing schedules and review records through an authenticated server function with Query-backed loading; URL search stores month, selected date and filters so navigation remains shareable without duplicating resident records.
