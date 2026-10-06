@@ -175,3 +175,15 @@ export const EMPLOYMENT_STATUSES = [
 ];
 
 export const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+export const SKILL_OPTIONS = [
+  { value: "medication_trained", label: "Medication trained" },
+  { value: "moving_handling", label: "Moving & handling" },
+  { value: "double_up", label: "Double-up working" },
+  { value: "senior", label: "Senior" },
+  { value: "registered_nurse", label: "Registered nurse" },
+] as const;
+
+export const SKILL_LABELS: Record<string, string> = Object.fromEntries(
+  SKILL_OPTIONS.map((s) => [s.value, s.label]),
+);

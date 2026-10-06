@@ -4,6 +4,8 @@ import {
   Bluetooth,
   Brain,
   Calendar,
+  CalendarCheck,
+  CalendarRange,
   ClipboardList,
   ClipboardCheck,
   Download,
@@ -80,6 +82,9 @@ const communicationItems = [
 ] as const;
 
 const workforceItems = [
+  { title: "Rota", url: "/rota", icon: CalendarRange },
+  { title: "My rota", url: "/my-rota", icon: CalendarCheck },
+  { title: "Staff", url: "/staff", icon: Users },
   { title: "Calendar", url: "/calendar", icon: Calendar },
 ] as const;
 
