@@ -191,6 +191,10 @@ function DetailsForm({ staff, canManage, onSaved }: { staff: StaffRow; canManage
   const [startDate, setStartDate] = useState(p?.start_date ?? "");
   const [leavingDate, setLeavingDate] = useState(p?.leaving_date ?? "");
   const [phone, setPhone] = useState(p?.phone ?? "");
+  const [skills, setSkills] = useState<string[]>(p?.skills ?? []);
+  const [homeZone, setHomeZone] = useState(p?.home_zone ?? "");
+  const [maxWeekly, setMaxWeekly] = useState(p?.max_weekly_hours?.toString() ?? "");
+  const [extraShifts, setExtraShifts] = useState(p?.wants_extra_shifts ?? false);
 
   const save = async () => {
     try {
@@ -201,6 +205,10 @@ function DetailsForm({ staff, canManage, onSaved }: { staff: StaffRow; canManage
         start_date: startDate || null,
         leaving_date: leavingDate || null,
         phone: phone || null,
+        skills,
+        home_zone: homeZone || null,
+        max_weekly_hours: maxWeekly ? Number(maxWeekly) : null,
+        wants_extra_shifts: extraShifts,
       });
       toast.success("Saved");
       onSaved();
