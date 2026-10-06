@@ -681,3 +681,72 @@ export async function resolvePendingDecision(
   emit();
   return { ok: true };
 }
+
+// Let a carer directly pick a registered, currently-in-range beacon rather
+// than waiting for automatic wearable/room-occupancy resolution. Reuses the
+// same session-opening path as every other rule, so timeouts, staff
+// attachment, and the Active Sessions list all work identically.
+//
+// If the beacon is a room beacon with more than one assigned resident, pass
+// no residentId first — this returns { ok: false, candidates } so the UI can
+// ask the carer which resident, then call again with that residentId.
+export async function manuallyAssignDevice(
+  deviceId: string,
+  residentId?: string,
+): Promise<{ ok: true; residentId: string } | { ok: false; error: string; candidates?: string[] }> {
+  const device = registered.find((d) => d.id === deviceId);
+  if (!device) return { ok: false, error: "This beacon is not currently registered." };
+
+  const expectedKey = keyForDevice(device);
+  const obs = lastObservations.find((o) => o.key === expectedKey);
+  if (!obs) return { ok: false, error: "This beacon is not currently in range." };
+
+  let resolvedResidentId: string | null = residentId ?? device.resident_id ?? null;
+  if (!resolvedResidentId && device.room_id) {
+    const occupants = roomOccupants.get(device.room_id) ?? [];
+    if (occupants.length === 1) {
+      resolvedResidentId = occupants[0];
+    } else if (occupants.length > 1) {
+      return { ok: false, error: "More than one resident is assigned to this room.", candidates: occupants };
+    } else {
+      return { ok: false, error: "No resident is currently assigned to this room." };
+    }
+  }
+  if (!resolvedResidentId) {
+    return { ok: false, error: "Could not determine which resident this beacon belongs to." };
+  }
+
+  const existing = sessions.get(resolvedResidentId);
+  if (existing) {
+    // Already an active session for this resident (e.g. auto-detected a
+    // moment ago) — just refresh it rather than opening a duplicate.
+    existing.lastRssi = obs.rssi;
+    existing.lastSeen = obs.lastSeen;
+    existing.deviceId = device.id;
+    emit();
+    return { ok: true, residentId: resolvedResidentId };
+  }
+
+  const { data: u } = await supabase.auth.getUser();
+  const sessionId = await openSession(
+    resolvedResidentId,
+    device.room_id,
+    u?.user?.id ?? null,
+    device,
+    obs,
+    "manual_resolution",
+  );
+  sessions.set(resolvedResidentId, {
+    deviceId: device.id,
+    sessionId,
+    residentId: resolvedResidentId,
+    roomId: device.room_id,
+    staffUserId: u?.user?.id ?? null,
+    rule: "manual_resolution",
+    lastRssi: obs.rssi,
+    lastSeen: obs.lastSeen,
+    startedAt: new Date().toISOString(),
+  });
+  emit();
+  return { ok: true, residentId: resolvedResidentId };
+}
