@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Active
+- [ ] Replace Calendar placeholder with resident-linked appointments and reviews, month navigation and a dated agenda.
 - [x] Hide discharge dates for permanent residents and clear on profile save; include permanent residents in family selection — John dec verified selectable, 2026-10-03.
 - [x] Make Safeguarding phone-friendly with accessible search, country filters and a direct dashboard return — verified at 360, 384, 390 and 1280px, 2026-10-03.
 - [x] Show resident profile photos on the Residents cards and dashboard resident strip — 2026-10-03.
