@@ -13,3 +13,4 @@
 
 - Shared authenticated pages use `AppShell` for phone-safe headers, action wrapping, and horizontal overflow containment so each page does not reinvent mobile framing.
 - The resident calendar reads existing schedules and review records through an authenticated server function with Query-backed loading; URL search stores month, selected date and filters so navigation remains shareable without duplicating resident records.
+- The rota is service-scoped: every rota screen follows a selected row from the `services` table, whose `service_type` (domiciliary vs care_home) decides which rota UI and rules apply — the setting belongs to the service, never the account.

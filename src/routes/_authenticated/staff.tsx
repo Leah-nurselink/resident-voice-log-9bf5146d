@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
-import { DAY_LABELS, EMPLOYMENT_STATUSES, RESTRICTION_TAGS, hhmm } from "@/lib/rota";
+import { DAY_LABELS, EMPLOYMENT_STATUSES, RESTRICTION_TAGS, SKILL_OPTIONS, hhmm } from "@/lib/rota";
 import { useCanWrite } from "@/hooks/useCanWrite";
 
 export const Route = createFileRoute("/_authenticated/staff")({
@@ -48,6 +48,10 @@ type StaffRow = {
     restrictions: string | null;
     restriction_tags: string[];
     notes: string | null;
+    skills: string[] | null;
+    home_zone: string | null;
+    max_weekly_hours: number | null;
+    wants_extra_shifts: boolean | null;
   } | null;
 };
 
@@ -187,6 +191,10 @@ function DetailsForm({ staff, canManage, onSaved }: { staff: StaffRow; canManage
   const [startDate, setStartDate] = useState(p?.start_date ?? "");
   const [leavingDate, setLeavingDate] = useState(p?.leaving_date ?? "");
   const [phone, setPhone] = useState(p?.phone ?? "");
+  const [skills, setSkills] = useState<string[]>(p?.skills ?? []);
+  const [homeZone, setHomeZone] = useState(p?.home_zone ?? "");
+  const [maxWeekly, setMaxWeekly] = useState(p?.max_weekly_hours?.toString() ?? "");
+  const [extraShifts, setExtraShifts] = useState(p?.wants_extra_shifts ?? false);
 
   const save = async () => {
     try {
@@ -197,6 +205,10 @@ function DetailsForm({ staff, canManage, onSaved }: { staff: StaffRow; canManage
         start_date: startDate || null,
         leaving_date: leavingDate || null,
         phone: phone || null,
+        skills,
+        home_zone: homeZone || null,
+        max_weekly_hours: maxWeekly ? Number(maxWeekly) : null,
+        wants_extra_shifts: extraShifts,
       });
       toast.success("Saved");
       onSaved();
@@ -226,6 +238,29 @@ function DetailsForm({ staff, canManage, onSaved }: { staff: StaffRow; canManage
         <div><Label>Start date</Label><Input disabled={!canManage} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
         <div><Label>Leaving date</Label><Input disabled={!canManage} type="date" value={leavingDate} onChange={(e) => setLeavingDate(e.target.value)} /></div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Home zone</Label><Input disabled={!canManage} placeholder="e.g. North" value={homeZone} onChange={(e) => setHomeZone(e.target.value)} /></div>
+        <div><Label>Max weekly hours</Label><Input disabled={!canManage} type="number" value={maxWeekly} onChange={(e) => setMaxWeekly(e.target.value)} /></div>
+      </div>
+      <div>
+        <Label>Skills</Label>
+        <div className="mt-1 grid grid-cols-2 gap-1">
+          {SKILL_OPTIONS.map((s) => (
+            <label key={s.value} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                disabled={!canManage}
+                checked={skills.includes(s.value)}
+                onCheckedChange={(v) => setSkills((prev) => (v ? [...prev, s.value] : prev.filter((x) => x !== s.value)))}
+              />
+              {s.label}
+            </label>
+          ))}
+        </div>
+      </div>
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox disabled={!canManage} checked={extraShifts} onCheckedChange={(v) => setExtraShifts(!!v)} />
+        Wants extra shifts (asked first for cover)
+      </label>
       {canManage && <Button onClick={save}>Save details</Button>}
     </div>
   );

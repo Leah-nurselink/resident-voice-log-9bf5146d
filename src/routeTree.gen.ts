@@ -34,11 +34,13 @@ import { Route as AuthenticatedHandoverRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedIncidentReviewRouteImport } from './routes/_authenticated/incident-review'
 import { Route as AuthenticatedIntelligenceRouteImport } from './routes/_authenticated/intelligence'
 import { Route as AuthenticatedMedicationRoundRouteImport } from './routes/_authenticated/medication-round'
+import { Route as AuthenticatedMyRotaRouteImport } from './routes/_authenticated/my-rota'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
 import { Route as AuthenticatedProfessionalsRouteImport } from './routes/_authenticated/professionals'
 import { Route as AuthenticatedRegulatoryRouteImport } from './routes/_authenticated/regulatory'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedReviewsRouteImport } from './routes/_authenticated/reviews'
+import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedSafeguardingRouteImport } from './routes/_authenticated/safeguarding'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedStaffRouteImport } from './routes/_authenticated/staff'
@@ -182,6 +184,11 @@ const AuthenticatedMedicationRoundRoute =
     path: '/medication-round',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMyRotaRoute = AuthenticatedMyRotaRouteImport.update({
+  id: '/my-rota',
+  path: '/my-rota',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedNotesRoute = AuthenticatedNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -206,6 +213,11 @@ const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
 const AuthenticatedReviewsRoute = AuthenticatedReviewsRouteImport.update({
   id: '/reviews',
   path: '/reviews',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRotaRoute = AuthenticatedRotaRouteImport.update({
+  id: '/rota',
+  path: '/rota',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSafeguardingRoute =
@@ -299,11 +311,13 @@ export interface FileRoutesByFullPath {
   '/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/medication-round': typeof AuthenticatedMedicationRoundRoute
+  '/my-rota': typeof AuthenticatedMyRotaRoute
   '/notes': typeof AuthenticatedNotesRoute
   '/professionals': typeof AuthenticatedProfessionalsRoute
   '/regulatory': typeof AuthenticatedRegulatoryRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/reviews': typeof AuthenticatedReviewsRoute
+  '/rota': typeof AuthenticatedRotaRoute
   '/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/staff': typeof AuthenticatedStaffRoute
@@ -341,11 +355,13 @@ export interface FileRoutesByTo {
   '/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/intelligence': typeof AuthenticatedIntelligenceRoute
   '/medication-round': typeof AuthenticatedMedicationRoundRoute
+  '/my-rota': typeof AuthenticatedMyRotaRoute
   '/notes': typeof AuthenticatedNotesRoute
   '/professionals': typeof AuthenticatedProfessionalsRoute
   '/regulatory': typeof AuthenticatedRegulatoryRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/reviews': typeof AuthenticatedReviewsRoute
+  '/rota': typeof AuthenticatedRotaRoute
   '/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/staff': typeof AuthenticatedStaffRoute
@@ -386,11 +402,13 @@ export interface FileRoutesById {
   '/_authenticated/incident-review': typeof AuthenticatedIncidentReviewRoute
   '/_authenticated/intelligence': typeof AuthenticatedIntelligenceRoute
   '/_authenticated/medication-round': typeof AuthenticatedMedicationRoundRoute
+  '/_authenticated/my-rota': typeof AuthenticatedMyRotaRoute
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
   '/_authenticated/professionals': typeof AuthenticatedProfessionalsRoute
   '/_authenticated/regulatory': typeof AuthenticatedRegulatoryRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/reviews': typeof AuthenticatedReviewsRoute
+  '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/safeguarding': typeof AuthenticatedSafeguardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/staff': typeof AuthenticatedStaffRoute
@@ -431,11 +449,13 @@ export interface FileRouteTypes {
     | '/incident-review'
     | '/intelligence'
     | '/medication-round'
+    | '/my-rota'
     | '/notes'
     | '/professionals'
     | '/regulatory'
     | '/reports'
     | '/reviews'
+    | '/rota'
     | '/safeguarding'
     | '/settings'
     | '/staff'
@@ -473,11 +493,13 @@ export interface FileRouteTypes {
     | '/incident-review'
     | '/intelligence'
     | '/medication-round'
+    | '/my-rota'
     | '/notes'
     | '/professionals'
     | '/regulatory'
     | '/reports'
     | '/reviews'
+    | '/rota'
     | '/safeguarding'
     | '/settings'
     | '/staff'
@@ -517,11 +539,13 @@ export interface FileRouteTypes {
     | '/_authenticated/incident-review'
     | '/_authenticated/intelligence'
     | '/_authenticated/medication-round'
+    | '/_authenticated/my-rota'
     | '/_authenticated/notes'
     | '/_authenticated/professionals'
     | '/_authenticated/regulatory'
     | '/_authenticated/reports'
     | '/_authenticated/reviews'
+    | '/_authenticated/rota'
     | '/_authenticated/safeguarding'
     | '/_authenticated/settings'
     | '/_authenticated/staff'
@@ -724,6 +748,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMedicationRoundRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/my-rota': {
+      id: '/_authenticated/my-rota'
+      path: '/my-rota'
+      fullPath: '/my-rota'
+      preLoaderRoute: typeof AuthenticatedMyRotaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/notes': {
       id: '/_authenticated/notes'
       path: '/notes'
@@ -757,6 +788,13 @@ declare module '@tanstack/react-router' {
       path: '/reviews'
       fullPath: '/reviews'
       preLoaderRoute: typeof AuthenticatedReviewsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rota': {
+      id: '/_authenticated/rota'
+      path: '/rota'
+      fullPath: '/rota'
+      preLoaderRoute: typeof AuthenticatedRotaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/safeguarding': {
@@ -881,11 +919,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIncidentReviewRoute: typeof AuthenticatedIncidentReviewRoute
   AuthenticatedIntelligenceRoute: typeof AuthenticatedIntelligenceRoute
   AuthenticatedMedicationRoundRoute: typeof AuthenticatedMedicationRoundRoute
+  AuthenticatedMyRotaRoute: typeof AuthenticatedMyRotaRoute
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
   AuthenticatedProfessionalsRoute: typeof AuthenticatedProfessionalsRoute
   AuthenticatedRegulatoryRoute: typeof AuthenticatedRegulatoryRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedReviewsRoute: typeof AuthenticatedReviewsRoute
+  AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedSafeguardingRoute: typeof AuthenticatedSafeguardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
@@ -916,11 +956,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIncidentReviewRoute: AuthenticatedIncidentReviewRoute,
   AuthenticatedIntelligenceRoute: AuthenticatedIntelligenceRoute,
   AuthenticatedMedicationRoundRoute: AuthenticatedMedicationRoundRoute,
+  AuthenticatedMyRotaRoute: AuthenticatedMyRotaRoute,
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
   AuthenticatedProfessionalsRoute: AuthenticatedProfessionalsRoute,
   AuthenticatedRegulatoryRoute: AuthenticatedRegulatoryRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedReviewsRoute: AuthenticatedReviewsRoute,
+  AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedSafeguardingRoute: AuthenticatedSafeguardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStaffRoute: AuthenticatedStaffRoute,

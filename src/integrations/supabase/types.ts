@@ -2177,6 +2177,39 @@ export type Database = {
         }
         Relationships: []
       }
+      services: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          service_type: string
+          settings: Json
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          service_type: string
+          settings?: Json
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          service_type?: string
+          settings?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shift_absences: {
         Row: {
           created_at: string
@@ -2227,6 +2260,7 @@ export type Database = {
           notes: string | null
           resident_ids: string[]
           role: Database["public"]["Enums"]["app_role"] | null
+          service_id: string | null
           shift_date: string
           staff_user_id: string | null
           start_time: string
@@ -2246,6 +2280,7 @@ export type Database = {
           notes?: string | null
           resident_ids?: string[]
           role?: Database["public"]["Enums"]["app_role"] | null
+          service_id?: string | null
           shift_date: string
           staff_user_id?: string | null
           start_time: string
@@ -2265,12 +2300,21 @@ export type Database = {
           notes?: string | null
           resident_ids?: string[]
           role?: Database["public"]["Enums"]["app_role"] | null
+          service_id?: string | null
           shift_date?: string
           staff_user_id?: string | null
           start_time?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shifts_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       staff_availability: {
         Row: {
@@ -2344,51 +2388,110 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_leave: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          leave_type: string
+          notes: string | null
+          service_id: string | null
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          leave_type: string
+          notes?: string | null
+          service_id?: string | null
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          service_id?: string | null
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_leave_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_profiles: {
         Row: {
           contracted_hours: number | null
           created_at: string
           employment_status: string
+          home_zone: string | null
           id: string
           job_title: string | null
           leaving_date: string | null
+          max_weekly_hours: number | null
           notes: string | null
           phone: string | null
           restriction_tags: string[]
           restrictions: string | null
+          skills: string[]
           start_date: string | null
           updated_at: string
           user_id: string
+          wants_extra_shifts: boolean
         }
         Insert: {
           contracted_hours?: number | null
           created_at?: string
           employment_status?: string
+          home_zone?: string | null
           id?: string
           job_title?: string | null
           leaving_date?: string | null
+          max_weekly_hours?: number | null
           notes?: string | null
           phone?: string | null
           restriction_tags?: string[]
           restrictions?: string | null
+          skills?: string[]
           start_date?: string | null
           updated_at?: string
           user_id: string
+          wants_extra_shifts?: boolean
         }
         Update: {
           contracted_hours?: number | null
           created_at?: string
           employment_status?: string
+          home_zone?: string | null
           id?: string
           job_title?: string | null
           leaving_date?: string | null
+          max_weekly_hours?: number | null
           notes?: string | null
           phone?: string | null
           restriction_tags?: string[]
           restrictions?: string | null
+          skills?: string[]
           start_date?: string | null
           updated_at?: string
           user_id?: string
+          wants_extra_shifts?: boolean
         }
         Relationships: []
       }
@@ -2427,6 +2530,35 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      staff_services: {
+        Row: {
+          created_at: string
+          id: string
+          service_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          service_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          service_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       staff_training: {
         Row: {
@@ -2668,6 +2800,13 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _uid: string }; Returns: boolean }
+      list_staff_roles: {
+        Args: never
+        Returns: {
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       alert_severity: "info" | "warning" | "critical"
