@@ -231,6 +231,7 @@ function AnalyticsPage() {
     : null;
 
   const totalNotes = (notes.data ?? []).length;
+  const notesPerShift = staffedShifts ? +(totalNotes / staffedShifts).toFixed(1) : null;
   const drafts = (notes.data ?? []).filter((n: any) => n.status === "draft").length;
   const highRisks = (risks.data ?? []).filter((r: any) => r.level === "high").length;
 
@@ -238,7 +239,7 @@ function AnalyticsPage() {
   const voiceNotes = (notes.data ?? []).filter((n: any) => n.source === "voice");
   const typedNotes = (notes.data ?? []).filter((n: any) => n.source !== "voice");
   const captureMixLive = useMemo(() => {
-    if ((notes.data ?? []).length === 0) return captureMix;
+    
     return [
       { name: "Voice", value: voiceNotes.length },
       { name: "Typed", value: typedNotes.length },
