@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_ROLE_PERMISSIONS, PERMISSIONS, ROLES, ROLE_LABELS, type Role } from "@/lib/permissions";
 import {
   claimFirstAdmin, inviteStaff, listStaff, removeStaff, setStaffActive,
-  setStaffApproved, setStaffPermission, setStaffRole,
+  setStaffApproved, setStaffRole, syncAllRolePermissions,
 } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -100,7 +100,7 @@ function AdminContent({ listFn, qc }: { listFn: () => Promise<Awaited<ReturnType
     <AppShell
       title="Admin"
       subtitle="Staff accounts & permissions"
-      action={<InviteDialog onDone={refetch} />}
+      action={<div className="flex flex-wrap gap-2"><SyncRolesButton onDone={refetch} /><InviteDialog onDone={refetch} /></div>}
     >
       <RoleGuide />
       <Tabs defaultValue="active">
@@ -183,10 +183,11 @@ function StaffCard({ user, onChange }: { user: Row; onChange: () => void }) {
   const setRole = useServerFn(setStaffRole);
   const setApproved = useServerFn(setStaffApproved);
   const setActive = useServerFn(setStaffActive);
-  const setPerm = useServerFn(setStaffPermission);
   const remove = useServerFn(removeStaff);
 
+  const roleSet = new Set<string>(DEFAULT_ROLE_PERMISSIONS[user.role] ?? []);
   const grantedSet = new Set(user.permissions.filter((p) => p.granted).map((p) => p.permission));
+  const outOfSync = PERMISSIONS.some((p) => roleSet.has(p.key) !== grantedSet.has(p.key));
 
   async function changeRole(role: Role) {
     try { await setRole({ data: { userId: user.userId, role } }); toast.success("Role updated"); onChange(); }
@@ -198,10 +199,6 @@ function StaffCard({ user, onChange }: { user: Row; onChange: () => void }) {
   }
   async function toggleActive() {
     try { await setActive({ data: { userId: user.userId, isActive: !user.isActive } }); onChange(); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
-  }
-  async function togglePerm(permission: string, granted: boolean) {
-    try { await setPerm({ data: { userId: user.userId, permission: permission as never, granted } }); onChange(); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
   }
   async function removeUser() {
@@ -248,21 +245,42 @@ function StaffCard({ user, onChange }: { user: Row; onChange: () => void }) {
         </div>
       </CardHeader>
       <CardContent>
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Permissions</p>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Access from role: {ROLE_LABELS[user.role] ?? user.role}
+          </p>
+          {outOfSync && (
+            <Button size="sm" variant="outline" onClick={() => changeRole(user.role)}>Apply role access</Button>
+          )}
+        </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {PERMISSIONS.map((p) => {
-            const granted = grantedSet.has(p.key);
+            const granted = roleSet.has(p.key);
             return (
               <div key={p.key} className="flex items-center justify-between rounded-md border px-3 py-1.5">
                 <span className="text-sm">{p.label}</span>
-                <Switch checked={granted} onCheckedChange={(v) => togglePerm(p.key, v)} />
+                <Switch checked={granted} disabled aria-readonly />
               </div>
             );
           })}
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">To change access, change the role.</p>
       </CardContent>
     </Card>
   );
+}
+
+function SyncRolesButton({ onDone }: { onDone: () => void }) {
+  const sync = useServerFn(syncAllRolePermissions);
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    if (!confirm("Reset every staff member's access to match their role?")) return;
+    setBusy(true);
+    try { const r = await sync(); toast.success(`Access updated for ${r.updated} accounts`); onDone(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    finally { setBusy(false); }
+  }
+  return <Button size="sm" variant="outline" disabled={busy} onClick={run}>{busy ? "Applying…" : "Apply roles to all"}</Button>;
 }
 
 function InviteDialog({ onDone }: { onDone: () => void }) {
