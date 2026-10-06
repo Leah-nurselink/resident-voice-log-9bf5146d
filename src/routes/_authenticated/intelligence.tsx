@@ -134,3 +134,62 @@ function Group({ icon, title, rows, render, tone }: { icon: React.ReactNode; tit
     </section>
   );
 }
+
+function DeviationsSection({ rows }: { rows: Row[] }) {
+  const [cat, setCat] = useState<DeviationCategory | "all">("all");
+  const cats = Object.keys(CATEGORY_LABELS) as DeviationCategory[];
+  const counts = Object.fromEntries(cats.map((c) => [c, rows.filter((r) => r.deviations.some((d) => d.category === c)).length])) as Record<DeviationCategory, number>;
+  const items = rows
+    .flatMap((r) => r.deviations.map((d) => ({ r, d })))
+    .filter(({ d }) => cat === "all" || d.category === cat)
+    .sort((a, b) => (a.d.severity === b.d.severity ? b.d.recent - a.d.recent : a.d.severity === "high" ? -1 : 1));
+
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="grid h-6 w-6 place-items-center rounded-md bg-destructive/15 text-destructive"><Activity className="h-4 w-4" /></span>
+        <h2 className="text-sm font-semibold">Care deviations (last 3 days vs usual)</h2>
+        <Badge variant="outline" className="text-[10px]">{items.length}</Badge>
+      </div>
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <Chip active={cat === "all"} onClick={() => setCat("all")}>All</Chip>
+        {cats.map((c) => (
+          <Chip key={c} active={cat === c} onClick={() => setCat(c)}>
+            {CATEGORY_LABELS[c]}{counts[c] ? ` · ${counts[c]}` : ""}
+          </Chip>
+        ))}
+      </div>
+      {items.length === 0 ? (
+        <p className="rounded-xl border bg-card p-3 text-xs text-muted-foreground">No deviations flagged in this category.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {items.map(({ r, d }) => (
+            <li key={`${r.id}-${d.category}`}>
+              <Link to="/residents/$id" params={{ id: r.id }} className="block rounded-xl border bg-card p-3 transition hover:bg-muted/40">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium">{r.name}{r.room && <span className="text-xs text-muted-foreground"> · Rm {r.room}</span>}</p>
+                  <Badge variant={d.severity === "high" ? "destructive" : "secondary"} className="text-[10px]">{CATEGORY_LABELS[d.category]}</Badge>
+                  <span className="text-[11px] text-muted-foreground">{d.recent} recent vs ~{d.baselinePerPeriod} usual</span>
+                </div>
+                {d.latest.excerpt && (
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {new Date(d.latest.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}: “{d.latest.excerpt}”
+                  </p>
+                )}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick}
+      className={`shrink-0 rounded-full border px-3 py-1 text-xs ${active ? "border-primary bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}>
+      {children}
+    </button>
+  );
+}
