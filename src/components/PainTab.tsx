@@ -31,16 +31,16 @@ function severityFromScore(s: number) {
   return { label: "Severe pain", className: "bg-destructive/15 text-destructive border-destructive/30 border" };
 }
 
-export function PainTab({ residentId, residentName }: { residentId: string; residentName: string }) {
+export function AbbeyAssessments({ residentId, residentName }: { residentId: string; residentName: string }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [responseFor, setResponseFor] = useState<any | null>(null);
 
   const assessments = useQuery({
-    queryKey: ["pain", residentId],
+    queryKey: ["pain", residentId, "abbey"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("pain_assessments").select("*").eq("resident_id", residentId)
+        .from("pain_assessments").select("*").eq("resident_id", residentId).eq("method", "abbey")
         .order("assessed_at", { ascending: false }).limit(50);
       if (error) throw error;
       return data;
