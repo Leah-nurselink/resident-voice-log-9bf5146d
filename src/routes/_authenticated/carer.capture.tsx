@@ -133,8 +133,28 @@ function CapturePage() {
     })();
   }, []);
 
-  const active = sessionState.activeSessions[0] ?? null;
-  const isManual = active?.rule === "manual_resolution";
+  // Registered beacons currently in range, for the manual picker.
+  const nearbyRegisteredDevices = useMemo(() => {
+    return devices
+      .map((d) => {
+        const o = obs.find((x) => x.key === deviceKey(d));
+        return o ? { device: d, obs: o } : null;
+      })
+      .filter((x): x is { device: RegisteredDevice; obs: BeaconObservation } => x !== null)
+      .sort((a, b) => b.obs.rssi - a.obs.rssi);
+  }, [devices, obs]);
+
+  // The carer decides who they're recording for. Only auto-pick when exactly
+  // one beacon/session is around; with several beacons heard, wait for a choice.
+  const [chosenResidentId, setChosenResidentId] = useState<string | null>(null);
+  const sessionsList = sessionState.activeSessions;
+  const active =
+    (chosenResidentId ? sessionsList.find((s) => s.residentId === chosenResidentId) : null) ??
+    (!chosenResidentId && sessionsList.length === 1 && nearbyRegisteredDevices.length <= 1
+      ? sessionsList[0]
+      : null) ??
+    null;
+  const isManual = active?.rule === "manual_resolution" || (!!active && !!chosenResidentId);
 
   const residentName = active?.residentId ? (residents.get(active.residentId) ?? "Resident") : null;
   const roomName = active?.roomId ? rooms.get(active.roomId) : null;
@@ -145,19 +165,6 @@ function CapturePage() {
     const pct = Math.max(0, Math.min(100, ((rssi + 95) / 40) * 100));
     return Math.round(pct);
   }, [active]);
-
-  // Registered beacons currently in range, for the manual picker. Shown only
-  // while there's no active session yet — once one opens (auto or manual)
-  // it takes over the presence panel, same as before.
-  const nearbyRegisteredDevices = useMemo(() => {
-    return devices
-      .map((d) => {
-        const o = obs.find((x) => x.key === deviceKey(d));
-        return o ? { device: d, obs: o } : null;
-      })
-      .filter((x): x is { device: RegisteredDevice; obs: BeaconObservation } => x !== null)
-      .sort((a, b) => b.obs.rssi - a.obs.rssi);
-  }, [devices, obs]);
 
   async function selectDevice(device: RegisteredDevice) {
     setSelectingId(device.id);
