@@ -33,16 +33,8 @@ const FREQUENCY: Record<string, string> = {
   antipsychotic: "Quarterly",
 };
 
-const DUE = [
-  { title: "Call bell audit", meta: "Due Fri 28 Jun", status: "Open" },
-  { title: "Night audit — Unit B", meta: "Due Sat 29 Jun", status: "Open" },
-  { title: "Kitchen audit", meta: "Due Sun 30 Jun", status: "Open" },
-  { title: "Showers, bedbath & bath audit", meta: "Due Sun 30 Jun", status: "Open" },
-];
-const OVERDUE = [
-  { title: "Anti-psychotic audit (Q2)", meta: "Was due 20 Jun", status: "Overdue" },
-  { title: "Medical equipment registry check", meta: "Was due 22 Jun", status: "Overdue" },
-];
+const DUE: { title: string; meta?: string; status?: string }[] = [];
+const OVERDUE: { title: string; meta?: string; status?: string }[] = [];
 
 function AuditsPage() {
   const [active, setActive] = useState<AuditDefinition | null>(null);
@@ -104,7 +96,7 @@ function AuditsPage() {
           </CardContent>
         </Card>
 
-        <DetailSection id="audits-due" title="Due this week" description="Audits scheduled for completion in the next 7 days" items={DUE} />
+        <DetailSection id="audits-due" title="Due this week" description="Audits scheduled for completion in the next 7 days" items={DUE} emptyText="No audits scheduled this week." />
         <DetailSection id="audits-overdue" title="Overdue" description="Audits past their scheduled date — prioritise these" items={OVERDUE} emptyText="No overdue audits." />
         <DetailSection id="audits-completed" title="Completed audits" items={completedItems} emptyText="No audits submitted yet — tap Start on any audit above." />
       </div>
