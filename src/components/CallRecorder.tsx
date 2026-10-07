@@ -449,7 +449,7 @@ export function CallRecorder({
             <Phone className="h-4 w-4" /> Call about {residentName}
           </DialogTitle>
           <DialogDescription>
-            Capture a family or professional call, with consent, and let ForgeAI
+            Capture a family or professional call, with consent, and let CareCore AI
             turn it into a documented care record with actions.
           </DialogDescription>
         </DialogHeader>
@@ -526,7 +526,7 @@ export function CallRecorder({
                 <p className="text-xs text-amber-600">No phone number on file for this contact — add one on the Profile tab.</p>
               )}
               <p className="text-[11px] text-muted-foreground">
-                ForgeAI does not place the call itself. Tap <strong>Dial</strong> to call from this device, put the call on speaker, then tap <strong>Start call</strong> below so the microphone can capture the conversation for transcription.
+                CareCore AI does not place the call itself. Tap <strong>Dial</strong> to call from this device, put the call on speaker, then tap <strong>Start call</strong> below so the microphone can capture the conversation for transcription.
               </p>
             </div>
 

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CarerTabBar } from "@/components/CarerTabBar";
 
 export const Route = createFileRoute("/_authenticated/carer")({
-  head: () => ({ meta: [{ title: "ForgeAI — Carer" }] }),
+  head: () => ({ meta: [{ title: "CareCore AI — Carer" }] }),
   component: CarerLayout,
 });
 
@@ -22,7 +22,7 @@ function CarerLayout() {
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Heart className="h-4 w-4" />
           </div>
-          <span className="text-sm font-semibold">ForgeAI</span>
+          <span className="text-sm font-semibold">CareCore AI</span>
         </Link>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" aria-label="Manager dashboard" asChild>

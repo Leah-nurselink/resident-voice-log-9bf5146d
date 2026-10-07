@@ -18,7 +18,7 @@ import { format, formatDistanceToNow } from "date-fns";
 
 
 export const Route = createFileRoute("/_authenticated/approvals")({
-  head: () => ({ meta: [{ title: "Approvals · ForgeAI" }] }),
+  head: () => ({ meta: [{ title: "Approvals · CareCore AI" }] }),
   component: ApprovalsPage,
 });
 

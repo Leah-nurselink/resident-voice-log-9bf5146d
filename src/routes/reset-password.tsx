@@ -11,10 +11,10 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Set your password · ForgeAI" },
-      { name: "description", content: "Choose a new password for your ForgeAI care records account." },
-      { property: "og:title", content: "Set your password · ForgeAI" },
-      { property: "og:description", content: "Choose a new password for your ForgeAI care records account." },
+      { title: "Set your password · CareCore AI" },
+      { name: "description", content: "Choose a new password for your CareCore AI care records account." },
+      { property: "og:title", content: "Set your password · CareCore AI" },
+      { property: "og:description", content: "Choose a new password for your CareCore AI care records account." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -64,7 +64,7 @@ function ResetPasswordPage() {
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Activity className="h-5 w-5" />
           </div>
-          <div className="font-semibold tracking-tight">ForgeAI</div>
+          <div className="font-semibold tracking-tight">CareCore AI</div>
         </div>
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Choose your password</h1>

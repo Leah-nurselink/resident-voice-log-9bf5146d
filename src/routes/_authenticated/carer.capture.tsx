@@ -41,7 +41,7 @@ import { Link } from "@tanstack/react-router";
 import { isNativeShell } from "@/lib/surface";
 
 export const Route = createFileRoute("/_authenticated/carer/capture")({
-  head: () => ({ meta: [{ title: "Capture · ForgeAI" }] }),
+  head: () => ({ meta: [{ title: "Capture · CareCore AI" }] }),
   component: CapturePage,
 });
 

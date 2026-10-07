@@ -22,7 +22,7 @@ import { format } from "date-fns";
 import { TaskBoard } from "@/components/TaskBoard";
 
 export const Route = createFileRoute("/_authenticated/communications")({
-  head: () => ({ meta: [{ title: "Communications Hub · ForgeAI" }] }),
+  head: () => ({ meta: [{ title: "Communications Hub · CareCore AI" }] }),
   component: Page,
 });
 
@@ -242,7 +242,7 @@ function ComposeTab() {
               {recording ? <><MicOff className="mr-1 h-3 w-3" /> Stop</> : <><Mic className="mr-1 h-3 w-3" /> Speak</>}
             </Button>
           </div>
-          <Textarea rows={5} placeholder="Describe the concerns or request in plain English. ForgeAI will turn this into a professional message you can review." value={concerns} onChange={(e) => setConcerns(e.target.value)} />
+          <Textarea rows={5} placeholder="Describe the concerns or request in plain English. CareCore AI will turn this into a professional message you can review." value={concerns} onChange={(e) => setConcerns(e.target.value)} />
         </div>
 
         <div>

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Sign in · ForgeAI" }] }),
+  head: () => ({ meta: [{ title: "Sign in · CareCore AI" }] }),
   component: AuthPage,
 });
 
@@ -86,7 +86,7 @@ function AuthPage() {
             <Activity className="h-5 w-5" />
           </div>
           <div>
-            <div className="font-semibold tracking-tight">ForgeAI</div>
+            <div className="font-semibold tracking-tight">CareCore AI</div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">AI clinical scribe</div>
           </div>
         </div>

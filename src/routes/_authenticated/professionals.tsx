@@ -15,7 +15,7 @@ import { Plus, Pencil, Trash2, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/professionals")({
-  head: () => ({ meta: [{ title: "Professional Directory · ForgeAI" }] }),
+  head: () => ({ meta: [{ title: "Professional Directory · CareCore AI" }] }),
   component: Page,
 });
 

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/carer/")({
-  head: () => ({ meta: [{ title: "Today · ForgeAI" }] }),
+  head: () => ({ meta: [{ title: "Today · CareCore AI" }] }),
   component: TodayPage,
 });
 

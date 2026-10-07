@@ -1,4 +1,4 @@
-// ForgeAI Care Intelligence Engine
+// CareCore AI Care Intelligence Engine
 // Pure client-side analysis over existing care records. Advisory only —
 // every recommendation must be reviewed by a clinician.
 
