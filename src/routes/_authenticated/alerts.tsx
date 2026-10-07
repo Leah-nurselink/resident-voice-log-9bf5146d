@@ -21,7 +21,7 @@ import { AlertTriangle, ChevronRight, Flag, Check, Eye, X, Bell, UserPlus } from
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/alerts")({
-  head: () => ({ meta: [{ title: "Alert Centre · ForgeAI" }] }),
+  head: () => ({ meta: [{ title: "Alert Centre · CareCore AI" }] }),
   component: AlertsPage,
 });
 

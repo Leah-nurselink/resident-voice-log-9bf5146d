@@ -29,13 +29,13 @@ export const Route = createFileRoute("/")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "ForgeAI — The Digital Witness to Care Delivery" },
+      { title: "CareCore AI — The Digital Witness to Care Delivery" },
       {
         name: "description",
         content:
-          "ForgeAI turns natural care conversations into structured, compliant records — so care professionals spend more time with residents and less on paperwork.",
+          "CareCore AI turns natural care conversations into structured, compliant records — so care professionals spend more time with residents and less on paperwork.",
       },
-      { property: "og:title", content: "ForgeAI — The Digital Witness to Care Delivery" },
+      { property: "og:title", content: "CareCore AI — The Digital Witness to Care Delivery" },
       {
         property: "og:description",
         content:
@@ -69,7 +69,7 @@ function Landing() {
               <Activity className="h-5 w-5" />
             </div>
             <div>
-              <div className="font-semibold tracking-tight">ForgeAI</div>
+              <div className="font-semibold tracking-tight">CareCore AI</div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 The Digital Witness to Care
               </div>
@@ -85,7 +85,7 @@ function Landing() {
               <SheetContent side="left" className="w-64">
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" /> ForgeAI
+                    <Activity className="h-5 w-5 text-primary" /> CareCore AI
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="mt-6 flex flex-col gap-2">
@@ -131,7 +131,7 @@ function Landing() {
               Care First. <span className="text-primary">Documentation Automatically.</span>
             </h1>
             <p className="mt-5 max-w-xl text-lg text-muted-foreground">
-              ForgeAI transforms natural care conversations into structured, compliant care records — helping
+              CareCore AI transforms natural care conversations into structured, compliant care records — helping
               care professionals spend more time supporting residents and less time completing paperwork.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
@@ -236,8 +236,8 @@ function Landing() {
             A digital witness to care delivery.
           </h2>
           <p className="mx-auto mt-4 max-w-3xl text-lg text-muted-foreground">
-            ForgeAI captures care interactions in real time and automatically generates professional care
-            records. Using voice technology, AI, resident identification and contextual awareness, ForgeAI
+            CareCore AI captures care interactions in real time and automatically generates professional care
+            records. Using voice technology, AI, resident identification and contextual awareness, CareCore AI
             turns everyday care conversations into structured documentation — linked directly to care plans
             and risk assessments.
           </p>
@@ -334,7 +334,7 @@ function Landing() {
               Intelligent care management.
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              ForgeAI doesn't simply write notes. It connects information across the whole service, helping
+              CareCore AI doesn't simply write notes. It connects information across the whole service, helping
               organisations identify trends and emerging risks earlier.
             </p>
           </div>
@@ -367,12 +367,12 @@ function Landing() {
           <div className="mt-6 rounded-2xl border bg-background p-6">
             <Quote className="mb-4 h-6 w-6 text-primary" />
             <p className="text-lg leading-relaxed text-muted-foreground">
-              ForgeAI was created from firsthand experience working as a nurse and nursing home manager.
+              CareCore AI was created from firsthand experience working as a nurse and nursing home manager.
               Years of managing safeguarding investigations, complaints, inspections and complex care
               environments highlighted a recurring problem: care was often delivered, but the evidence of
               that care was missing from the record.
             </p>
-            <p className="mt-4 font-medium">ForgeAI was built to bridge that gap.</p>
+            <p className="mt-4 font-medium">CareCore AI was built to bridge that gap.</p>
           </div>
         </div>
       </section>
@@ -427,10 +427,10 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground sm:flex-row">
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
-            <span className="font-medium text-foreground">ForgeAI</span>
+            <span className="font-medium text-foreground">CareCore AI</span>
             <span>· The Digital Witness to Care Delivery</span>
           </div>
-          <div>© {new Date().getFullYear()} ForgeAI. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} CareCore AI. All rights reserved.</div>
         </div>
       </footer>
     </div>

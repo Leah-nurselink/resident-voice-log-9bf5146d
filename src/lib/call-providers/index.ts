@@ -1,6 +1,6 @@
-// Call provider abstraction for ForgeAI Communication Hub.
+// Call provider abstraction for CareCore AI Communication Hub.
 //
-// Today, ForgeAI captures the conversation through the device microphone while
+// Today, CareCore AI captures the conversation through the device microphone while
 // staff dial on a separate phone. Tomorrow, we want to plug in WebRTC (e.g.
 // Twilio Voice, LiveKit, Daily) or SIP/PBX gateways without rewriting the
 // recorder UI or the data model.

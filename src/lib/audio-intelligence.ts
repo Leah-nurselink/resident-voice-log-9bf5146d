@@ -1,4 +1,4 @@
-// Audio Intelligence pipeline for ForgeAI care interactions.
+// Audio Intelligence pipeline for CareCore AI care interactions.
 //
 // Wraps a MediaStream through a Web Audio graph that performs:
 //   • Automatic Gain Control (AGC) via DynamicsCompressor + makeup gain
