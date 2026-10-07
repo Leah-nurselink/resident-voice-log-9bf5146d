@@ -465,6 +465,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          wound_id: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -484,6 +485,7 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          wound_id?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -503,6 +505,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          wound_id?: string | null
         }
         Relationships: [
           {
@@ -524,6 +527,13 @@ export type Database = {
             columns: ["resident_id"]
             isOneToOne: false
             referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_tasks_wound_id_fkey"
+            columns: ["wound_id"]
+            isOneToOne: false
+            referencedRelation: "wounds"
             referencedColumns: ["id"]
           },
         ]

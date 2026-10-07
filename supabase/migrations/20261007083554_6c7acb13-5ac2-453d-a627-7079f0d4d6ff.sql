@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_wound_review_task() FROM PUBLIC, anon, authenticated;

@@ -130,7 +130,9 @@ export function TaskBoard() {
                       </p>
                       <Badge variant="secondary" className="text-[10px]">{t.kind.replace(/_/g, " ")}</Badge>
                       <Badge variant="outline" className="text-[10px]">{t.priority}</Badge>
-                      {t.source === "ai_recommendation"
+                      {t.source === "wound_review"
+                        ? <Badge variant="outline" className="text-[10px]">From wound review date</Badge>
+                        : t.source === "ai_recommendation"
                         ? <Badge variant="outline" className="gap-1 text-[10px]"><Sparkles className="h-3 w-3" />From AI insight</Badge>
                         : t.communication_id
                           ? <Badge variant="outline" className="gap-1 text-[10px]"><Mail className="h-3 w-3" />From message</Badge>
