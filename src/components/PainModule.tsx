@@ -338,7 +338,7 @@ function PainCheckWizard({ residentId, residentName, parent, prn, onClose }: { r
 
   const consentQ = useQuery({
     queryKey: ["facial-consent", residentId],
-    queryFn: async () => (await supabase.from("consents").select("id,consent_type,date_given").eq("resident_id", residentId).eq("status", "given").ilike("consent_type", "%facial%").limit(1)).data?.[0] ?? null,
+    queryFn: async () => (await supabase.from("consents").select("id,consent_type,date_given").eq("resident_id", residentId).eq("status", "given").or("consent_type.ilike.*facial*,consent_type.ilike.*care*treatment*").limit(1)).data?.[0] ?? null,
   });
 
   const self = method === "self_report";
@@ -363,7 +363,7 @@ function PainCheckWizard({ residentId, residentName, parent, prn, onClose }: { r
   const cur = flow[step] as string;
   const last = step === flow.length - 1;
   const canNext = ({
-    start: !!reason && !!method && (!isFacial || (!!consentQ.data && consentTick)),
+    start: !!reason && !!method,
     facial: !!facial, rating: score != null, observations: true, review: confirmed, intervention: true,
   } as Record<string, boolean>)[cur];
 
@@ -413,20 +413,31 @@ function PainCheckWizard({ residentId, residentName, parent, prn, onClose }: { r
               <Big active={method === "observational"} onClick={() => setMethod("observational")}>Observational</Big>
               <Big active={method === "facial_observational"} onClick={() => setMethod("facial_observational")}>Facial-expression analysis + observational <span className="block text-[11px] font-normal opacity-80">For residents who cannot reliably communicate pain · Prototype</span></Big>
             </div>
-            {isFacial && (consentQ.data ? (
-              <label className="flex items-start gap-2 rounded-xl border p-2 text-sm">
-                <input type="checkbox" checked={consentTick} onChange={(e) => setConsentTick(e.target.checked)} className="mt-0.5 h-5 w-5" />
-                <span>Consent recorded ({consentQ.data.consent_type}). I confirm the resident (or best-interests decision) still supports facial analysis today.</span>
-              </label>
-            ) : (
-              <p className="rounded-xl border border-warning/40 bg-warning/10 p-2 text-sm">No recorded consent for facial expression analysis. Add a consent named "Facial expression analysis" on the resident's Consents section first, or choose Observational.</p>
-            ))}
+            {isFacial && (
+              <p className="text-[11px] text-muted-foreground">Consent is checked at the facial analysis step — you can continue answering the questions first.</p>
+            )}
           </div>
         )}
 
         {cur === "facial" && (facial
           ? <div className="space-y-2"><FacialSummary f={facial} /><Button variant="outline" className="w-full" onClick={() => setFacial(null)}>Retake</Button></div>
-          : <FacialCapture residentId={residentId} onDone={setFacial} />)}
+          : (
+            <div className="space-y-3">
+              {consentQ.data ? (
+                <label className="flex items-start gap-2 rounded-xl border p-2 text-sm">
+                  <input type="checkbox" checked={consentTick} onChange={(e) => setConsentTick(e.target.checked)} className="mt-0.5 h-5 w-5" />
+                  <span>Consent recorded ({consentQ.data.consent_type}). I confirm the resident (or best-interests decision) still supports facial analysis today.</span>
+                </label>
+              ) : (
+                <p className="rounded-xl border border-warning/40 bg-warning/10 p-2 text-sm">No recorded consent covering facial expression analysis. Add a consent such as "Facial expression analysis" or "Care and treatment" on the resident's Consents section, or go back and choose Observational.</p>
+              )}
+              {consentQ.data && consentTick
+                ? <FacialCapture residentId={residentId} onDone={setFacial} />
+                : consentQ.data
+                  ? <p className="text-xs text-muted-foreground">Tick the consent confirmation above to start the camera.</p>
+                  : null}
+            </div>
+          ))}
 
         {cur === "rating" && (
           <div className="space-y-3">

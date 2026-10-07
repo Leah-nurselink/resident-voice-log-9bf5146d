@@ -72,8 +72,9 @@ export const analyseFacialPain = createServerFn({ method: "POST" })
     }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: consent } = await context.supabase.from("consents").select("id")
-      .eq("resident_id", data.residentId).eq("status", "given").ilike("consent_type", "%facial%").limit(1);
-    if (!consent?.length) throw new Error("No recorded consent for facial expression analysis.");
+      .eq("resident_id", data.residentId).eq("status", "given")
+      .or("consent_type.ilike.*facial*,consent_type.ilike.*care*treatment*").limit(1);
+    if (!consent?.length) throw new Error("No recorded consent covering facial expression analysis (facial analysis or care and treatment).");
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     try {
