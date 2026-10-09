@@ -408,6 +408,97 @@ export function summariseTool(tool: RiskTool, inputs: unknown): ToolResult {
 export const TOOL_TO_RISK_TYPE: Record<RiskTool, string> = {
   waterlow: "pressure",
   must: "nutrition",
-  gulp: "dehydration",
+  gulp: "nutrition",
   falls_mfra: "falls",
 };
+
+// ===========================================================================
+// 5) Further STRUCTURED (unscored) assessments — clinician judgement on
+//    identified factors, following the named national guidance.
+// ===========================================================================
+export type StructuredTool = "falls_mfra" | "tile_mh" | "continence" | "bedrails" | "mca" | "behaviour_abc";
+export type ExtendedTool = RiskTool | Exclude<StructuredTool, "falls_mfra">;
+
+export const STRUCTURED_TOOLS: Record<StructuredTool, { label: string; version: string; type: string; guidance: string; factors: FallsFactor[]; atRiskLabel: string; notAtRiskLabel: string }> = {
+  falls_mfra: { label: RISK_TOOL_LABEL.falls_mfra, version: FALLS_VERSION, type: "falls", guidance: "NICE CG161 / NG249: structured multifactorial assessment — no numeric score.", factors: FALLS_FACTORS, atRiskLabel: "At increased risk", notAtRiskLabel: "Not at increased risk" },
+  tile_mh: {
+    label: "Moving & handling (TILE — HSE MHOR 1992)", version: "HSE-TILE-L23", type: "moving_handling",
+    guidance: "HSE Manual Handling Operations Regulations (L23): assess Task, Individual, Load (the person) and Environment.",
+    factors: [
+      { key: "task", label: "Task", hint: "Transfers, repositioning, bathing, stooping/twisting, frequency" },
+      { key: "individual", label: "Individual (staff)", hint: "Number of staff needed, training, capability" },
+      { key: "load_weight", label: "Load — person's weight / size", hint: "Bariatric needs, weight-bearing ability" },
+      { key: "load_cooperation", label: "Load — cooperation & cognition", hint: "Understanding, unpredictable movement, pain" },
+      { key: "load_clinical", label: "Load — clinical factors", hint: "Pain, wounds, catheters, contractures, falls history" },
+      { key: "environment", label: "Environment", hint: "Space, flooring, lighting, bed/chair height" },
+      { key: "equipment", label: "Equipment", hint: "Hoist + sling size, slide sheet, stand aid — LOLER checks in date" },
+    ], atRiskLabel: "Assistance / equipment required", notAtRiskLabel: "Independent / low risk",
+  },
+  continence: {
+    label: "Continence assessment (NICE CG97 / CG49 / QS77)", version: "NICE-continence-v1", type: "continence",
+    guidance: "NICE CG97 (LUTS), CG49 (faecal incontinence), QS77: identify type and cause before using containment products.",
+    factors: [
+      { key: "urinary", label: "Urinary incontinence", hint: "Stress, urge, mixed, overflow, functional" },
+      { key: "faecal", label: "Faecal incontinence / constipation", hint: "Bristol stool chart, bowel pattern" },
+      { key: "uti", label: "UTI signs or catheter", hint: "Catheter type, change date, care" },
+      { key: "mobility", label: "Mobility / access to toilet", hint: "Functional incontinence" },
+      { key: "cognition", label: "Cognition / recognising need", hint: "Prompted toileting" },
+      { key: "medication", label: "Medication contributing", hint: "Diuretics, anticholinergics, opioids, laxatives" },
+      { key: "fluids", label: "Fluid & fibre intake" },
+      { key: "skin", label: "Skin — moisture-associated damage", hint: "Links to Waterlow / skin integrity" },
+    ], atRiskLabel: "Continence need identified", notAtRiskLabel: "Continent / no concerns",
+  },
+  bedrails: {
+    label: "Bed rails risk assessment (MHRA)", version: "MHRA-bedrails-2023", type: "environmental",
+    guidance: "MHRA 'Bed rails: management and safe use': only use when benefit outweighs entrapment risk; consent / best interests required.",
+    factors: [
+      { key: "fall_from_bed", label: "Risk of falling / rolling out of bed" },
+      { key: "confusion", label: "Confused, agitated or likely to climb over rails" },
+      { key: "entrapment", label: "Entrapment risk — gaps, mattress fit, small/frail person" },
+      { key: "alternatives", label: "Alternatives tried", hint: "Low bed, crash mat, sensor mat" },
+      { key: "equipment", label: "Rails / bumpers compatible with bed & mattress" },
+      { key: "consent", label: "Consent or MCA best-interests decision recorded" },
+    ], atRiskLabel: "Bed rails NOT safe / not indicated", notAtRiskLabel: "Bed rails appropriate with controls",
+  },
+  mca: {
+    label: "Mental Capacity Act assessment (MCA 2005 two-stage)", version: "MCA2005-CoP", type: "mental_capacity",
+    guidance: "MCA 2005 Code of Practice: decision-specific. Stage 1 impairment; Stage 2 understand, retain, weigh, communicate. Tick each area of concern.",
+    factors: [
+      { key: "decision", label: "Specific decision being assessed", hint: "Record the decision in the detail box" },
+      { key: "impairment", label: "Stage 1 — impairment of mind or brain" },
+      { key: "understand", label: "Cannot understand the relevant information" },
+      { key: "retain", label: "Cannot retain the information long enough" },
+      { key: "weigh", label: "Cannot use or weigh the information" },
+      { key: "communicate", label: "Cannot communicate the decision (by any means)" },
+      { key: "support", label: "All practicable steps taken to support the decision", hint: "Record what was tried" },
+      { key: "best_interests", label: "Best interests decision / LPA / advocate involved" },
+    ], atRiskLabel: "Lacks capacity for this decision", notAtRiskLabel: "Has capacity for this decision",
+  },
+  behaviour_abc: {
+    label: "Behaviour assessment (ABC — NICE NG97 / NG11)", version: "NICE-NG97-ABC", type: "behavioural",
+    guidance: "NICE NG97 (dementia) / NG11: understand distress behaviour via Antecedent–Behaviour–Consequence; look for unmet need before medication.",
+    factors: [
+      { key: "antecedent", label: "Antecedent — triggers", hint: "Time, place, people, task, noise" },
+      { key: "behaviour", label: "Behaviour — what happened", hint: "Describe objectively" },
+      { key: "consequence", label: "Consequence — what followed / helped" },
+      { key: "pain", label: "Possible pain or physical cause", hint: "Use the Pain check; infection, constipation" },
+      { key: "unmet_need", label: "Unmet need (hunger, thirst, toilet, boredom, fear)" },
+      { key: "risk_others", label: "Risk to self or others" },
+      { key: "restriction", label: "Restrictive practice / PRN considered", hint: "Least restrictive option" },
+    ], atRiskLabel: "Risk identified — PBS plan needed", notAtRiskLabel: "No significant risk",
+  },
+};
+
+export const isStructured = (t: string): t is StructuredTool => t in STRUCTURED_TOOLS;
+
+export function summariseStructured(tool: StructuredTool, i: FallsInputs): ToolResult {
+  const def = STRUCTURED_TOOLS[tool];
+  const identified = Object.values(i.factors).filter((v) => v?.present).length;
+  const atRisk = i.overallConcern === "at_risk";
+  return {
+    tool: tool as RiskTool, version: def.version, score: null,
+    band: atRisk ? def.atRiskLabel : def.notAtRiskLabel,
+    level: atRisk ? "high" : "low",
+    summary: `${def.label} — ${atRisk ? def.atRiskLabel : def.notAtRiskLabel} (${identified} factor${identified === 1 ? "" : "s"} identified). Clinical judgement, no numeric score.`,
+  };
+}
