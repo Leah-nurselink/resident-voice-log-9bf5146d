@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { ArrowRight, ChevronLeft, ChevronRight, Clock, Pill, Plus, Sparkles, Camera, Loader2, Pencil, Check } from "lucide-react";
 import {
   INTERVENTIONS, LEVEL_CLASS, LEVEL_LABEL, OBSERVATIONS, OBS_LEVELS, OUTCOME_LABEL, REASONS,
-  interventionLabel, levelFromObs, facialObsValue, FACIAL_LEVEL_LABEL, METHOD_LABEL, type FacialIndicator, levelFromSelf, levelOf, outcome, painPatterns,
+  interventionLabel, levelFromObs, facialObsValue, METHOD_LABEL, type FacialIndicator, levelFromSelf, levelOf, outcome, painPatterns,
   type ObsKey, type PainLevel,
 } from "@/lib/pain-check";
 
@@ -256,8 +256,8 @@ function FacialCapture({ residentId, onDone }: { residentId: string; onDone: (f:
     const v = videoRef.current; if (!v) return;
     setState("capturing");
     const frames: string[] = [];
-    const c = document.createElement("canvas"); const w = 384; c.width = w; c.height = Math.round((v.videoHeight / v.videoWidth) * w) || 288;
-    for (let n = 0; n < 4; n++) {
+    const c = document.createElement("canvas"); const w = 512; c.width = w; c.height = Math.round((v.videoHeight / v.videoWidth) * w) || Math.round(w * 0.75);
+    for (let n = 0; n < 6; n++) {
       c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
       frames.push(c.toDataURL("image/jpeg", 0.7));
       await new Promise((r) => setTimeout(r, 700));
@@ -282,30 +282,35 @@ function FacialCapture({ residentId, onDone }: { residentId: string; onDone: (f:
         )}
       </div>
       {err && <p className="text-sm text-destructive">{err}</p>}
-      <Button className="h-12 w-full" disabled={state !== "ready"} onClick={capture}><Camera className="mr-2 h-4 w-4" />Capture 3-second observation</Button>
+      <Button className="h-12 w-full" disabled={state !== "ready"} onClick={capture}><Camera className="mr-2 h-4 w-4" />Capture observation (~4s)</Button>
       <p className="text-[11px] text-muted-foreground">Facial <b>expression</b> analysis only — not facial recognition. The person is not identified and no images or video are kept.</p>
     </div>
   );
 }
 
 function FacialSummary({ f, editable, onChange }: { f: Facial; editable?: boolean; onChange?: (f: Facial) => void }) {
-  const found = f.indicators.filter((i) => i.level !== "not_seen");
+  const found = f.indicators.filter((i) => i.intensity > 0);
   const q = f.quality >= 0.7 ? "Good" : f.quality >= 0.4 ? "Fair" : "Poor";
-  const cycle = (k: string) => onChange?.({ ...f, indicators: f.indicators.map((i) => i.key === k ? { ...i, level: i.level === "not_seen" ? "some" : i.level === "some" ? "clear" : "not_seen" } : i) });
+  const bump = (k: string) =>
+    onChange?.({ ...f, indicators: f.indicators.map((i) => i.key === k ? { ...i, intensity: (i.intensity + 1) % 6 } : i) });
   return (
     <div className="rounded-2xl border p-3">
-      <div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide">Facial observation</p><Badge variant="outline">Capture quality: {q} ({Math.round(f.quality * 100)}%)</Badge></div>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wide">Facial observation</p>
+        <Badge variant="outline">Capture quality: {q} ({Math.round(f.quality * 100)}%)</Badge>
+      </div>
       {!f.faceVisible || f.quality < 0.4
         ? <p className="mt-2 text-sm">Face not clearly visible{f.issues.length ? ` (${f.issues.join(", ")})` : ""}. Facial findings are not used — rely on observations.</p>
         : <>
-          <p className="mt-2 text-xs text-muted-foreground">Facial pain indicators detected{editable ? " — tap to adjust" : ""}:</p>
+          <p className="mt-2 text-xs text-muted-foreground">Facial action units (intensity 0–5){editable ? " — tap to adjust" : ""}:</p>
           <ul className="mt-1 space-y-1">
             {(editable ? f.indicators : found).map((i) => {
               const label = FACIAL_INDICATORS.find((x) => x[0] === i.key)?.[1] ?? i.key;
               return <li key={i.key} className="flex items-start justify-between gap-2 text-sm">
                 <span>{label}<span className="block text-[11px] text-muted-foreground">{i.observation}</span></span>
-                {editable ? <button type="button" onClick={() => cycle(i.key)} className="shrink-0 rounded-lg border px-2 py-1 text-xs">{FACIAL_LEVEL_LABEL[i.level]}</button>
-                  : <span className="shrink-0 text-xs font-medium">{FACIAL_LEVEL_LABEL[i.level]}</span>}
+                {editable
+                  ? <button type="button" onClick={() => bump(i.key)} className="shrink-0 rounded-lg border px-2 py-1 text-xs tabular-nums">{i.intensity}/5</button>
+                  : <span className="shrink-0 text-xs font-medium tabular-nums">{i.intensity}/5</span>}
               </li>;
             })}
             {!editable && !found.length && <li className="text-sm">No facial pain indicators seen</li>}
@@ -381,7 +386,8 @@ function PainCheckWizard({ residentId, residentName, parent, prn, onClose }: { r
         during_personal_care: ctx.pc, context_rest: ctx.rest, context_movement: ctx.movement,
         facial_analysis_used: isFacial && !!facial, facial_indicators: facial?.indicators ?? null,
         facial_quality: facial?.quality ?? null, facial_model: facial?.model ?? null, facial_consent_confirmed: isFacial && consentTick,
-        ai_confidence: facial?.quality ?? null, approved: true, confirmed_by: u.user!.id, confirmed_at: new Date().toISOString(),
+        ai_confidence: null, // capture quality is stored in facial_quality; this is NOT a diagnostic confidence
+        approved: true, confirmed_by: u.user!.id, confirmed_at: new Date().toISOString(),
         notes: [override && override !== auto.level ? `Staff adjusted result from ${LEVEL_LABEL[auto.level]} to ${LEVEL_LABEL[override]}.` : "", note].filter(Boolean).join(" ") || null,
         parent_assessment_id: parent?.id ?? null,
         medication_administration_id: ints.includes("prn") ? prnId : null,
