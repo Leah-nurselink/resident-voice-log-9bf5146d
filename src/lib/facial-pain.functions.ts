@@ -5,8 +5,8 @@ import { z } from "zod";
 /**
  * Prototype — facial-expression analysis (NOT a validated medical device).
  * Rates pain-relevant facial action units (FACS) 0–5 from a few still frames.
- * NOT facial recognition: no identity matching, no frames stored.
- * Switch FACIAL_PROVIDER (env) to run on a self-hosted UK/EU model instead of Lovable.
+ * NOT facial recognition: no identity matching, no frames stored. Frames live only for this request.
+ * Switch FACIAL_PROVIDER (env) to run on a self-hosted UK/EU model instead of Lovable — the Pain module stays unchanged.
  */
 
 // Pain-relevant FACS action units (Prkachin & Solomon / Kunz pain literature).
@@ -36,6 +36,7 @@ const schema = z.object({
 export type FacialResult = z.infer<typeof schema> & { model: string };
 
 type Provider = (frames: string[]) => Promise<FacialResult>;
+
 const clampQuality = (r: FacialResult): FacialResult => ({ ...r, quality: Math.max(0, Math.min(1, r.quality)) });
 
 // Provider A — Lovable AI Gateway (general vision LLM). PROTOTYPE/DEV ONLY: US inference, no real health data.
@@ -69,11 +70,13 @@ const lovableVision: Provider = async (frames) => {
     maxRetries: 0,
     providerOptions: { openai: { forceReasoning: true, reasoningEffort: "low", store: false } },
   });
-  return clampQuality({ ...(await result.output), model: `prototype:${model}` });
+  const out = await result.output;
+  return clampQuality({ ...out, model: `prototype:${model}` });
 };
 
 // Provider B — self-hosted UK/EU action-unit model (e.g. OpenFace 2.0 wrapped in your own HTTPS service).
 // Keeps images in infrastructure Eleni Care contracts for directly — no Lovable, no US hop.
+// The service must return JSON matching `schema` above.
 const selfHostedAU: Provider = async (frames) => {
   const endpoint = process.env.FACIAL_ENDPOINT; // e.g. https://facial.internal.elenicare.co.uk/analyse
   const key = process.env.FACIAL_API_KEY;
@@ -84,10 +87,15 @@ const selfHostedAU: Provider = async (frames) => {
     body: JSON.stringify({ frames }),
   });
   if (!res.ok) throw new Error(`${res.status}`);
-  return clampQuality({ ...schema.parse(await res.json()), model: "openface:self-hosted" });
+  const out = schema.parse(await res.json());
+  return clampQuality({ ...out, model: "openface:self-hosted" });
 };
 
-const PROVIDERS: Record<string, Provider> = { lovable_vision: lovableVision, self_hosted_au: selfHostedAU };
+const PROVIDERS: Record<string, Provider> = {
+  lovable_vision: lovableVision,
+  self_hosted_au: selfHostedAU,
+};
+// Default stays Lovable so nothing changes until you set FACIAL_PROVIDER=self_hosted_au in the environment.
 const FACIAL_PROVIDER = process.env.FACIAL_PROVIDER ?? "lovable_vision";
 
 export const analyseFacialPain = createServerFn({ method: "POST" })
