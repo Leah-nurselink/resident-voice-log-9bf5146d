@@ -2204,37 +2204,52 @@ export type Database = {
       }
       risk_assessments: {
         Row: {
+          band: string | null
           controls: string | null
           created_at: string
           factors: string | null
           id: string
+          inputs: Json | null
           level: Database["public"]["Enums"]["risk_level"]
           resident_id: string
           review_date: string | null
+          score: number | null
+          tool: string | null
+          tool_version: string | null
           type: Database["public"]["Enums"]["risk_assessment_type"]
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          band?: string | null
           controls?: string | null
           created_at?: string
           factors?: string | null
           id?: string
+          inputs?: Json | null
           level?: Database["public"]["Enums"]["risk_level"]
           resident_id: string
           review_date?: string | null
+          score?: number | null
+          tool?: string | null
+          tool_version?: string | null
           type: Database["public"]["Enums"]["risk_assessment_type"]
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          band?: string | null
           controls?: string | null
           created_at?: string
           factors?: string | null
           id?: string
+          inputs?: Json | null
           level?: Database["public"]["Enums"]["risk_level"]
           resident_id?: string
           review_date?: string | null
+          score?: number | null
+          tool?: string | null
+          tool_version?: string | null
           type?: Database["public"]["Enums"]["risk_assessment_type"]
           updated_at?: string
           updated_by?: string | null
