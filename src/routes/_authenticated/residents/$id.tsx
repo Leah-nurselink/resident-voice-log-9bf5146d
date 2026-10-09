@@ -12,6 +12,7 @@ import { ResidentHighlights } from "@/components/ResidentHighlights";
 import { WoundsTab } from "@/components/WoundsTab";
 import { PersonalInfoTab } from "@/components/PersonalInfoTab";
 import { PainModule, PainSummary } from "@/components/PainModule";
+import { RiskToolWizard } from "@/components/RiskToolWizard";
 import { MedicationsTab } from "@/components/MedicationsTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -178,6 +179,7 @@ function ResidentDetail() {
   const [newConsent, setNewConsent] = useState(false);
   const [editMca, setEditMca] = useState<any | null>(null);
   const [newMca, setNewMca] = useState(false);
+    const [riskWizard, setRiskWizard] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
 
   if (!resident.data) return <AppShell title="Loading…"><div /></AppShell>;
