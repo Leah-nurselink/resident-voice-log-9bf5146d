@@ -1864,6 +1864,71 @@ export type Database = {
           },
         ]
       }
+      pre_assessments: {
+        Row: {
+          answers: Json
+          approved_at: string | null
+          approved_by: string | null
+          assessed_on: string | null
+          assessor_id: string | null
+          assessor_name: string | null
+          assessor_role: string | null
+          created_at: string
+          decision: string | null
+          decision_rationale: string | null
+          id: string
+          resident_id: string
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          answers?: Json
+          approved_at?: string | null
+          approved_by?: string | null
+          assessed_on?: string | null
+          assessor_id?: string | null
+          assessor_name?: string | null
+          assessor_role?: string | null
+          created_at?: string
+          decision?: string | null
+          decision_rationale?: string | null
+          id?: string
+          resident_id: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          answers?: Json
+          approved_at?: string | null
+          approved_by?: string | null
+          assessed_on?: string | null
+          assessor_id?: string | null
+          assessor_name?: string | null
+          assessor_role?: string | null
+          created_at?: string
+          decision?: string | null
+          decision_rationale?: string | null
+          id?: string
+          resident_id?: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pre_assessments_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       professionals: {
         Row: {
           address: string | null
