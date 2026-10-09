@@ -179,8 +179,8 @@ function ResidentDetail() {
   const [newConsent, setNewConsent] = useState(false);
   const [editMca, setEditMca] = useState<any | null>(null);
   const [newMca, setNewMca] = useState(false);
-    const [riskWizard, setRiskWizard] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
+  const [riskWizard, setRiskWizard] = useState(false);
 
   if (!resident.data) return <AppShell title="Loading…"><div /></AppShell>;
   const r = resident.data;
@@ -360,10 +360,14 @@ function ResidentDetail() {
 
 
         <TabsContent value="risk" className="mt-4 space-y-2">
+          <Button size="sm" onClick={() => setRiskWizard(true)}>
+            <Plus className="mr-1 h-4 w-4" />New validated assessment (Waterlow · MUST · GULP · Falls)
+          </Button>
           {RISK_TYPES.map((t) => {
             const existing = risks.data?.find((r) => r.type === t.id);
             return <RiskRow key={t.id} residentId={id} type={t.id} label={t.label} existing={existing} />;
           })}
+          {riskWizard && <RiskToolWizard residentId={id} residentName={r.full_name} onClose={() => { setRiskWizard(false); risks.refetch?.(); }} />}
         </TabsContent>
 
         <TabsContent value="pain" className="mt-4">
