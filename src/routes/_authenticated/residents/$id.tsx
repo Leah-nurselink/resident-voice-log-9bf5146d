@@ -37,6 +37,7 @@ import { ResidentPhoto } from "@/components/ResidentPhoto";
 import { CallRecorder } from "@/components/CallRecorder";
 import { CommunicationsTab } from "@/components/CommunicationsTab";
 import { ScheduleTab } from "@/components/ScheduleTab";
+import { PreAssessmentTab, PreAssessmentHints, PreAssessmentRiskPrompts } from "@/components/PreAssessmentTab";
 import { exportCarePlansPDF } from "@/lib/resident-export";
 import { ResidentPdfDialog } from "@/components/ResidentPdfDialog";
 
@@ -251,6 +252,7 @@ function ResidentDetail() {
           <TabsTrigger value="notes" className="min-h-10 shrink-0 px-3 text-xs">Notes</TabsTrigger>
           <TabsTrigger value="comms" className="min-h-10 shrink-0 px-3 text-xs">Comms</TabsTrigger>
           <TabsTrigger value="profile" className="min-h-10 shrink-0 px-3 text-xs">Profile</TabsTrigger>
+          <TabsTrigger value="pre" className="min-h-10 shrink-0 px-3 text-xs">Pre-assessment</TabsTrigger>
           <TabsTrigger value="care" className="min-h-10 shrink-0 px-3 text-xs">Care plans</TabsTrigger>
           <TabsTrigger value="schedule" aria-label="Schedule" className="min-h-10 shrink-0 px-3 text-xs"><CalendarClock className="h-3 w-3" /></TabsTrigger>
           <TabsTrigger value="risk" className="min-h-10 shrink-0 px-3 text-xs">Risk</TabsTrigger>
@@ -350,8 +352,17 @@ function ResidentDetail() {
             const existing = carePlans.data?.find((c) => c.domain === d.id);
             const riskTypes = DOMAIN_TO_RISKS[d.id] || [];
             const linked = (risks.data ?? []).filter((r) => riskTypes.includes(r.type as RiskType));
-            return <CarePlanRow key={d.id} residentId={id} domain={d.id} label={d.label} hint={d.hint} existing={existing} linkedRisks={linked} />;
+            return (
+              <div key={d.id} className="space-y-1">
+                <CarePlanRow residentId={id} domain={d.id} label={d.label} hint={d.hint} existing={existing} linkedRisks={linked} />
+                <PreAssessmentHints residentId={id} domain={d.id} />
+              </div>
+            );
           })}
+        </TabsContent>
+
+        <TabsContent value="pre" className="mt-4">
+          <PreAssessmentTab resident={r} />
         </TabsContent>
 
         <TabsContent value="schedule" className="mt-4">
@@ -360,6 +371,7 @@ function ResidentDetail() {
 
 
         <TabsContent value="risk" className="mt-4 space-y-2">
+          <PreAssessmentRiskPrompts residentId={id} doneTypes={(risks.data ?? []).map((x) => x.type)} />
           <Button size="sm" onClick={() => setRiskWizard(true)}>
             <Plus className="mr-1 h-4 w-4" />New recognised assessment (NHS / NICE / HSE / MHRA)
           </Button>
