@@ -449,6 +449,18 @@ function ConsentBadge({ status }: { status: string }) {
 function CarePlanRow({ residentId, domain, label, hint, existing, linkedRisks = [] }: { residentId: string; domain: CarePlanDomain; label: string; hint: string; existing?: any; linkedRisks?: any[] }) {
   const [open, setOpen] = useState(false);
   const documented = !!(existing && (existing.content || existing.needs || existing.outcome || existing.risks));
+  // Latest assessment per risk type
+  const latestRisks = Object.values(
+    linkedRisks.reduce((acc: Record<string, any>, r: any) => {
+      const t = r.updated_at ?? r.created_at;
+      if (!acc[r.type] || t > (acc[r.type].updated_at ?? acc[r.type].created_at)) acc[r.type] = r;
+      return acc;
+    }, {}),
+  ) as any[];
+  const today = new Date().toISOString().slice(0, 10);
+  const highNoPlan = !documented && latestRisks.some((r) => r.level === "high");
+  const riskNewer = documented && !!existing?.last_review && latestRisks.some((r) => (r.updated_at ?? r.created_at).slice(0, 10) > existing.last_review);
+  const riskOverdue = latestRisks.some((r) => r.review_date && r.review_date < today);
   return (
     <>
       <button onClick={() => setOpen(true)} className="flex w-full items-center justify-between gap-2 rounded-2xl border bg-card p-4 text-left hover:bg-accent/30">
@@ -461,15 +473,18 @@ function CarePlanRow({ residentId, domain, label, hint, existing, linkedRisks = 
             {existing?.last_review && documented && Date.now() - new Date(existing.last_review).getTime() > 30 * 864e5 && <Badge className="bg-destructive/15 text-destructive border-destructive/30 border text-[10px]">Review due</Badge>}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{existing?.content?.slice(0, 80) || hint}</p>
-          {linkedRisks.length > 0 && (
+          {latestRisks.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
-              {linkedRisks.map((r) => (
+              {latestRisks.map((r) => (
                 <Badge key={r.id} className={RISK_LEVEL_COLOR[r.level as "low"|"medium"|"high"] + " text-[10px]"}>
-                  <AlertTriangle className="mr-1 h-3 w-3" />{riskLabel(r.type as RiskType)} · {r.level}
+                  <AlertTriangle className="mr-1 h-3 w-3" />{riskLabel(r.type as RiskType)} · {r.band ?? r.level}{r.score != null ? ` (${r.score})` : ""}
                 </Badge>
               ))}
             </div>
           )}
+          {highNoPlan && <p className="mt-1 text-[11px] font-medium text-destructive">High risk assessed — this care plan needs writing</p>}
+          {riskNewer && <p className="mt-1 text-[11px] font-medium text-warning-foreground">Risk assessment updated since last plan review — review this plan</p>}
+          {riskOverdue && <p className="mt-1 text-[11px] font-medium text-destructive">Linked risk assessment review overdue</p>}
         </div>
         <Pencil className="h-4 w-4 text-muted-foreground" />
       </button>
