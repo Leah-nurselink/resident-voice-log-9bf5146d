@@ -361,7 +361,7 @@ function ResidentDetail() {
 
         <TabsContent value="risk" className="mt-4 space-y-2">
           <Button size="sm" onClick={() => setRiskWizard(true)}>
-            <Plus className="mr-1 h-4 w-4" />New validated assessment (Waterlow · MUST · GULP · Falls)
+            <Plus className="mr-1 h-4 w-4" />New recognised assessment (NHS / NICE / HSE / MHRA)
           </Button>
           {RISK_TYPES.map((t) => {
             const existing = risks.data?.find((r) => r.type === t.id);
