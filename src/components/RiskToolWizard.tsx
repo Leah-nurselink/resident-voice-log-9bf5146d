@@ -14,8 +14,9 @@ import {
   WATERLOW_GROUPS, computeWaterlow, WATERLOW_ACTION,
   GULP_GROUPS, computeGULP, GULP_ACTION,
   computeMUST, MUST_ACTION, bmi, weightLossPct,
-  FALLS_FACTORS, summariseFalls, type FallsInputs,
+  type FallsInputs,
   TOOL_TO_RISK_TYPE, type RiskBandLevel,
+  STRUCTURED_TOOLS, isStructured, summariseStructured, type ExtendedTool,
 } from "@/lib/risk-tools";
 
 const LEVEL_CLASS: Record<RiskBandLevel, string> = {
@@ -24,7 +25,8 @@ const LEVEL_CLASS: Record<RiskBandLevel, string> = {
   high: "bg-destructive/15 text-destructive border border-destructive/30",
 };
 
-const TOOLS: RiskTool[] = ["waterlow", "must", "gulp", "falls_mfra"];
+const TOOLS: ExtendedTool[] = ["waterlow", "must", "gulp", "falls_mfra", "tile_mh", "continence", "bedrails", "mca", "behaviour_abc"];
+const toolLabel = (t: ExtendedTool) => isStructured(t) ? STRUCTURED_TOOLS[t].label : RISK_TOOL_LABEL[t as RiskTool];
 
 function Big({ active, onClick, children }: { active?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -77,7 +79,7 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
   residentId: string; residentName: string; onClose: () => void;
 }) {
   const qc = useQueryClient();
-  const [tool, setTool] = useState<RiskTool | null>(null);
+  const [tool, setTool] = useState<ExtendedTool | null>(null);
 
   // Shared
   const [reviewDate, setReviewDate] = useState(format(new Date(Date.now() + 30 * 864e5), "yyyy-MM-dd"));
@@ -103,7 +105,7 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
     if (tool === "waterlow") return computeWaterlow(sel);
     if (tool === "gulp") return computeGULP({ fluid: sel.fluid as string, urine: sel.urine as string, signs: sel.signs as string });
     if (tool === "must") return computeMUST(mustInputs);
-    if (tool === "falls_mfra") return summariseFalls(falls);
+    if (tool && isStructured(tool)) return summariseStructured(tool, falls);
     return null;
   }, [tool, sel, mustInputs, falls]);
 
@@ -112,7 +114,7 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
     if (tool === "waterlow") return WATERLOW_ACTION[result.level];
     if (tool === "gulp") return GULP_ACTION[result.level];
     if (tool === "must") return MUST_ACTION[result.level];
-    return "Document the identified factors and the agreed multifactorial intervention plan.";
+    return tool && isStructured(tool) ? STRUCTURED_TOOLS[tool].guidance : "";
   }, [tool, result]);
 
   const bmiValue = bmi(mustInputs.weightKg ?? 0, mustInputs.heightCm ?? 0);
@@ -123,7 +125,7 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
     if (tool === "waterlow") return !!sel.build && !!sel.sex && !!sel.age && !!sel.mobility && !!sel.continence;
     if (tool === "gulp") return !!sel.fluid && !!sel.urine && !!sel.signs;
     if (tool === "must") return mustInputs.weightKg != null && mustInputs.heightCm != null;
-    if (tool === "falls_mfra") return true;
+    if (isStructured(tool)) return true;
     return false;
   })();
 
@@ -133,16 +135,16 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
       const { data: u } = await supabase.auth.getUser();
       const inputs =
         tool === "must" ? mustInputs :
-        tool === "falls_mfra" ? falls :
+        isStructured(tool) ? falls :
         sel;
       const factors =
-        tool === "falls_mfra"
-          ? FALLS_FACTORS.filter((f) => falls.factors[f.key]?.present)
+        isStructured(tool)
+          ? STRUCTURED_TOOLS[tool].factors.filter((f) => falls.factors[f.key]?.present)
               .map((f) => f.label + (falls.factors[f.key]?.note ? `: ${falls.factors[f.key]!.note}` : "")).join("; ")
           : result.summary;
       const { error } = await supabase.from("risk_assessments").insert({
         resident_id: residentId,
-        type: TOOL_TO_RISK_TYPE[tool],
+        type: isStructured(tool) ? STRUCTURED_TOOLS[tool].type : TOOL_TO_RISK_TYPE[tool as RiskTool],
         level: result.level,
         tool,
         tool_version: result.version,
@@ -150,7 +152,7 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
         score: result.score,
         band: result.band,
         factors: factors || null,
-        controls: (tool === "falls_mfra" ? falls.plan : plan) || null,
+        controls: (isStructured(tool) ? falls.plan : plan) || null,
         review_date: reviewDate || null,
         updated_by: u.user?.id ?? null,
       } as any);
@@ -165,12 +167,12 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
       <DialogContent className="max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Risk assessment · {residentName}</DialogTitle>
-          <p className="text-xs text-muted-foreground">{tool ? RISK_TOOL_LABEL[tool] : "Choose a validated tool"}</p>
+          <p className="text-xs text-muted-foreground">{tool ? toolLabel(tool) : "Choose a recognised NHS / NICE / HSE / MHRA tool"}</p>
         </DialogHeader>
 
         {!tool && (
           <div className="grid gap-2">
-            {TOOLS.map((t) => <Big key={t} onClick={() => { reset(); setTool(t); }}>{RISK_TOOL_LABEL[t]}</Big>)}
+            {TOOLS.map((t) => <Big key={t} onClick={() => { reset(); setTool(t); }}>{toolLabel(t)}</Big>)}
           </div>
         )}
 
@@ -210,10 +212,10 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
             )}
 
             {/* Falls — structured, no score */}
-            {tool === "falls_mfra" && (
+            {tool && isStructured(tool) && (
               <div className="space-y-2">
-                <p className="rounded-lg border bg-muted/30 p-2 text-[11px]">NICE CG161: a structured multifactorial assessment — no numeric risk score. Mark each factor and record the plan.</p>
-                {FALLS_FACTORS.map((f) => {
+                <p className="rounded-lg border bg-muted/30 p-2 text-[11px]">{STRUCTURED_TOOLS[tool].guidance} Mark each factor and record the plan.</p>
+                {STRUCTURED_TOOLS[tool].factors.map((f) => {
                   const entry = falls.factors[f.key] ?? { present: false };
                   return (
                     <div key={f.key} className="rounded-xl border p-2">
@@ -231,10 +233,10 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
                   );
                 })}
                 <div className="grid grid-cols-2 gap-2">
-                  <Big active={falls.overallConcern === "not_at_risk"} onClick={() => setFalls({ ...falls, overallConcern: "not_at_risk" })}>Not at increased risk</Big>
-                  <Big active={falls.overallConcern === "at_risk"} onClick={() => setFalls({ ...falls, overallConcern: "at_risk" })}>At increased risk</Big>
+                  <Big active={falls.overallConcern === "not_at_risk"} onClick={() => setFalls({ ...falls, overallConcern: "not_at_risk" })}>{STRUCTURED_TOOLS[tool].notAtRiskLabel}</Big>
+                  <Big active={falls.overallConcern === "at_risk"} onClick={() => setFalls({ ...falls, overallConcern: "at_risk" })}>{STRUCTURED_TOOLS[tool].atRiskLabel}</Big>
                 </div>
-                <Textarea rows={3} placeholder="Multifactorial intervention plan" value={falls.plan ?? ""} onChange={(e) => setFalls({ ...falls, plan: e.target.value })} />
+                <Textarea rows={3} placeholder="Agreed plan / controls" value={falls.plan ?? ""} onChange={(e) => setFalls({ ...falls, plan: e.target.value })} />
               </div>
             )}
 
@@ -248,7 +250,7 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
             )}
 
             {/* Plan (scored tools) + review date */}
-            {tool !== "falls_mfra" && (
+            {!isStructured(tool) && (
               <Textarea rows={2} placeholder="Controls / actions (optional)" value={plan} onChange={(e) => setPlan(e.target.value)} />
             )}
             <label className="block text-xs">Review date<Input type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} /></label>
