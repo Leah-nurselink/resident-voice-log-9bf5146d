@@ -120,12 +120,11 @@ export const Route = createFileRoute("/api/public/inbound-email")({
 
         // Extract tasks via Lovable AI (best effort, non-blocking on failure)
         try {
-          const lov = process.env.LOVABLE_API_KEY;
-          if (lov && body) {
-            const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
+          if (body) {
+            const { createAzureProvider, azureDeployment } = await import("@/lib/azure-ai.server");
             const { generateText, Output } = await import("ai");
             const { z } = await import("zod");
-            const gateway = createLovableAiGatewayProvider(lov);
+            const azure = createAzureProvider();
             const schema = z.object({
               summary: z.string().max(600),
               tasks: z.array(z.object({
@@ -137,7 +136,7 @@ export const Route = createFileRoute("/api/public/inbound-email")({
               })).max(20),
             });
             const { experimental_output } = await generateText({
-              model: gateway("google/gemini-3-flash-preview"),
+              model: azure(azureDeployment()),
               system: "Extract a short summary and actionable tasks from this inbound healthcare professional message. UK English. Do not invent facts. Empty array if no actions.",
               prompt: `Subject: ${p.subject ?? ""}\n\n${body.slice(0, 10_000)}`,
               experimental_output: Output.object({ schema }),

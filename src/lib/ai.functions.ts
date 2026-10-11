@@ -42,13 +42,15 @@ const FLAGS = [
   "aggressive_behaviour","safeguarding","skin_breakdown","low_intake","unsteady",
 ] as const;
 
-// Transcribe audio via Lovable AI gateway (OpenAI-compatible STT proxy)
+// Transcribe audio via Azure AI Speech fast transcription (REST)
 export const transcribeAudio = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => TranscribeInput.parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+    const region = process.env.AZURE_SPEECH_REGION;
+    if (!region) throw new Error("Missing AZURE_SPEECH_REGION");
+    const key = process.env.AZURE_SPEECH_KEY;
+    if (!key) throw new Error("Missing AZURE_SPEECH_KEY");
 
     const extMap: Record<string, string> = {
       "audio/webm": "webm",
@@ -62,54 +64,42 @@ export const transcribeAudio = createServerFn({ method: "POST" })
 
     const bin = Uint8Array.from(atob(data.audioBase64), (c) => c.charCodeAt(0));
     const blob = new Blob([bin], { type: baseMime.replace(/^video\//, "audio/") });
+
     const form = new FormData();
-    form.append("model", "openai/gpt-transcribe");
-    form.append("file", blob, `recording.${ext}`);
-    form.append("stream", "true");
+    form.append("audio", blob, `recording.${ext}`);
     form.append(
-      "prompt",
-      "A UK care worker or nurse describing care given to a resident in a care home. Speakers may have strong regional, African, Caribbean, South Asian, Eastern European or other accents, speak quietly, or include an elderly resident. Transcribe every word fully and verbatim, including hesitations that carry meaning. Use UK English spelling.",
-    );
-    form.append(
-      "keywords",
-      "resident, carer, nurse, GP, MAR, PRN, paracetamol, continence, pad, catheter, commode, hoist, repositioned, pressure area, sacrum, Waterlow, MUST, fluids, mls, dementia, agitation, safeguarding, district nurse, SALT",
+      "definition",
+      new Blob([JSON.stringify({ locales: ["en-GB"], profanityFilterMode: "None" })], {
+        type: "application/json",
+      }),
     );
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}` },
-      body: form,
-    });
-    if (!res.ok || !res.body) {
+    const res = await fetch(
+      `https://${region}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2024-11-15`,
+      {
+        method: "POST",
+        headers: { "Ocp-Apim-Subscription-Key": key },
+        body: form,
+      },
+    );
+    if (!res.ok) {
       const t = await res.text().catch(() => "");
       throw new Error(`Transcription failed: ${res.status} ${t}`);
     }
-    // Read the streamed transcript events until the final text arrives.
-    const reader = res.body.getReader();
-    const dec = new TextDecoder();
-    let buf = "", deltas = "", final = "";
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, { stream: true });
-      let i;
-      while ((i = buf.indexOf("\n")) >= 0) {
-        const line = buf.slice(0, i).trim();
-        buf = buf.slice(i + 1);
-        if (!line.startsWith("data:")) continue;
-        const payload = line.slice(5).trim();
-        if (!payload || payload === "[DONE]") continue;
-        try {
-          const ev = JSON.parse(payload) as { type?: string; delta?: string; text?: string };
-          if (ev.type === "transcript.text.delta" && ev.delta) deltas += ev.delta;
-          else if (ev.type === "transcript.text.done" && ev.text) final = ev.text;
-          else if (ev.type === "error") throw new Error("Transcription failed");
-        } catch (e) {
-          if (e instanceof Error && e.message === "Transcription failed") throw e;
-        }
-      }
-    }
-    return { text: final || deltas };
+
+    const out = (await res.json().catch(() => ({}))) as {
+      combinedPhrases?: { text?: string }[];
+      phrases?: { text?: string }[];
+    };
+    const text =
+      (Array.isArray(out.combinedPhrases) && out.combinedPhrases.length
+        ? out.combinedPhrases.map((p) => p?.text ?? "").join(" ")
+        : Array.isArray(out.phrases)
+          ? out.phrases.map((p) => p?.text ?? "").join(" ")
+          : ""
+      ).trim();
+
+    return { text };
   });
 
 // Structure a care note: professional rewrite + auto-link to care plan domain + risks + flags
@@ -117,24 +107,9 @@ export const structureNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => StructureInput.parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-
-    const { createOpenAI } = await import("@ai-sdk/openai");
+    const { createAzureProvider, azureDeployment } = await import("@/lib/azure-ai.server");
     const { streamText, Output } = await import("ai");
-    let runId: string | undefined;
-    const provider = createOpenAI({
-      baseURL: "https://ai.gateway.lovable.dev/v1",
-      apiKey: key,
-      headers: { "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-      fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-        const headers = new Headers(init?.headers);
-        if (runId) headers.set("X-Lovable-AIG-Run-ID", runId);
-        const res = await fetch(input, { ...init, headers });
-        runId ??= res.headers.get("X-Lovable-AIG-Run-ID")?.trim() || undefined;
-        return res;
-      },
-    });
+    const azure = createAzureProvider();
 
     const schema = z.object({
       content: z.string().describe("Rewritten care note in professional UK care-sector language, 1-4 short sentences. No invented facts."),
@@ -151,7 +126,7 @@ export const structureNote = createServerFn({ method: "POST" })
 
     try {
       const result = streamText({
-        model: provider.responses("openai/gpt-6-astra"),
+        model: azure(azureDeployment()),
         system: sys,
         prompt: userPrompt,
         output: Output.object({ schema }),
@@ -188,12 +163,9 @@ export const analyzeAbbeyPain = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => AbbeyInput.parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
+    const { createAzureProvider, azureDeployment } = await import("@/lib/azure-ai.server");
     const { generateText, Output } = await import("ai");
-    const gateway = createLovableAiGatewayProvider(key);
+    const azure = createAzureProvider();
 
     const DomainScore = z.object({
       score: z.number().int().min(0).max(3),
@@ -220,7 +192,7 @@ export const analyzeAbbeyPain = createServerFn({ method: "POST" })
 
     try {
       const { experimental_output: out } = await generateText({
-        model: gateway("google/gemini-3-flash-preview"),
+        model: azure(azureDeployment()),
         system: sys,
         prompt: userPrompt,
         experimental_output: Output.object({ schema }),

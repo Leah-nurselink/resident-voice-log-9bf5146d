@@ -75,11 +75,9 @@ export const generateHandover = createServerFn({ method: "POST" })
       ...(recs.data ?? []).map((r: any) => `- ${name(r)} [${r.severity}]: ${clean(r.title)}`),
     ].join("\n").slice(0, 14000);
 
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
+    const { createAzureProvider, azureDeployment } = await import("@/lib/azure-ai.server");
     const { generateText, Output } = await import("ai");
-    const gateway = createLovableAiGatewayProvider(key);
+    const azure = createAzureProvider();
 
     const bullets = z.array(z.string().max(300)).max(12);
     const schema = z.object({
@@ -97,7 +95,7 @@ export const generateHandover = createServerFn({ method: "POST" })
 
     try {
       const { experimental_output: out } = await generateText({
-        model: gateway("google/gemini-3-flash-preview"),
+        model: azure(azureDeployment()),
         system: sys,
         prompt: `<records>\nPeriod: last ${data.hours} hours (to ${today})\n\n${lines}\n</records>`,
         experimental_output: Output.object({ schema }),
