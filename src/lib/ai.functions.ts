@@ -130,16 +130,6 @@ export const structureNote = createServerFn({ method: "POST" })
         system: sys,
         prompt: userPrompt,
         output: Output.object({ schema }),
-        providerOptions: {
-          openai: {
-            forceReasoning: true,
-            reasoningEffort: "low",
-            reasoningSummary: "auto",
-            store: false,
-            include: ["reasoning.encrypted_content"],
-            strictJsonSchema: true,
-          },
-        },
       });
       return await result.output;
     } catch (e) {

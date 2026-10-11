@@ -79,15 +79,6 @@ ${notesTxt}
         system,
         prompt,
         maxRetries: 0,
-        providerOptions: {
-          openai: {
-            forceReasoning: true,
-            reasoningEffort: "low",
-            reasoningSummary: "auto",
-            store: false,
-            include: ["reasoning.encrypted_content"],
-          },
-        },
       });
       text = await result.text;
     } catch (e) {

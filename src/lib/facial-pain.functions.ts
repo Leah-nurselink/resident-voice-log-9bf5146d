@@ -50,7 +50,6 @@ const azureVision: Provider = async (frames) => {
     }],
     output: Output.object({ schema }),
     maxRetries: 0,
-    providerOptions: { openai: { forceReasoning: true, reasoningEffort: "low", store: false } },
   });
   const out = await result.output;
   return { ...out, quality: Math.max(0, Math.min(1, out.quality)), model: `prototype:${model}` };
