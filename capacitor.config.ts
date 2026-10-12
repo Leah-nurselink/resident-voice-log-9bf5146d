@@ -16,7 +16,7 @@ const config: CapacitorConfig = {
   appName: "CareCore",
   webDir: "dist-shell",
   server: {
-    url: "https://resident-voice-log.vercel.app",
+    url: "https://resident-voice-log-9bf5146d.vercel.app",
     cleartext: false,
     androidScheme: "https",
   },
