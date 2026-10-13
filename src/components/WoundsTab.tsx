@@ -20,16 +20,18 @@ import { Capacitor } from "@capacitor/core";
 // Camera plugin instead (full-resolution, sharp). On web we keep the file input.
 async function captureNativePhoto(): Promise<File | null> {
   const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+  // DataUrl (base64) rather than Uri: the app loads from a remote URL, so a
+  // local file:// webPath is not reachable from the page. A data: URL always is.
   const photo = await Camera.getPhoto({
     quality: 92,
     allowEditing: false,
-    resultType: CameraResultType.Uri,
+    resultType: CameraResultType.DataUrl,
     source: CameraSource.Camera,
     saveToGallery: false,
     correctOrientation: true,
   });
-  if (!photo.webPath) return null;
-  const blob = await (await fetch(photo.webPath)).blob();
+  if (!photo.dataUrl) return null;
+  const blob = await (await fetch(photo.dataUrl)).blob();
   const fmt = (photo.format || "jpeg").replace("jpg", "jpeg");
   return new File([blob], `wound-${Date.now()}.${fmt}`, { type: blob.type || `image/${fmt}` });
 }
@@ -336,7 +338,7 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
         if (f) await uploadFiles([f]);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        if (!/cancel|denied/i.test(msg)) toast.error("Couldn't open the camera.");
+        if (!/cancel|denied/i.test(msg)) toast.error(`Camera: ${msg}`);
       }
     } else {
       fileRef.current?.click();
@@ -539,7 +541,7 @@ function WoundPhotoHistory({ entries, woundId }: { entries: any[]; woundId: stri
         if (f) await addPhotos([f]);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        if (!/cancel|denied/i.test(msg)) toast.error("Couldn't open the camera.");
+        if (!/cancel|denied/i.test(msg)) toast.error(`Camera: ${msg}`);
       }
     } else {
       fileRef.current?.click();
