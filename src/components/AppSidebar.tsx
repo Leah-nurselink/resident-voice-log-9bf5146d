@@ -95,6 +95,7 @@ const insightsItems = [
 ] as const;
 
 const governanceItems = [
+  { title: "Clinical Review", url: "/clinical-review", icon: Heart },
   { title: "Audits", url: "/audits", icon: ClipboardCheck },
   { title: "Action Plan", url: "/action-plan", icon: ClipboardList },
   { title: "Feedback", url: "/feedback", icon: MessageCircle },
