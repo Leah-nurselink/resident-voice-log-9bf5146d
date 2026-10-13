@@ -90,13 +90,13 @@ export const respondToFeedback = createServerFn({ method: "POST" })
     const { data: u } = await supabaseAdmin.auth.admin.getUserById(user_id);
     const email = u.user?.email;
     let emailed = false;
-    const lov = process.env.LOVABLE_API_KEY; const rk = process.env.RESEND_API_KEY;
-    if (email && lov && rk) {
-      const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+    const rk = process.env.RESEND_API_KEY;
+    if (email && rk) {
+      const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${lov}`, "X-Connection-Api-Key": rk },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${rk}` },
         body: JSON.stringify({
-          from: "CareCore <onboarding@resend.dev>", to: [email],
+          from: "CareCore <care@elenicare.co.uk>", to: [email],
           subject: "A reply to your feedback",
           html: `<p>Thank you for your feedback. The home has replied:</p><p style="white-space:pre-wrap">${escapeHtml(data.response)}</p><p>You can also see this reply when you sign in to the family page.</p>`,
         }),

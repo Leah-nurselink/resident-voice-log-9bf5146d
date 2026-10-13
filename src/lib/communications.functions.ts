@@ -9,8 +9,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const FROM_DEFAULT = "CareCore AI <onboarding@resend.dev>";
-const GATEWAY = "https://connector-gateway.lovable.dev/resend";
+const FROM_DEFAULT = "CareCore <care@elenicare.co.uk>";
+// Send email directly via the Resend API (no longer through the Lovable connector gateway).
+const GATEWAY = "https://api.resend.com";
 
 function sanitise(s: string) {
   return s
@@ -166,9 +167,8 @@ export const sendCommunication = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SendInput.parse(d))
   .handler(async ({ data, context }) => {
-    const lov = process.env.LOVABLE_API_KEY;
     const rk = process.env.RESEND_API_KEY;
-    if (!lov || !rk) throw new Error("Email service not configured.");
+    if (!rk) throw new Error("Email service not configured.");
 
     const { data: comm, error } = await context.supabase
       .from("communications")
@@ -189,8 +189,7 @@ export const sendCommunication = createServerFn({ method: "POST" })
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${lov}`,
-        "X-Connection-Api-Key": rk,
+        Authorization: `Bearer ${rk}`,
       },
       body: JSON.stringify({
         from: data.fromOverride ?? FROM_DEFAULT,
@@ -239,9 +238,8 @@ export const emailAlertAssignee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => AssignEmailInput.parse(d))
   .handler(async ({ data, context }) => {
-    const lov = process.env.LOVABLE_API_KEY;
     const rk = process.env.RESEND_API_KEY;
-    if (!lov || !rk) return { skipped: true, reason: "no_email_provider" };
+    if (!rk) return { skipped: true, reason: "no_email_provider" };
 
     const { data: alert } = await context.supabase
       .from("alerts").select("*").eq("id", data.alertId).single();
@@ -277,7 +275,7 @@ export const emailAlertAssignee = createServerFn({ method: "POST" })
 
     const res = await fetch(`${GATEWAY}/emails`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${lov}`, "X-Connection-Api-Key": rk },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${rk}` },
       body: JSON.stringify({ from: FROM_DEFAULT, to: [sendTo], subject, html }),
     });
     const out = await res.json().catch(() => ({}));
