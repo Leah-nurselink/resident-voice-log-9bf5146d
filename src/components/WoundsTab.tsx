@@ -9,11 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Activity, Plus, Ruler, ChevronRight, Camera, X, ImageIcon } from "lucide-react";
+import { Activity, Plus, Ruler, ChevronRight, Camera, X, ImageIcon, ScanSearch, Sparkles } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useEffect, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
+import { useServerFn } from "@tanstack/react-start";
+import { reviewWoundPhoto } from "@/lib/ai.functions";
 
 // In the installed Android app, a plain <input type=file capture> does not open
 // the camera reliably. When running natively, capture through the Capacitor
@@ -285,14 +287,23 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
         )}
 
         {edit && <WoundDialog residentId={wound.resident_id} existing={wound} onClose={() => { setEdit(false); qc.invalidateQueries({ queryKey: ["wounds", wound.resident_id] }); onClose(); }} />}
-        {adding && <AssessmentDialog woundId={wound.id} onClose={() => setAdding(false)} />}
+        {adding && <AssessmentDialog woundId={wound.id} woundType={wound.wound_type} location={wound.location} onClose={() => setAdding(false)} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () => void }) {
+type WoundReview = {
+  appearance: string; isWound: boolean; skinCondition: string | null; likelyWoundType: string | null; tissueTypes: string[];
+  exudate: string | null; periwoundSkin: string | null; concerns: string[];
+  suggestedObservations: string; confidence: "low" | "moderate" | "high";
+};
+
+function AssessmentDialog({ woundId, woundType, location, onClose }: { woundId: string; woundType?: string | null; location?: string | null; onClose: () => void }) {
   const qc = useQueryClient();
+  const runReview = useServerFn(reviewWoundPhoto);
+  const [review, setReview] = useState<WoundReview | null>(null);
+  const [reviewing, setReviewing] = useState(false);
   const [length, setLength] = useState("");
   const [width, setWidth] = useState("");
   const [depth, setDepth] = useState("");
@@ -348,6 +359,41 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
   const removePhoto = async (path: string) => {
     await supabase.storage.from("wound-photos").remove([path]);
     setPhotos((prev) => prev.filter((p) => p.path !== path));
+    setReview(null);
+  };
+
+  const runAiReview = async () => {
+    const last = photos[photos.length - 1];
+    if (!last) return;
+    setReviewing(true);
+    setReview(null);
+    try {
+      const { data, error } = await supabase.storage.from("wound-photos").createSignedUrl(last.path, 600);
+      if (error || !data?.signedUrl) throw new Error("Couldn't prepare the photo for review.");
+      const result = await runReview({ data: { imageUrl: data.signedUrl, woundType: woundType ?? undefined, location: location ?? undefined } });
+      setReview(result as WoundReview);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "AI review failed");
+    } finally {
+      setReviewing(false);
+    }
+  };
+
+  const applyReview = () => {
+    if (!review) return;
+    const t = review.tissueTypes.find((x) => TISSUE.includes(x));
+    if (t) setTissue(t);
+    const parts = [
+      review.appearance,
+      review.skinCondition ? `Skin: ${review.skinCondition}.` : "",
+      review.periwoundSkin ? `Surrounding skin: ${review.periwoundSkin}.` : "",
+      review.concerns.length ? `Flagged for review: ${review.concerns.join("; ")}.` : "",
+    ].filter(Boolean);
+    const draft = review.suggestedObservations || parts.join(" ");
+    setObservations((prev) => (prev ? `${prev}\n${draft}` : draft));
+    if (review.periwoundSkin && !surrounding) setSurrounding(review.periwoundSkin);
+    toast.success("Added to the assessment — please review and edit before saving.");
+    setReview(null);
   };
 
   const save = useMutation({
@@ -453,7 +499,39 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
                 {uploading ? "Uploading…" : "Add photo"}
               </button>
             </div>
+            {photos.length > 0 && (
+              <Button type="button" variant="outline" size="sm" className="mt-1 min-h-10" onClick={runAiReview} disabled={reviewing || uploading}>
+                <ScanSearch className="h-4 w-4" />{reviewing ? "Reviewing photo…" : "AI photo review"}
+              </Button>
+            )}
           </div>
+
+          {review && (
+            <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+              <div className="flex items-center gap-1.5 font-medium">
+                <Sparkles className="h-4 w-4 text-primary" />AI review — for the nurse to verify
+                <Badge variant="outline" className="ml-auto text-[10px] capitalize">{review.confidence} confidence</Badge>
+              </div>
+              <p>{review.appearance}</p>
+              {review.skinCondition && <p className="text-muted-foreground">Skin condition: {review.skinCondition}</p>}
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant="secondary" className="text-[10px]">{review.isWound ? "Open wound" : "Intact skin"}</Badge>
+                {review.likelyWoundType && <Badge variant="secondary" className="text-[10px]">Likely: {review.likelyWoundType}</Badge>}
+                {review.tissueTypes.map((t) => <Badge key={t} variant="outline" className="text-[10px]">{t}</Badge>)}
+              </div>
+              {review.exudate && <p className="text-muted-foreground">Exudate: {review.exudate}</p>}
+              {review.periwoundSkin && <p className="text-muted-foreground">Surrounding skin: {review.periwoundSkin}</p>}
+              {review.concerns.length > 0 && (
+                <p className="text-destructive">⚠ {review.concerns.join("; ")}</p>
+              )}
+              <p className="rounded-lg bg-background/60 p-2 text-muted-foreground">{review.suggestedObservations}</p>
+              <p className="text-[11px] text-muted-foreground">Decision support only — not a diagnosis, and no measurements are taken from a photo. A registered nurse must confirm all findings.</p>
+              <div className="flex gap-2">
+                <Button type="button" size="sm" className="min-h-10" onClick={applyReview}>Add to assessment</Button>
+                <Button type="button" size="sm" variant="ghost" className="min-h-10" onClick={() => setReview(null)}>Dismiss</Button>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
