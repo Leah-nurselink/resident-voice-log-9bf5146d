@@ -57,7 +57,7 @@ jobs:
           bun-version: latest
 
       - name: Install JS deps
-        run: bun install
+        run: bun install --no-frozen-lockfile 
 
       - name: Sync Capacitor (Android)
         run: bunx cap sync android
