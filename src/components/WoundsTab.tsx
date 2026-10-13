@@ -13,6 +13,26 @@ import { Activity, Plus, Ruler, ChevronRight, Camera, X, ImageIcon } from "lucid
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useEffect, useRef } from "react";
+import { Capacitor } from "@capacitor/core";
+
+// In the installed Android app, a plain <input type=file capture> does not open
+// the camera reliably. When running natively, capture through the Capacitor
+// Camera plugin instead (full-resolution, sharp). On web we keep the file input.
+async function captureNativePhoto(): Promise<File | null> {
+  const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+  const photo = await Camera.getPhoto({
+    quality: 92,
+    allowEditing: false,
+    resultType: CameraResultType.Uri,
+    source: CameraSource.Camera,
+    saveToGallery: false,
+    correctOrientation: true,
+  });
+  if (!photo.webPath) return null;
+  const blob = await (await fetch(photo.webPath)).blob();
+  const fmt = (photo.format || "jpeg").replace("jpg", "jpeg");
+  return new File([blob], `wound-${Date.now()}.${fmt}`, { type: blob.type || `image/${fmt}` });
+}
 
 const STATUS_COLOR: Record<string, string> = {
   open: "bg-destructive/15 text-destructive border-destructive/30 border",
@@ -287,16 +307,16 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) return;
     setUploading(true);
     try {
       const { data: u } = await supabase.auth.getUser();
       const uploaded: { path: string; previewUrl: string }[] = [];
-      for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      for (const file of files) {
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
         const path = `${u.user!.id}/${woundId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error } = await supabase.storage.from("wound-photos").upload(path, file, { contentType: file.type, upsert: false });
+        const { error } = await supabase.storage.from("wound-photos").upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
         if (error) throw error;
         uploaded.push({ path, previewUrl: URL.createObjectURL(file) });
       }
@@ -306,6 +326,20 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const addPhoto = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const f = await captureNativePhoto();
+        if (f) await uploadFiles([f]);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!/cancel|denied/i.test(msg)) toast.error("Couldn't open the camera.");
+      }
+    } else {
+      fileRef.current?.click();
     }
   };
 
@@ -400,7 +434,7 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
           <div className="space-y-1.5">
             <Label>Photos</Label>
             <input ref={fileRef} type="file" accept="image/*" capture="environment" multiple className="hidden"
-              onChange={(e) => handleFiles(e.target.files)} />
+              onChange={(e) => uploadFiles(Array.from(e.target.files ?? []))} />
             <div className="flex flex-wrap gap-2">
               {photos.map((p) => (
                 <div key={p.path} className="relative h-20 w-20 overflow-hidden rounded-lg border">
@@ -411,7 +445,7 @@ function AssessmentDialog({ woundId, onClose }: { woundId: string; onClose: () =
                   </button>
                 </div>
               ))}
-              <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+              <button type="button" onClick={addPhoto} disabled={uploading}
                 className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-xs text-muted-foreground hover:bg-accent/30 disabled:opacity-50">
                 <Camera className="h-5 w-5" />
                 {uploading ? "Uploading…" : "Add photo"}
@@ -469,16 +503,16 @@ function WoundPhotoHistory({ entries, woundId }: { entries: any[]; woundId: stri
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  const addPhotos = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const addPhotos = async (files: File[]) => {
+    if (files.length === 0) return;
     setUploading(true);
     try {
       const { data: u } = await supabase.auth.getUser();
       const paths: string[] = [];
-      for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      for (const file of files) {
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
         const path = `${u.user!.id}/${woundId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error } = await supabase.storage.from("wound-photos").upload(path, file, { contentType: file.type, upsert: false });
+        const { error } = await supabase.storage.from("wound-photos").upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
         if (error) throw error;
         paths.push(path);
       }
@@ -495,6 +529,20 @@ function WoundPhotoHistory({ entries, woundId }: { entries: any[]; woundId: stri
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const addHistoryPhoto = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const f = await captureNativePhoto();
+        if (f) await addPhotos([f]);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!/cancel|denied/i.test(msg)) toast.error("Couldn't open the camera.");
+      }
+    } else {
+      fileRef.current?.click();
     }
   };
 
@@ -529,9 +577,9 @@ function WoundPhotoHistory({ entries, woundId }: { entries: any[]; woundId: stri
         <Badge variant="secondary" className="text-[10px]">{items.length}</Badge>
         <div className="ml-auto">
           <input ref={fileRef} type="file" accept="image/*" multiple capture="environment"
-            className="hidden" onChange={(e) => addPhotos(e.target.files)} />
+            className="hidden" onChange={(e) => addPhotos(Array.from(e.target.files ?? []))} />
           <Button size="sm" variant="outline" className="h-7 text-xs" disabled={uploading}
-            onClick={() => fileRef.current?.click()}>
+            onClick={addHistoryPhoto}>
             <Camera className="mr-1 h-3.5 w-3.5" />{uploading ? "Uploading…" : "Add photos"}
           </Button>
         </div>
