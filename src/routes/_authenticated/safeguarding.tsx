@@ -484,10 +484,10 @@ function CouncilCard({ council }: { council: Council }) {
           </a>
         )}
         <Button asChild size="sm" className="min-h-11 w-full justify-between">
-          <a href={council.safeguardingUrl} target="_blank" rel="noreferrer">Go to safeguarding page<ExternalLink className="h-3.5 w-3.5" /></a>
+          <a href={`https://www.google.com/search?q=${encodeURIComponent(`${council.name} council report safeguarding concern adult`)}`} target="_blank" rel="noreferrer">Find safeguarding page<Search className="h-3.5 w-3.5" /></a>
         </Button>
         <Button asChild size="sm" variant="ghost" className="min-h-11 w-full justify-between text-sm">
-          <a href={`https://www.google.com/search?q=${encodeURIComponent(`${council.name} council adult safeguarding referral`)}`} target="_blank" rel="noreferrer">Search instead<Search className="h-3.5 w-3.5" /></a>
+          <a href={council.safeguardingUrl} target="_blank" rel="noreferrer">Try direct link<ExternalLink className="h-3.5 w-3.5" /></a>
         </Button>
       </CardContent>
     </Card>
