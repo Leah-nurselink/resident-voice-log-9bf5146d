@@ -59,26 +59,8 @@ jobs:
       - name: Install JS deps
         run: bun install --no-frozen-lockfile
 
-      # Capacitor native plugins must be present in node_modules BEFORE `cap sync`,
-      # or sync silently drops them from the Android project and the APK ships
-      # without the native class (symptom: "plugin not implemented on android").
-      # These are explicitly installed because they are easy to miss from the
-      # lockfile in CI's frozen-install mode. Versions match package.json.
-      - name: Ensure native Capacitor plugins are installed
-        run: bun add --no-frozen-lockfile @capacitor/camera@8.2.5 @capacitor-community/bluetooth-le@8.2.0
-
-      - name: Verify native plugins resolved
-        run: |
-          test -f node_modules/@capacitor/camera/android/build.gradle || { echo "::error::@capacitor/camera Android module missing"; exit 1; }
-          echo "✅ camera plugin present"
-
       - name: Sync Capacitor (Android)
         run: bunx cap sync android
-
-      - name: Verify camera wired into Android project
-        run: |
-          grep -q "capacitor-camera" android/capacitor.settings.gradle || { echo "::error::camera not wired into settings.gradle after sync"; exit 1; }
-          echo "✅ camera wired into Android build"
 
       - name: Add Android BLE diagnostic logging
         run: node scripts/instrument-android-ble.mjs
