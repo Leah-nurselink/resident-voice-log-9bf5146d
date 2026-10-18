@@ -33,7 +33,7 @@ export function ResidentIntelligence({ residentId }: { residentId: string }) {
       const [notes, plans, risks] = await Promise.all([
         supabase.from("daily_notes").select("id,created_at,content,domain,risks,flags").eq("resident_id", residentId).order("created_at", { ascending: false }).limit(400),
         supabase.from("care_plans").select("id,domain,updated_at").eq("resident_id", residentId),
-        supabase.from("risk_assessments").select("id,type,level,updated_at").eq("resident_id", residentId),
+        supabase.from("resident_risk_assessments").select("id,type,level,updated_at").eq("resident_id", residentId),
       ]);
       const intel = analyseResident(
         (notes.data ?? []) as never,

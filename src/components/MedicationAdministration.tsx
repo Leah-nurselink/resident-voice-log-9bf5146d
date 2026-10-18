@@ -17,6 +17,7 @@ import {
 } from "@/lib/medications";
 import { MED_RIGHTS, medicationSafetyFlags, stockState, unitsFromDose, type SafetyFlag } from "@/lib/medication-safety";
 import { reviewMedicationSafety } from "@/lib/medication-ai.functions";
+import { AI_FEATURES } from "@/lib/ai-features";
 import { addDays, format } from "date-fns";
 
 /** Resident context used for safety checks: allergies, history, all active medicines, high risks. */
@@ -27,7 +28,7 @@ export function useResidentMedContext(residentId: string) {
       const [res, meds, risks] = await Promise.all([
         supabase.from("residents").select("allergies, medical_history").eq("id", residentId).single(),
         supabase.from("medications").select("*").eq("resident_id", residentId).eq("status", "active"),
-        supabase.from("risk_assessments").select("type, level, factors").eq("resident_id", residentId),
+        supabase.from("resident_risk_assessments").select("type, level, factors").eq("resident_id", residentId),
       ]);
       const highRisks = (risks.data ?? [])
         .filter((r) => r.level === "high" || r.level === "medium")
@@ -65,6 +66,7 @@ export function AiMedicationReview({ residentId }: { residentId: string }) {
     onSuccess: (r) => setText(r.text),
     onError: (e) => toast.error(e instanceof Error ? e.message : "AI review failed"),
   });
+  if (!AI_FEATURES.medicationSafetyReview) return null;
   return (
     <div className="rounded-lg border p-2">
       <Button size="sm" variant="outline" onClick={() => m.mutate()} disabled={m.isPending}>
