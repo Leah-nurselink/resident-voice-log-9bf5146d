@@ -34,7 +34,7 @@ export const draftCarePlan = createServerFn({ method: "POST" })
     const [res, risks, notes] = await Promise.all([
       sb.from("residents").select("full_name, preferred_name, communication_needs, important_preferences, first_language, allergies, dietary_requirements").eq("id", data.residentId).single(),
       riskTypes.length
-        ? sb.from("risk_assessments").select("type, level, factors, controls").eq("resident_id", data.residentId).in("type", riskTypes as never)
+        ? sb.from("resident_risk_assessments").select("type, level, factors, controls").eq("resident_id", data.residentId).in("type", riskTypes as never)
         : Promise.resolve({ data: [] as never[], error: null }),
       sb.from("daily_notes").select("created_at, content").eq("resident_id", data.residentId).eq("domain", domain as never).eq("status", "approved").gte("created_at", since).order("created_at", { ascending: false }).limit(10),
     ]);

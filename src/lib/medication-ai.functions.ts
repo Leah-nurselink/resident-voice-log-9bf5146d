@@ -14,7 +14,7 @@ export const reviewMedicationSafety = createServerFn({ method: "POST" })
     const [res, meds, risks, plans] = await Promise.all([
       sb.from("residents").select("allergies, medical_history, date_of_birth").eq("id", data.residentId).single(),
       sb.from("medications").select("name, dose, route, form, times, is_prn, indication").eq("resident_id", data.residentId).eq("status", "active"),
-      sb.from("risk_assessments").select("type, level, factors").eq("resident_id", data.residentId),
+      sb.from("resident_risk_assessments").select("type, level, factors").eq("resident_id", data.residentId),
       sb.from("care_plans").select("domain, needs, risks").eq("resident_id", data.residentId),
     ]);
     const input = [

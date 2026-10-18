@@ -15,7 +15,7 @@ export const getResidentCalendar = createServerFn({ method: "POST" })
       sb.from("residents").select("id,full_name,room_number").order("full_name"),
       sb.from("care_schedules").select("id,resident_id,domain,activity,notes,days_of_week,specific_date,specific_time,window_start,window_end").eq("is_active", true).in("domain", ["appointment", "other"]),
       sb.from("care_plans").select("id,resident_id,domain,last_review,content,needs,outcome"),
-      sb.from("risk_assessments").select("id,resident_id,type,review_date").gte("review_date", data.start).lte("review_date", data.end),
+      sb.from("resident_risk_assessments").select("id,resident_id,type,review_date").gte("review_date", data.start).lte("review_date", data.end),
       sb.from("consents").select("id,resident_id,consent_type,review_date").gte("review_date", data.start).lte("review_date", data.end),
       sb.from("mca_assessments").select("id,resident_id,decision,review_date").gte("review_date", data.start).lte("review_date", data.end),
       sb.from("medications").select("id,resident_id,name,review_date").eq("status", "active").gte("review_date", data.start).lte("review_date", data.end),
