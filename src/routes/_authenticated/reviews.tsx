@@ -48,7 +48,7 @@ function ReviewsPage() {
     queryFn: async () => {
       const [plans, risks, consents, mca, meds, wounds] = await Promise.all([
         supabase.from("care_plans").select("id, domain, last_review, resident_id, residents(full_name)"),
-        supabase.from("risk_assessments").select("id, type, review_date, resident_id, residents(full_name)"),
+        supabase.from("resident_risk_assessments").select("id, type, review_date, resident_id, residents(full_name)"),
         supabase.from("consents").select("id, consent_type, review_date, resident_id, residents(full_name)"),
         supabase.from("mca_assessments").select("id, decision, review_date, resident_id, residents(full_name)"),
         supabase.from("medications").select("id, name, review_date, resident_id, residents(full_name)").eq("status", "active"),

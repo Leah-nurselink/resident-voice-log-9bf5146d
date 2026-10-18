@@ -122,7 +122,7 @@ function ClinicalReviewPage() {
   });
   const risks = useQuery({
     queryKey: ["cr-risks"],
-    queryFn: async () => (await sb.from("risk_assessments").select("resident_id, type, level, review_date").in("level", ["medium", "high"])).data ?? [],
+    queryFn: async () => (await sb.from("resident_risk_assessments").select("resident_id, type, level, review_date").in("level", ["medium", "high"])).data ?? [],
   });
   const medsChanged = useQuery({
     queryKey: ["cr-meds", since, date],

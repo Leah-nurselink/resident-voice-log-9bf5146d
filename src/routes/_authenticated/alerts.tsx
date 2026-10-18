@@ -84,7 +84,7 @@ function AlertsPage() {
     queryKey: ["high-risks-all"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("risk_assessments")
+        .from("resident_risk_assessments")
         .select("id, type, level, resident_id, residents(full_name)")
         .in("level", ["medium", "high"])
         .order("level", { ascending: false });

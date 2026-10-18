@@ -50,7 +50,7 @@ function IntelligencePage() {
       const [notes, plans, risks, meds, admins, drafts, wounds, tasks, pains] = await Promise.all([
         supabase.from("daily_notes").select("id,resident_id,created_at,content,domain,category,risks,flags").in("resident_id", ids).order("created_at", { ascending: false }).limit(2000),
         supabase.from("care_plans").select("id,resident_id,domain,updated_at").in("resident_id", ids),
-        supabase.from("risk_assessments").select("id,resident_id,type,level,updated_at").in("resident_id", ids),
+        supabase.from("resident_risk_assessments").select("id,resident_id,type,level,updated_at").in("resident_id", ids),
         supabase.from("medications").select("*").in("resident_id", ids).eq("status", "active"),
         supabase.from("medication_administrations").select("*").in("resident_id", ids).gte("administered_at", since14),
         supabase.from("daily_notes").select("id", { count: "exact", head: true }).in("resident_id", ids).eq("status", "draft"),

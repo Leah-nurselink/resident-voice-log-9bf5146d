@@ -78,7 +78,7 @@ function Dashboard() {
     queryKey: ["high-risks-count"],
     queryFn: async () => {
       const { count, error } = await supabase
-        .from("risk_assessments")
+        .from("resident_risk_assessments")
         .select("*", { count: "exact", head: true })
         .eq("level", "high");
       if (error) throw error;

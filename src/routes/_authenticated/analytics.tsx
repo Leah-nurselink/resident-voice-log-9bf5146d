@@ -62,7 +62,7 @@ function AnalyticsPage() {
   const risks = useQuery({
     queryKey: ["analytics-risks"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("risk_assessments").select("id, type, level");
+      const { data, error } = await supabase.from("resident_risk_assessments").select("id, type, level");
       if (error) throw error;
       return data ?? [];
     },
