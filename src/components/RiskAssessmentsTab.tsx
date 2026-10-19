@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { RISK_ASSESSMENTS, type RiskAssessmentDef } from "@/lib/risk-assessments";
+import { RISK_ASSESSMENTS, type RiskAssessmentDef, type RAField } from "@/lib/risk-assessments";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -16,9 +17,12 @@ import { toast } from "sonner";
 // Untyped view of the new table (not yet in generated Supabase types).
 const sb = supabase as unknown as { from: (t: string) => any; auth: typeof supabase.auth };
 
+type Answer = string | string[];
+type Answers = Record<string, Answer>;
+
 type Row = {
   id: string; type: string; level: string | null; status: string;
-  answers: Record<string, string> | null; outcome: string | null; actions: string | null;
+  answers: Answers | null; outcome: string | null; actions: string | null;
   review_interval: string | null; review_date: string | null; updated_at: string;
 };
 
@@ -94,7 +98,7 @@ export function RiskAssessmentsTab({ residentId }: { residentId: string; residen
 
 function RiskAssessmentForm({ residentId, def, existing, onClose }: { residentId: string; def: RiskAssessmentDef; existing: Row | null; onClose: () => void }) {
   const qc = useQueryClient();
-  const [answers, setAnswers] = useState<Record<string, string>>(existing?.answers ?? {});
+  const [answers, setAnswers] = useState<Answers>(existing?.answers ?? {});
   const [level, setLevel] = useState(existing?.level ?? "");
   const [outcome, setOutcome] = useState(existing?.outcome ?? "");
   const [actions, setActions] = useState(existing?.actions ?? "");
@@ -109,7 +113,7 @@ function RiskAssessmentForm({ residentId, def, existing, onClose }: { residentId
       const payload = {
         resident_id: residentId, type: def.key, title: def.title, category: def.category,
         level: def.hasLevel && level ? level : null,
-        answers, outcome: outcome || null, actions: actions || null,
+        answers: visibleAnswers(def, answers), outcome: outcome || null, actions: actions || null,
         review_interval: interval || null, review_date: reviewDate || null,
         status, assessed_by: u.user?.id ?? null, updated_by: u.user?.id ?? null,
       };
@@ -139,7 +143,7 @@ function RiskAssessmentForm({ residentId, def, existing, onClose }: { residentId
               <Label>Overall risk level (assessor&rsquo;s judgement)</Label>
               <Select value={level} onValueChange={setLevel}>
                 <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
-                <SelectContent>{LEVELS.map((l) => <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>)}</SelectContent>
+                <SelectContent>{LEVELS.map((l, i) => <SelectItem key={l} value={l} className="capitalize">{def.ratingOptions?.[i] ?? l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           )}
@@ -147,12 +151,8 @@ function RiskAssessmentForm({ residentId, def, existing, onClose }: { residentId
             <section key={si} className="space-y-2 rounded-lg border bg-muted/20 p-3">
               {s.title && <h4 className="text-sm font-semibold">{s.title}</h4>}
               {s.note && <p className="text-xs text-muted-foreground">{s.note}</p>}
-              {s.fields.map((f) => (
-                <div key={f.key} className="space-y-1">
-                  <Label className="text-xs leading-snug">{f.label}</Label>
-                  <Textarea rows={1} value={answers[f.key] ?? ""} className="resize-y text-sm"
-                    onChange={(e) => setAnswers((p) => ({ ...p, [f.key]: e.target.value }))} />
-                </div>
+              {s.fields.filter((f) => isShown(f, answers)).map((f) => (
+                <FieldInput key={f.key} f={f} value={answers[f.key]} onChange={(v) => setAnswers((p) => ({ ...p, [f.key]: v }))} />
               ))}
               {s.prompt && (
                 <p className="flex items-start gap-1.5 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning-foreground">
@@ -181,5 +181,82 @@ function RiskAssessmentForm({ residentId, def, existing, onClose }: { residentId
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ---- Question helpers -------------------------------------------------------
+
+const matches = (a: Answer | undefined, equals: string | string[]) => {
+  const want = Array.isArray(equals) ? equals : [equals];
+  const have = Array.isArray(a) ? a : a ? [a] : [];
+  return have.some((h) => want.includes(h));
+};
+const isShown = (f: RAField, answers: Answers) => !f.showIf || matches(answers[f.showIf.id], f.showIf.equals);
+function visibleAnswers(def: RiskAssessmentDef, answers: Answers): Answers {
+  const out: Answers = {};
+  def.sections.forEach((s) => s.fields.forEach((f) => {
+    const v = answers[f.key];
+    if (isShown(f, answers) && v !== undefined && v !== "" && !(Array.isArray(v) && v.length === 0)) out[f.key] = v;
+  }));
+  return out;
+}
+
+function Choice({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div role="radiogroup" className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <Button key={o} type="button" size="sm" role="radio" aria-checked={value === o}
+          variant={value === o ? "default" : "outline"} className="h-8 text-xs"
+          onClick={() => onChange(value === o ? "" : o)}>{o}</Button>
+      ))}
+    </div>
+  );
+}
+
+function FieldInput({ f, value, onChange }: { f: RAField; value: Answer | undefined; onChange: (v: Answer) => void }) {
+  const str = typeof value === "string" ? value : "";
+  const arr = Array.isArray(value) ? value : [];
+  const opts = f.options ?? [];
+  const flagged = f.flag && matches(value, f.flag.equals);
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs leading-snug">{f.label}</Label>
+      {f.help && <p className="text-[11px] text-muted-foreground">{f.help}</p>}
+      {(f.type === "yesno" || (f.type === "select" && opts.length <= 3 && opts.every((o) => o.length <= 22))) && (
+        <Choice options={opts} value={str} onChange={onChange} />
+      )}
+      {f.type === "select" && !(opts.length <= 3 && opts.every((o) => o.length <= 22)) && (
+        <Select value={str} onValueChange={onChange}>
+          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+          <SelectContent>{opts.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+        </Select>
+      )}
+      {f.type === "multiselect" && (
+        <div className="space-y-1.5">
+          <p className="text-[11px] italic text-muted-foreground">Tick all that apply</p>
+          {opts.map((o) => (
+            <label key={o} className="flex cursor-pointer items-start gap-2 text-sm">
+              <Checkbox checked={arr.includes(o)} className="mt-0.5"
+                onCheckedChange={(c) => onChange(c ? [...arr, o] : arr.filter((x) => x !== o))} />
+              <span className="leading-snug">{o}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      {f.type === "text" && <Input value={str} onChange={(e) => onChange(e.target.value)} className="h-9 text-sm" />}
+      {f.type === "number" && (
+        <div className="flex items-center gap-2">
+          <Input type="number" inputMode="decimal" value={str} onChange={(e) => onChange(e.target.value)} className="h-9 w-32 text-sm" />
+          {f.unit && <span className="text-xs text-muted-foreground">{f.unit}</span>}
+        </div>
+      )}
+      {f.type === "date" && <Input type="date" value={str} onChange={(e) => onChange(e.target.value)} className="h-9 w-44 text-sm" />}
+      {f.type === "longtext" && <Textarea rows={2} value={str} onChange={(e) => onChange(e.target.value)} className="resize-y text-sm" />}
+      {flagged && (
+        <p className="flex items-start gap-1.5 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning-foreground">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{f.flag!.message}
+        </p>
+      )}
+    </div>
   );
 }
