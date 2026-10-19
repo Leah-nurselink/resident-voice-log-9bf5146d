@@ -13,6 +13,7 @@ import { WoundsTab } from "@/components/WoundsTab";
 import { PersonalInfoTab } from "@/components/PersonalInfoTab";
 import { PainModule, PainSummary } from "@/components/PainModule";
 import { RiskToolWizard } from "@/components/RiskToolWizard";
+import { RiskAssessmentsTab } from "@/components/RiskAssessmentsTab";
 import { MedicationsTab } from "@/components/MedicationsTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -371,6 +372,8 @@ function ResidentDetail() {
 
 
         <TabsContent value="risk" className="mt-4 space-y-2">
+          <RiskAssessmentsTab residentId={id} residentName={r.full_name} />
+          <p className="pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Scored tools and earlier risk records</p>
           <PreAssessmentRiskPrompts residentId={id} doneTypes={(risks.data ?? []).map((x) => x.type)} />
           <Button size="sm" onClick={() => setRiskWizard(true)}>
             <Plus className="mr-1 h-4 w-4" />New recognised assessment (NHS / NICE / HSE / MHRA)
