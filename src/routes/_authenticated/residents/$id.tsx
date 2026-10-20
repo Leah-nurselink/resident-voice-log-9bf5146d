@@ -12,8 +12,8 @@ import { ResidentHighlights } from "@/components/ResidentHighlights";
 import { WoundsTab } from "@/components/WoundsTab";
 import { PersonalInfoTab } from "@/components/PersonalInfoTab";
 import { PainModule, PainSummary } from "@/components/PainModule";
-import { RiskToolWizard } from "@/components/RiskToolWizard";
 import { RiskAssessmentsTab } from "@/components/RiskAssessmentsTab";
+import { DOMAIN_TO_RA, assessmentControls, assessmentFactors, raTitle, risksTriggeringPlan, type RARow } from "@/lib/risk-links";
 import { MedicationsTab } from "@/components/MedicationsTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  CARE_PLAN_DOMAINS, RISK_TYPES, RISK_LEVEL_COLOR, CONSENT_TYPES, DOMAIN_TO_RISKS,
+  CARE_PLAN_DOMAINS, RISK_LEVEL_COLOR, CONSENT_TYPES,
   domainLabel, riskLabel,
   type CarePlanDomain, type RiskType,
 } from "@/lib/care-domains";
@@ -90,11 +90,11 @@ function ResidentDetail() {
   });
 
   const risks = useQuery({
-    queryKey: ["risks", id],
+    queryKey: ["resident-risk-assessments", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("risk_assessments").select("*").eq("resident_id", id);
+      const { data, error } = await (supabase as any).from("resident_risk_assessments").select("*").eq("resident_id", id);
       if (error) throw error;
-      return data;
+      return (data ?? []) as RARow[];
     },
   });
 
@@ -182,7 +182,6 @@ function ResidentDetail() {
   const [editMca, setEditMca] = useState<any | null>(null);
   const [newMca, setNewMca] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
-  const [riskWizard, setRiskWizard] = useState(false);
 
   if (!resident.data) return <AppShell title="Loading…"><div /></AppShell>;
   const r = resident.data;
@@ -216,11 +215,11 @@ function ResidentDetail() {
           </div>
         </div>
         <CallRecorder open={callOpen} onOpenChange={setCallOpen} residentId={id} residentName={r.full_name} />
-        {risks.data && risks.data.length > 0 && (
+        {risks.data && risks.data.some((rk) => rk.level === "medium" || rk.level === "high") && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {risks.data.map((rk) => (
+            {risks.data.filter((rk) => rk.level === "medium" || rk.level === "high").map((rk) => (
               <Badge key={rk.id} className={RISK_LEVEL_COLOR[rk.level as "low"|"medium"|"high"]}>
-                {riskLabel(rk.type as RiskType)}: {rk.level}
+                {raTitle(rk.type)}: {rk.level}
               </Badge>
             ))}
           </div>
@@ -345,14 +344,14 @@ function ResidentDetail() {
 
         <TabsContent value="care" className="mt-4 space-y-2">
           <div className="flex justify-end">
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => exportCarePlansPDF(r, (carePlans.data ?? []) as never, (risks.data ?? []) as never)}>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => exportCarePlansPDF(r, (carePlans.data ?? []) as never, (risks.data ?? []).map((k) => ({ type: raTitle(k.type), level: k.level, factors: assessmentFactors(k), controls: assessmentControls(k), review_date: k.review_date })) as never)}>
               <Printer className="h-3.5 w-3.5" /> Download care plan & risks PDF
             </Button>
           </div>
           {CARE_PLAN_DOMAINS.map((d) => {
             const existing = carePlans.data?.find((c) => c.domain === d.id);
-            const riskTypes = DOMAIN_TO_RISKS[d.id] || [];
-            const linked = (risks.data ?? []).filter((r) => riskTypes.includes(r.type as RiskType));
+            const riskTypes = DOMAIN_TO_RA[d.id] || [];
+            const linked = (risks.data ?? []).filter((r) => riskTypes.includes(r.type));
             return (
               <div key={d.id} className="space-y-1">
                 <CarePlanRow residentId={id} domain={d.id} label={d.label} hint={d.hint} existing={existing} linkedRisks={linked} />
@@ -372,17 +371,8 @@ function ResidentDetail() {
 
 
         <TabsContent value="risk" className="mt-4 space-y-2">
+          <PreAssessmentRiskPrompts residentId={id} doneTypes={preDone(risks.data ?? [])} />
           <RiskAssessmentsTab residentId={id} residentName={r.full_name} />
-          <p className="pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Scored tools and earlier risk records</p>
-          <PreAssessmentRiskPrompts residentId={id} doneTypes={(risks.data ?? []).map((x) => x.type)} />
-          <Button size="sm" onClick={() => setRiskWizard(true)}>
-            <Plus className="mr-1 h-4 w-4" />New recognised assessment (NHS / NICE / HSE / MHRA)
-          </Button>
-          {RISK_TYPES.map((t) => {
-            const existing = risks.data?.find((r) => r.type === t.id);
-            return <RiskRow key={t.id} residentId={id} type={t.id} label={t.label} existing={existing} />;
-          })}
-          {riskWizard && <RiskToolWizard residentId={id} residentName={r.full_name} onClose={() => { setRiskWizard(false); risks.refetch?.(); }} />}
         </TabsContent>
 
         <TabsContent value="pain" className="mt-4">
@@ -461,21 +451,26 @@ function ConsentBadge({ status }: { status: string }) {
   return <Badge className={map[status]} variant={status === "pending" ? "outline" : "default"}>{status}</Badge>;
 }
 
+// Pre-assessment prompts still use the older risk names; map the recorded assessments onto them.
+const PRE_DONE: Record<string, string[]> = {
+  falls: ["falls"], moving_handling: ["moving_handling"], skin: ["pressure"], waterlow: ["pressure"],
+  nutrition: ["nutrition"], must: ["nutrition"], medication: ["medication"], peep: ["environmental"],
+};
+function preDone(rows: RARow[]): string[] {
+  // "behavioural" has no matching assessment in the pack, so it is not prompted for here.
+  return [...rows.filter((r) => r.status !== "draft").flatMap((r) => PRE_DONE[r.type] ?? []), "behavioural"];
+}
+
 function CarePlanRow({ residentId, domain, label, hint, existing, linkedRisks = [] }: { residentId: string; domain: CarePlanDomain; label: string; hint: string; existing?: any; linkedRisks?: any[] }) {
   const [open, setOpen] = useState(false);
   const documented = !!(existing && (existing.content || existing.needs || existing.outcome || existing.risks));
-  // Latest assessment per risk type
-  const latestRisks = Object.values(
-    linkedRisks.reduce((acc: Record<string, any>, r: any) => {
-      const t = r.updated_at ?? r.created_at;
-      if (!acc[r.type] || t > (acc[r.type].updated_at ?? acc[r.type].created_at)) acc[r.type] = r;
-      return acc;
-    }, {}),
-  ) as any[];
+  // One current record per assessment type, so these are already the latest.
+  const latestRisks = linkedRisks as RARow[];
   const today = new Date().toISOString().slice(0, 10);
-  const highNoPlan = !documented && latestRisks.some((r) => r.level === "high");
-  const riskNewer = documented && !!existing?.last_review && latestRisks.some((r) => (r.updated_at ?? r.created_at).slice(0, 10) > existing.last_review);
-  const riskOverdue = latestRisks.some((r) => r.review_date && r.review_date < today);
+  const highNoPlan = !documented && latestRisks.some((r) => r.level === "high" && r.status !== "draft");
+  const triggers = documented ? risksTriggeringPlan(existing, domain, latestRisks, today) : [];
+  const riskNewer = triggers.filter((t) => t.reason === "reviewed");
+  const riskOverdue = triggers.filter((t) => t.reason === "overdue");
   return (
     <>
       <button onClick={() => setOpen(true)} className="flex w-full items-center justify-between gap-2 rounded-2xl border bg-card p-4 text-left hover:bg-accent/30">
@@ -492,23 +487,23 @@ function CarePlanRow({ residentId, domain, label, hint, existing, linkedRisks = 
             <div className="mt-1.5 flex flex-wrap gap-1">
               {latestRisks.map((r) => (
                 <Badge key={r.id} className={RISK_LEVEL_COLOR[r.level as "low"|"medium"|"high"] + " text-[10px]"}>
-                  <AlertTriangle className="mr-1 h-3 w-3" />{riskLabel(r.type as RiskType)} · {r.band ?? r.level}{r.score != null ? ` (${r.score})` : ""}
+                  <AlertTriangle className="mr-1 h-3 w-3" />{raTitle(r.type)} · {(r.answers as any)?._band ?? r.level}{(r.answers as any)?._score != null ? ` (${(r.answers as any)._score})` : ""}
                 </Badge>
               ))}
             </div>
           )}
           {highNoPlan && <p className="mt-1 text-[11px] font-medium text-destructive">High risk assessed — this care plan needs writing</p>}
-          {riskNewer && <p className="mt-1 text-[11px] font-medium text-warning-foreground">Risk assessment updated since last plan review — review this plan</p>}
-          {riskOverdue && <p className="mt-1 text-[11px] font-medium text-destructive">Linked risk assessment review overdue</p>}
+          {riskNewer.length > 0 && <p className="mt-1 text-[11px] font-medium text-warning-foreground">Review this plan: {riskNewer.map((t) => raTitle(t.row.type)).join(", ")} {riskNewer.length === 1 ? "has" : "have"} been reviewed since the last plan review</p>}
+          {riskOverdue.length > 0 && <p className="mt-1 text-[11px] font-medium text-destructive">Review this plan: {riskOverdue.map((t) => raTitle(t.row.type)).join(", ")} {riskOverdue.length === 1 ? "is" : "are"} overdue for review</p>}
         </div>
         <Pencil className="h-4 w-4 text-muted-foreground" />
       </button>
-      {open && <CarePlanDialog residentId={residentId} domain={domain} label={label} existing={existing} onClose={() => setOpen(false)} />}
+      {open && <CarePlanDialog residentId={residentId} domain={domain} label={label} existing={existing} respondingToRisk={triggers.length > 0} onClose={() => setOpen(false)} />}
     </>
   );
 }
 
-function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
+function CarePlanDialog({ residentId, domain, label, existing, respondingToRisk = false, onClose }: any) {
   const qc = useQueryClient();
   const [needs, setNeeds] = useState(existing?.needs || "");
   const [risksTxt, setRisksTxt] = useState(existing?.risks || "");
@@ -516,16 +511,16 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
   const [content, setContent] = useState(existing?.content || "");
   const [reviewDate, setReviewDate] = useState(existing?.last_review || new Date().toISOString().slice(0, 10));
 
-  const linkedRiskTypes = DOMAIN_TO_RISKS[domain as CarePlanDomain] || [];
+  const linkedRiskTypes = DOMAIN_TO_RA[domain as CarePlanDomain] || [];
 
   const linkedRisks = useQuery({
     enabled: linkedRiskTypes.length > 0,
     queryKey: ["linked-risks", residentId, domain],
     queryFn: async () => {
-      const { data, error } = await supabase.from("risk_assessments")
-        .select("*").eq("resident_id", residentId).in("type", linkedRiskTypes);
+      const { data, error } = await (supabase as any).from("resident_risk_assessments")
+        .select("*").eq("resident_id", residentId).in("type", linkedRiskTypes).neq("status", "draft");
       if (error) throw error;
-      return data;
+      return (data ?? []) as RARow[];
     },
   });
 
@@ -571,8 +566,28 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
       }
       const { error } = await supabase.from("care_plans").upsert(patch as never, { onConflict: "resident_id,domain" });
       if (error) throw error;
+
+      // Care plan -> risk assessment: if the plan's content was changed (not just re-dated), and this
+      // review was not itself a response to a risk assessment change, ask for the linked assessments
+      // to be reviewed by bringing their review date forward to today.
+      const wasDocumented = !!(existing && (existing.content || existing.needs || existing.outcome || existing.risks));
+      const changed = needs !== (existing?.needs || "") || risksTxt !== (existing?.risks || "") ||
+        outcome !== (existing?.outcome || "") || content !== (existing?.content || "");
+      if (wasDocumented && changed && !respondingToRisk && linkedRiskTypes.length > 0) {
+        const today = new Date().toISOString().slice(0, 10);
+        const { data: flagged } = await (supabase as any).from("resident_risk_assessments")
+          .update({ review_date: today })
+          .eq("resident_id", residentId).in("type", linkedRiskTypes).eq("status", "complete")
+          .or(`review_date.is.null,review_date.gt.${today}`).select("id");
+        if (flagged?.length) toast.info(`${flagged.length} linked risk assessment${flagged.length === 1 ? "" : "s"} marked for review`);
+      }
     },
-    onSuccess: () => { toast.success(draftLoaded ? "Care plan approved" : "Care plan updated"); qc.invalidateQueries({ queryKey: ["care-plans", residentId] }); onClose(); },
+    onSuccess: () => {
+      toast.success(draftLoaded ? "Care plan approved" : "Care plan updated");
+      qc.invalidateQueries({ queryKey: ["care-plans", residentId] });
+      qc.invalidateQueries({ queryKey: ["resident-risk-assessments", residentId] });
+      onClose();
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
 
@@ -617,10 +632,13 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
     setContent((c: string) => (c ? c + "\n\n" : "") + n.content);
   }
 
-  function pullFromRisk(r: any) {
-    const header = `From ${riskLabel(r.type as RiskType)} (${r.level}) · ${r.updated_at ? format(new Date(r.updated_at), "d MMM yyyy") : ""}`;
-    if (r.factors) setRisksTxt((c: string) => (c ? c + "\n\n" : "") + `${header}\n${r.factors}`);
-    if (r.controls) setContent((c: string) => (c ? c + "\n\n" : "") + `Controls (${riskLabel(r.type as RiskType)}):\n${r.controls}`);
+  function pullFromRisk(r: RARow) {
+    const title = raTitle(r.type);
+    const header = `From ${title} (${r.level ?? "not rated"}) · ${r.updated_at ? format(new Date(r.updated_at), "d MMM yyyy") : ""}`;
+    const factors = assessmentFactors(r);
+    const controls = assessmentControls(r);
+    if (factors) setRisksTxt((c: string) => (c ? c + "\n\n" : "") + `${header}\n${factors}`);
+    if (controls) setContent((c: string) => (c ? c + "\n\n" : "") + `Controls (${title}):\n${controls}`);
     toast.success("Pulled into care plan");
   }
 
@@ -650,10 +668,10 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium">{riskLabel(r.type as RiskType)}</span>
-                        <Badge className={RISK_LEVEL_COLOR[r.level as "low"|"medium"|"high"] + " text-[10px]"}>{r.level}</Badge>
+                        <span className="text-xs font-medium">{raTitle(r.type)}</span>
+                        {r.level && <Badge className={RISK_LEVEL_COLOR[r.level as "low"|"medium"|"high"] + " text-[10px]"}>{r.level}</Badge>}
                       </div>
-                      {r.factors && <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{r.factors}</p>}
+                      {assessmentFactors(r) && <p className="mt-1 line-clamp-2 whitespace-pre-line text-[11px] text-muted-foreground">{assessmentFactors(r)}</p>}
                       <p className="mt-0.5 text-[10px] text-muted-foreground">
                         Updated {r.updated_at ? formatDistanceToNow(new Date(r.updated_at), { addSuffix: true }) : "—"}
                         {r.review_date ? ` · review ${format(new Date(r.review_date), "d MMM yyyy")}` : ""}
@@ -766,104 +784,6 @@ function CarePlanDialog({ residentId, domain, label, existing, onClose }: any) {
           <Button onClick={() => save.mutate(undefined)} disabled={save.isPending}>
             {draftLoaded ? "Approve care plan" : "Update"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function RiskRow({ residentId, type, label, existing }: { residentId: string; type: RiskType; label: string; existing?: any }) {
-  const [open, setOpen] = useState(false);
-  const level = (existing?.level || "low") as "low"|"medium"|"high";
-  return (
-    <>
-      <button onClick={() => setOpen(true)} className="flex w-full items-center justify-between rounded-2xl border bg-card p-4 text-left hover:bg-accent/30">
-        <div>
-          <div className="text-sm font-medium">{label}</div>
-          <p className="mt-0.5 text-xs text-muted-foreground">{existing?.factors?.slice(0, 80) || "Not assessed"}</p>
-        </div>
-        <Badge className={RISK_LEVEL_COLOR[level]}>{level}</Badge>
-      </button>
-      {open && <RiskDialog residentId={residentId} type={type} label={label} existing={existing} onClose={() => setOpen(false)} />}
-    </>
-  );
-}
-
-function RiskDialog({ residentId, type, label, existing, onClose }: any) {
-  const qc = useQueryClient();
-  const [level, setLevel] = useState<"low"|"medium"|"high">(existing?.level || "low");
-  const [factors, setFactors] = useState(existing?.factors || "");
-  const [controls, setControls] = useState(existing?.controls || "");
-  const [review, setReview] = useState(existing?.review_date || "");
-
-  const history = useQuery({
-    enabled: !!existing?.id,
-    queryKey: ["risk-history", existing?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("risk_assessment_history").select("*")
-        .eq("risk_assessment_id", existing.id).order("changed_at", { ascending: false }).limit(20);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const save = useMutation({
-    mutationFn: async () => {
-      const { data: u } = await supabase.auth.getUser();
-      const { error } = await supabase.from("risk_assessments").upsert({
-        resident_id: residentId, type, level, factors, controls,
-        review_date: review || null, updated_by: u.user!.id,
-      }, { onConflict: "resident_id,type" });
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Risk updated"); qc.invalidateQueries({ queryKey: ["risks", residentId] }); onClose(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
-  });
-
-  function applyVoice(n: StructuredNote) {
-    setFactors((c: string) => (c ? c + "\n\n" : "") + n.content);
-  }
-
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{label}</DialogTitle></DialogHeader>
-        <VoiceRecorder onResult={applyVoice} />
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Risk level</Label>
-            <Select value={level} onValueChange={(v) => setLevel(v as any)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Field label="Risk factors" value={factors} onChange={setFactors} rows={3} />
-          <Field label="Controls in place" value={controls} onChange={setControls} rows={3} />
-          <div className="space-y-1.5">
-            <Label>Review date</Label>
-            <Input type="date" value={review} onChange={(e) => setReview(e.target.value)} />
-          </div>
-        </div>
-
-        {history.data && history.data.length > 1 && (
-          <HistoryPanel items={history.data.slice(1)} render={(h) => (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">{format(new Date(h.changed_at), "d MMM yyyy HH:mm")}</span>
-                <Badge className={RISK_LEVEL_COLOR[h.level as "low"|"medium"|"high"]}>{h.level}</Badge>
-              </div>
-              <p className="mt-1 line-clamp-3 text-xs">{h.factors || "—"}</p>
-            </>
-          )} />
-        )}
-
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>Update</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
