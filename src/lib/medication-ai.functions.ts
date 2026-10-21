@@ -14,14 +14,14 @@ export const reviewMedicationSafety = createServerFn({ method: "POST" })
     const [res, meds, risks, plans] = await Promise.all([
       sb.from("residents").select("allergies, medical_history, date_of_birth").eq("id", data.residentId).single(),
       sb.from("medications").select("name, dose, route, form, times, is_prn, indication").eq("resident_id", data.residentId).eq("status", "active"),
-      sb.from("resident_risk_assessments").select("type, level, factors").eq("resident_id", data.residentId),
+      sb.from("resident_risk_assessments").select("type, level, outcome").eq("resident_id", data.residentId),
       sb.from("care_plans").select("domain, needs, risks").eq("resident_id", data.residentId),
     ]);
     const input = [
       `Allergies: ${clean(res.data?.allergies)}`,
       `Medical history: ${clean(res.data?.medical_history, 800)}`,
       `Medicines:\n${(meds.data ?? []).map((m) => `- ${clean(m.name, 80)} ${clean(m.dose, 40)} ${m.route ?? ""} ${m.is_prn ? "PRN" : (m.times ?? []).join(",")} for ${clean(m.indication, 80)}`).join("\n")}`,
-      `Risk assessments:\n${(risks.data ?? []).map((r) => `- ${r.type} ${r.level}: ${clean(r.factors, 150)}`).join("\n")}`,
+      `Risk assessments:\n${(risks.data ?? []).map((r) => `- ${r.type} ${r.level}: ${clean(r.outcome, 150)}`).join("\n")}`,
       `Care plan risks:\n${(plans.data ?? []).filter((p) => p.risks).map((p) => `- ${p.domain}: ${clean(p.risks, 150)}`).join("\n")}`,
     ].join("\n\n");
 

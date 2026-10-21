@@ -1,3 +1,4 @@
+import { raTitle } from "./risk-links";
 export type CarePlanDomain =
   | "personal_care" | "mobility" | "nutrition" | "continence" | "skin_integrity"
   | "communication" | "mental_health" | "cognition" | "medication" | "breathing"
@@ -45,8 +46,10 @@ export const RISK_LEVEL_COLOR: Record<"low" | "medium" | "high", string> = {
 
 export const domainLabel = (d: CarePlanDomain | null | undefined) =>
   CARE_PLAN_DOMAINS.find((x) => x.id === d)?.label ?? "General";
-export const riskLabel = (r: RiskType) =>
-  RISK_TYPES.find((x) => x.id === r)?.label ?? r;
+export const riskLabel = (r: RiskType | string) => {
+  const title = raTitle(r);
+  return title !== r ? title : RISK_TYPES.find((x) => x.id === r)?.label ?? r;
+};
 
 export const CONSENT_TYPES = [
   "Care & treatment",

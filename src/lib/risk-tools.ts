@@ -14,9 +14,11 @@
  *   bump it whenever the scoring changes, so stored assessments remain auditable.
  *
  *   >>> The CSO must confirm the Waterlow point values and thresholds against the
- *       official Waterlow card, and the GULP item scoring against the official
- *       Food First GULP form, before clinical use. The values here follow the
- *       published tools (BAPEN MUST; Waterlow; Essex/Food First GULP; NICE CG161).
+ *       Waterlow chart your service has chosen, and the GULP item scoring against
+ *       the official Food First GULP form, before clinical use. The Waterlow
+ *       scoring here follows the NHS Scotland "Adapted Waterlow Pressure Area Risk
+ *       Assessment Chart (Adults)" v4.0, approved Aug 2024 (Healthcare Improvement
+ *       Scotland). MUST follows BAPEN (2003, reviewed 2011). See docs/risk-tools-signoff.md.
  */
 
 // Maps to the existing Postgres `risk_level` enum used by the app's badges.
@@ -59,6 +61,24 @@ const pointsOf = (group: Group, selected: string[] | string | undefined): number
 // ===========================================================================
 export const MUST_VERSION = "BAPEN-MUST-2011";
 
+/** Where the person is being screened. BAPEN gives different repeat-screening intervals. */
+export type CareSetting = "care_home" | "community";
+export const CARE_SETTING_LABEL: Record<CareSetting, string> = {
+  care_home: "Care home",
+  community: "Community / domiciliary",
+};
+
+/**
+ * Measurements captured ONCE and shared by MUST and Waterlow (Waterlow v4.0's
+ * nutritional element is the same three checks as MUST).
+ */
+export type Measurements = {
+  weightKg?: number;
+  heightCm?: number;
+  usualWeightKg?: number;       // weight 3-6 months ago, for % unplanned loss
+  acuteNoIntake?: boolean;      // acutely ill AND no (or likely no) intake for > 5 days
+};
+
 /** BMI from metric inputs. heightCm in centimetres, weightKg in kilograms. */
 export function bmi(weightKg: number, heightCm: number): number | null {
   if (!weightKg || !heightCm) return null;
@@ -67,32 +87,39 @@ export function bmi(weightKg: number, heightCm: number): number | null {
   return weightKg / (m * m);
 }
 
+/** BMI rounded to one decimal place — for DISPLAY only. Scoring uses the exact value. */
+export const bmi1dp = (b: number | null): number | null => (b == null ? null : Math.round(b * 10) / 10);
+
 /** Unplanned weight-loss percentage over the last 3–6 months. */
 export function weightLossPct(usualKg: number, currentKg: number): number | null {
   if (!usualKg || !currentKg || usualKg <= 0) return null;
   return ((usualKg - currentKg) / usualKg) * 100;
 }
 
+/**
+ * MUST step 1. BAPEN: ">20 (>30 obese) = 0; 18.5–20 = 1; <18.5 = 2", and its chart
+ * says the lines are "the exact cut off points". So a BMI of exactly 20.0 scores 1,
+ * not 0, and the exact (unrounded) BMI is what is scored.
+ */
 export function mustBmiScore(bmiValue: number | null): number | null {
-  if (bmiValue == null) return null;
-  if (bmiValue >= 20) return 0;     // >20 (incl. obese) = 0
-  if (bmiValue >= 18.5) return 1;   // 18.5–20 = 1
-  return 2;                         // <18.5 = 2
+  const v = bmiValue;
+  if (v == null) return null;
+  if (v > 20) return 0;
+  if (v >= 18.5) return 1;
+  return 2;
 }
 
+/** MUST step 2. <5% = 0; 5–10% = 1; >10% = 2. */
 export function mustWeightLossScore(pct: number | null): number | null {
   if (pct == null) return null;
-  if (pct > 10) return 2;           // >10% = 2
-  if (pct >= 5) return 1;           // 5–10% = 1
-  return 0;                         // <5% = 0
+  if (pct > 10) return 2;
+  if (pct >= 5) return 1;
+  return 0;
 }
 
-export type MustInputs = {
-  weightKg?: number;
-  heightCm?: number;
-  usualWeightKg?: number;
-  // Acutely unwell AND no / likely no nutritional intake for > 5 days (rare in a care home).
-  acuteNoIntake?: boolean;
+export type MustInputs = Measurements & {
+  /** Which repeat-screening intervals apply. Defaults to care_home. */
+  setting?: CareSetting;
   // Optional manual overrides if BMI/weight can't be measured (document the reason).
   bmiScoreOverride?: 0 | 1 | 2;
   weightLossScoreOverride?: 0 | 1 | 2;
@@ -104,6 +131,8 @@ export type MustResult = ToolResult & {
   pctLoss: number | null;
   lossScore: number | null;
   acuteScore: number;
+  /** BAPEN: record the presence of obesity (BMI > 30). Not part of the score. */
+  obese: boolean;
 };
 
 export function computeMUST(i: MustInputs): MustResult {
@@ -121,22 +150,45 @@ export function computeMUST(i: MustInputs): MustResult {
   else if (total === 1) { band = "Medium risk (1)"; level = "medium"; }
   else { band = "High risk (2+)"; level = "high"; }
 
+  const shown = bmi1dp(bmiValue);
+  const obese = bmiValue != null && bmiValue > 30;
+
   const summary = `MUST ${total} — ${band}` +
-    (bmiValue != null ? ` · BMI ${bmiValue.toFixed(1)}` : "") +
-    (pctLoss != null ? ` · weight loss ${pctLoss.toFixed(1)}%` : "");
+    (shown != null ? ` · BMI ${shown.toFixed(1)}` : "") +
+    (pctLoss != null ? ` · weight loss ${pctLoss.toFixed(1)}%` : "") +
+    (obese ? " · Obese (BMI > 30) — record" : "");
 
   return {
     tool: "must", version: MUST_VERSION,
     score: total, band, level, summary,
-    bmi: bmiValue, bmiScore, pctLoss, lossScore, acuteScore,
+    bmi: bmiValue, bmiScore, pctLoss, lossScore, acuteScore, obese,
   };
 }
 
-export const MUST_ACTION: Record<RiskBandLevel, string> = {
-  low: "Routine clinical care. Re-screen monthly in a care home.",
-  medium: "Observe: document dietary intake for 3 days; re-screen at least monthly. If intake inadequate, set goals and follow local policy.",
-  high: "Treat: refer to dietitian / nutrition support, set goals, increase nutritional intake, monitor and review. Re-screen monthly.",
+/**
+ * BAPEN MUST step 5 — management guidelines and repeat-screening intervals by setting.
+ * (Hospital intervals are weekly but are not offered here — CareCore is for care
+ * homes and community care.)
+ */
+export const MUST_ACTION: Record<CareSetting, Record<RiskBandLevel, string>> = {
+  care_home: {
+    low: "Routine clinical care. Repeat screening monthly.",
+    medium: "Observe: document dietary intake for 3 days. If adequate, little concern — repeat screening at least monthly. If inadequate, there is clinical concern: follow local policy, set goals, improve and increase overall nutritional intake, and monitor and review the care plan regularly.",
+    high: "Treat (unless detrimental or no benefit is expected from nutritional support, e.g. imminent death): refer to a dietitian or nutritional support team, or follow local policy. Set goals, improve and increase overall nutritional intake. Monitor and review the care plan monthly.",
+  },
+  community: {
+    low: "Routine clinical care. Repeat screening annually for special groups, e.g. people over 75.",
+    medium: "Observe: document dietary intake for 3 days. If adequate, little concern — repeat screening at least every 2–3 months. If inadequate, there is clinical concern: follow local policy, set goals, improve and increase overall nutritional intake, and monitor and review the care plan regularly.",
+    high: "Treat (unless detrimental or no benefit is expected from nutritional support, e.g. imminent death): refer to a dietitian or nutritional support team, or follow local policy. Set goals, improve and increase overall nutritional intake. Monitor and review the care plan monthly.",
+  },
 };
+
+/** BAPEN: shown for every risk category. */
+export const MUST_ALL_CATEGORIES_NOTE =
+  "All risk categories: treat the underlying condition and provide help and advice on food choices, eating and drinking when necessary. Record the malnutrition risk category and any need for special diets, and follow local policy. Re-assess people identified at risk as they move through care settings.";
+
+export const MUST_OBESITY_NOTE =
+  "Obesity: record its presence. For people with underlying conditions, these are generally controlled before the treatment of obesity.";
 
 // ===========================================================================
 // 2) GULP — Dehydration Risk Screening Tool (Essex / Food First)
@@ -202,34 +254,19 @@ export const GULP_ACTION: Record<RiskBandLevel, string> = {
 };
 
 // ===========================================================================
-// 3) Waterlow — Pressure Ulcer Risk Assessment
-//    >>> CSO: verify every point value and the thresholds against the official card. <<<
+// 3) Waterlow — Pressure Area Risk Assessment
+//    Follows the NHS Scotland "Adapted Waterlow Pressure Area Risk Assessment
+//    Chart (Adults)" v4.0, approved Aug 2024, review Aug 2027 (Healthcare
+//    Improvement Scotland). Boxes, point values and wording match that chart.
+//    >>> CSO: verify against the chart, then change the version to "-VERIFIED-<date>".
+//    >>> Check reproduction permission before commercial rollout (see docs/risk-tools-signoff.md).
 // ===========================================================================
-export const WATERLOW_VERSION = "Waterlow-2005-UNVERIFIED"; // change to "-VERIFIED-<date>" once the CSO signs off
+export const WATERLOW_VERSION = "Waterlow-HIS-adapted-v4.0-2024-UNVERIFIED";
 
-// Single-select groups (pick the one that applies).
+/** Keys of the Waterlow groups that are worked out from the shared measurements. */
+export const WATERLOW_AUTO_KEYS = ["build", "nutBmi", "nutLoss", "nutAcute"] as const;
+
 export const WATERLOW_GROUPS: Group[] = [
-  {
-    key: "build", label: "Build / weight for height",
-    options: [
-      { value: "average", label: "Average", points: 0 },
-      { value: "above", label: "Above average", points: 1 },
-      { value: "obese", label: "Obese", points: 2 },
-      { value: "below", label: "Below average", points: 3 },
-    ],
-  },
-  {
-    key: "skin", label: "Skin type / visual risk areas", multi: true,
-    options: [
-      { value: "healthy", label: "Healthy", points: 0 },
-      { value: "tissuepaper", label: "Tissue paper", points: 1 },
-      { value: "dry", label: "Dry", points: 1 },
-      { value: "oedematous", label: "Oedematous", points: 1 },
-      { value: "clammy", label: "Clammy (raised temp)", points: 1 },
-      { value: "discoloured", label: "Discoloured (grade 1)", points: 2 },
-      { value: "broken", label: "Broken / spot (grade 2–4)", points: 3 },
-    ],
-  },
   {
     key: "sex", label: "Sex",
     options: [
@@ -240,20 +277,41 @@ export const WATERLOW_GROUPS: Group[] = [
   {
     key: "age", label: "Age",
     options: [
-      { value: "14to49", label: "14–49", points: 1 },
-      { value: "50to64", label: "50–64", points: 2 },
-      { value: "65to74", label: "65–74", points: 3 },
-      { value: "75to80", label: "75–80", points: 4 },
+      { value: "14to49", label: "14 – 49", points: 1 },
+      { value: "50to64", label: "50 – 64", points: 2 },
+      { value: "65to74", label: "65 – 74", points: 3 },
+      { value: "75to80", label: "75 – 80", points: 4 },
       { value: "81plus", label: "81+", points: 5 },
+    ],
+  },
+  {
+    key: "build", label: "Build / weight for height (weight in kg / height in m²)",
+    options: [
+      { value: "average", label: "Average BMI 20 – 24.9", points: 0 },
+      { value: "above", label: "Above average BMI 25 – 29.9", points: 1 },
+      { value: "obese", label: "Obese BMI > 30", points: 2 },
+      { value: "below", label: "Below average BMI < 20", points: 3 },
     ],
   },
   {
     key: "continence", label: "Continence",
     options: [
       { value: "complete", label: "Complete / catheterised", points: 0 },
-      { value: "urine", label: "Occasionally incontinent (urine)", points: 1 },
-      { value: "faeces", label: "Catheterised / incontinent of faeces", points: 2 },
-      { value: "double", label: "Doubly incontinent", points: 3 },
+      { value: "urine", label: "Incontinent urine", points: 1 },
+      { value: "faeces", label: "Incontinent faeces", points: 2 },
+      { value: "double", label: "Doubly incontinent (urine & faeces)", points: 3 },
+    ],
+  },
+  {
+    key: "skin", label: "Skin type (visual risk areas) — more than one can be selected", multi: true,
+    options: [
+      { value: "healthy", label: "Healthy", points: 0 },
+      { value: "tissuepaper", label: "Tissue paper (thin / fragile)", points: 1 },
+      { value: "dry", label: "Dry (appears flaky)", points: 1 },
+      { value: "oedematous", label: "Oedematous (puffy)", points: 1 },
+      { value: "clammy", label: "Clammy (moist to touch / pyrexia)", points: 1 },
+      { value: "discoloured", label: "Discoloured (bruising / mottled)", points: 2 },
+      { value: "broken", label: "Broken (established ulcer)", points: 3 },
     ],
   },
   {
@@ -261,78 +319,106 @@ export const WATERLOW_GROUPS: Group[] = [
     options: [
       { value: "fully", label: "Fully mobile", points: 0 },
       { value: "restless", label: "Restless / fidgety", points: 1 },
-      { value: "apathetic", label: "Apathetic", points: 2 },
-      { value: "restricted", label: "Restricted", points: 3 },
-      { value: "inert", label: "Inert / traction", points: 4 },
-      { value: "chairbound", label: "Chairbound", points: 5 },
+      { value: "apathetic", label: "Apathetic (sedated / depressed / reluctant to move)", points: 2 },
+      { value: "restricted", label: "Restricted (restricted by severe pain or disease)", points: 3 },
+      { value: "bedbound", label: "Bedbound (unconscious / unable to change position / traction)", points: 4 },
+      { value: "chairbound", label: "Chair bound (unable to leave chair without assistance)", points: 5 },
+    ],
+  },
+  // Nutritional element — three checks that add together (same as MUST steps 1–3).
+  {
+    key: "nutLoss", label: "Nutritional element — unplanned weight loss in the past 3–6 months",
+    options: [
+      { value: "lt5", label: "< 5%", points: 0 },
+      { value: "5to10", label: "5 – 10%", points: 1 },
+      { value: "gt10", label: "> 10%", points: 2 },
     ],
   },
   {
-    key: "appetite", label: "Appetite",
+    key: "nutBmi", label: "Nutritional element — BMI",
     options: [
-      { value: "average", label: "Average", points: 0 },
-      { value: "poor", label: "Poor", points: 1 },
-      { value: "ng", label: "NG tube / fluids only", points: 2 },
-      { value: "nbm", label: "NBM / anorexic", points: 3 },
+      { value: "gt20", label: "BMI > 20", points: 0 },
+      { value: "18.5to20", label: "BMI 18.5 – 20", points: 1 },
+      { value: "lt18.5", label: "BMI < 18.5", points: 2 },
     ],
   },
   {
-    // Modern Waterlow nutrition sub-section — CSO to confirm it is on your card.
-    key: "weightLoss", label: "Recent weight loss",
+    key: "nutAcute", label: "Nutritional element — acutely ill or no nutritional intake for more than 5 days",
     options: [
-      { value: "none", label: "No recent weight loss", points: 0 },
-      { value: "0.5to5", label: "0.5–5 kg", points: 1 },
-      { value: "5to10", label: "5–10 kg", points: 2 },
-      { value: "10to15", label: "10–15 kg", points: 3 },
-      { value: "over15", label: "More than 15 kg", points: 4 },
-      { value: "unsure", label: "Unsure", points: 2 },
+      { value: "no", label: "No", points: 0 },
+      { value: "yes", label: "Patient / client acutely ill or no nutritional intake > 5 days", points: 2 },
     ],
   },
   {
-    key: "tissueMalnutrition", label: "Special risk — tissue malnutrition",
+    key: "tissueMalnutrition", label: "Special risks — tissue malnutrition — more than one can be selected", multi: true,
     options: [
-      { value: "none", label: "None", points: 0 },
-      { value: "cachexia", label: "Terminal cachexia", points: 8 },
-      { value: "cardiac", label: "Cardiac failure", points: 5 },
-      { value: "pvd", label: "Peripheral vascular disease", points: 5 },
-      { value: "anaemia", label: "Anaemia", points: 2 },
       { value: "smoking", label: "Smoking", points: 1 },
+      { value: "anaemia", label: "Anaemia (Hb < 8)", points: 2 },
+      { value: "singleorgan", label: "Single organ failure, e.g. cardiac, renal, respiratory", points: 5 },
+      { value: "pvd", label: "Peripheral vascular disease", points: 5 },
+      { value: "multiorgan", label: "Multiple organ failure / terminal cachexia", points: 8 },
     ],
   },
   {
-    key: "neuro", label: "Special risk — neurological deficit",
+    // The chart gives one line scored 4–6 "dependent on condition stability / impact severity".
+    // The three options below are CareCore's reading of that range — CSO to confirm.
+    key: "neuro", label: "Special risks — neurological deficit",
     options: [
       { value: "none", label: "None", points: 0 },
-      { value: "mild", label: "Diabetes / MS / CVA / motor–sensory (mild)", points: 4 },
-      { value: "moderate", label: "Moderate", points: 5 },
-      { value: "severe", label: "Severe / paraplegia", points: 6 },
+      { value: "mild", label: "Diabetes / MS / CVA / motor / sensory / paraplegia — stable or mild impact", points: 4 },
+      { value: "moderate", label: "Diabetes / MS / CVA / motor / sensory / paraplegia — moderate impact", points: 5 },
+      { value: "severe", label: "Diabetes / MS / CVA / motor / sensory / paraplegia — unstable or severe impact", points: 6 },
     ],
   },
   {
-    key: "surgery", label: "Special risk — major surgery / trauma", multi: true,
+    key: "surgery", label: "Special risks — surgery / trauma — more than one can be selected", multi: true,
     options: [
-      { value: "none", label: "None", points: 0 },
-      { value: "orthopaedic", label: "Orthopaedic — below waist / spinal", points: 5 },
-      { value: "ontable2h", label: "On table > 2 hours", points: 5 },
+      { value: "orthopaedic", label: "Orthopaedic / below waist / spinal (up to 48 hours post op)", points: 5 },
+      { value: "ontable2h", label: "On table > 2 hours (up to 48 hours post op)", points: 5 },
       { value: "ontable6h", label: "On table > 6 hours", points: 8 },
     ],
   },
   {
-    key: "medication", label: "Special risk — medication",
+    key: "medication", label: "Special risks — medication",
     options: [
       { value: "none", label: "None", points: 0 },
-      { value: "high", label: "Cytotoxics / high-dose steroids / anti-inflammatory", points: 4 },
+      { value: "high", label: "Cytotoxic, anti-inflammatory, long term / high dose steroid", points: 4 },
     ],
   },
 ];
 
 export type WaterlowInputs = Record<string, string | string[] | undefined>;
 
-export function computeWaterlow(inputs: WaterlowInputs): ToolResult {
-  const total = WATERLOW_GROUPS.reduce((sum, g) => sum + pointsOf(g, inputs[g.key]), 0);
+/**
+ * Work out the four Waterlow boxes that come from measurements (build, plus the
+ * three nutritional checks). Returns only the keys it can fill in.
+ *   Build: BMI < 20 = below; 20–24.9 = average; 25–30 = above; > 30 = obese.
+ */
+export function waterlowFromMeasurements(m: Measurements): WaterlowInputs {
+  const out: WaterlowInputs = {};
+  const b = bmi(m.weightKg ?? 0, m.heightCm ?? 0); // exact value, as MUST
+  if (b != null) {
+    out.build = b < 20 ? "below" : b < 25 ? "average" : b <= 30 ? "above" : "obese";
+    out.nutBmi = b > 20 ? "gt20" : b >= 18.5 ? "18.5to20" : "lt18.5";
+  }
+  const loss = mustWeightLossScore(weightLossPct(m.usualWeightKg ?? 0, m.weightKg ?? 0));
+  if (loss != null) out.nutLoss = loss === 0 ? "lt5" : loss === 1 ? "5to10" : "gt10";
+  if (m.acuteNoIntake != null) out.nutAcute = m.acuteNoIntake ? "yes" : "no";
+  return out;
+}
 
+export function computeWaterlow(inputs: WaterlowInputs): ToolResult {
+  // "On table > 6 hours" includes "> 2 hours": never count both.
+  const surgery = inputs.surgery;
+  const effective: WaterlowInputs = Array.isArray(surgery) && surgery.includes("ontable6h")
+    ? { ...inputs, surgery: surgery.filter((v) => v !== "ontable2h") }
+    : inputs;
+  const total = WATERLOW_GROUPS.reduce((sum, g) => sum + pointsOf(g, effective[g.key]), 0);
+
+  // Chart: 10–14 at risk; 14–19 high risk (the chart prints 14 in both — CSO to confirm;
+  // here 14 is "at risk" and 15–19 is "high risk"); 20+ very high risk.
   let band: string, level: RiskBandLevel;
-  if (total < 10) { band = "Not at risk (<10)"; level = "low"; }
+  if (total < 10) { band = "Not at risk (< 10)"; level = "low"; }
   else if (total < 15) { band = "At risk (10–14)"; level = "medium"; }
   else if (total < 20) { band = "High risk (15–19)"; level = "high"; }
   else { band = "Very high risk (20+)"; level = "high"; }
@@ -340,10 +426,16 @@ export function computeWaterlow(inputs: WaterlowInputs): ToolResult {
   return { tool: "waterlow", version: WATERLOW_VERSION, score: total, band, level, summary: `Waterlow ${total} — ${band}` };
 }
 
+/** Required boxes before a Waterlow can be saved. */
+export const WATERLOW_REQUIRED = ["sex", "age", "build", "continence", "mobility", "nutLoss", "nutBmi", "nutAcute"] as const;
+
+export const WATERLOW_GUIDANCE =
+  "Use together with your clinical judgement. Complete within 6 hours of admission or on the first home visit; reassess if the person's condition changes and repeat regularly according to local procedures. An indication of risk should be followed with an action, i.e. develop and implement a pressure ulcer prevention care plan.";
+
 export const WATERLOW_ACTION: Record<RiskBandLevel, string> = {
   low: "Reassess regularly and if condition changes.",
-  medium: "At risk: repositioning schedule, skin inspection, pressure-relieving equipment as indicated; document a SSKIN plan.",
-  high: "High / very high risk: individualised repositioning, pressure-redistributing mattress/cushion, daily skin inspection, dietitian/TVN referral as indicated; review frequently.",
+  medium: "At risk: develop and implement a pressure ulcer prevention care plan — repositioning schedule, skin inspection, pressure-relieving equipment as indicated; document a SSKIN plan.",
+  high: "High / very high risk: develop and implement a pressure ulcer prevention care plan — individualised repositioning, pressure-redistributing mattress/cushion, daily skin inspection, dietitian/TVN referral as indicated; review frequently.",
 };
 
 // ===========================================================================
