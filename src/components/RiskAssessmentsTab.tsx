@@ -3,6 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RISK_ASSESSMENTS, type RiskAssessmentDef, type RAField } from "@/lib/risk-assessments";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RiskToolWizard } from "@/components/RiskToolWizard";
+import { SCORED_TOOL_KEYS, SCORED_TOOL_TITLE, plansFedBy, reviewDateFromInterval, type ScoredToolKey } from "@/lib/risk-links";
+import { domainLabel } from "@/lib/care-domains";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -22,7 +25,7 @@ type Answers = Record<string, Answer>;
 
 type Row = {
   id: string; type: string; level: string | null; status: string;
-  answers: Answers | null; outcome: string | null; actions: string | null;
+  answers: Record<string, any> | null; outcome: string | null; actions: string | null;
   review_interval: string | null; review_date: string | null; updated_at: string;
 };
 
@@ -33,8 +36,9 @@ const levelClass = (l: string | null) =>
   : l === "medium" ? "bg-warning/20 text-warning-foreground border-warning/40 border"
   : l === "low" ? "bg-success/15 text-success-foreground border-success/30 border" : "";
 
-export function RiskAssessmentsTab({ residentId }: { residentId: string; residentName?: string }) {
+export function RiskAssessmentsTab({ residentId, residentName }: { residentId: string; residentName?: string }) {
   const [open, setOpen] = useState<RiskAssessmentDef | null>(null);
+  const [tool, setTool] = useState<ScoredToolKey | null>(null);
 
   const q = useQuery({
     queryKey: ["resident-risk-assessments", residentId],
@@ -59,7 +63,7 @@ export function RiskAssessmentsTab({ residentId }: { residentId: string; residen
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
-        Eighteen structured risk assessments. Open one to record it. Ratings are the assessor&rsquo;s professional judgement; nothing here calculates a score.
+        Eighteen structured risk assessments and three scored tools. Open one to record it. Ratings are the assessor&rsquo;s professional judgement; nothing here calculates a score.
       </p>
       {Object.entries(categories).map(([cat, defs]) => (
         <section key={cat} className="space-y-1.5">
@@ -67,7 +71,7 @@ export function RiskAssessmentsTab({ residentId }: { residentId: string; residen
           {defs.map((def) => {
             const row = byType[def.key];
             const done = row?.status === "complete";
-            const overdue = row?.review_date && new Date(row.review_date) < new Date();
+            const overdue = !!row?.review_date && row.review_date < new Date().toISOString().slice(0, 10);
             return (
               <button key={def.key} type="button" onClick={() => setOpen(def)}
                 className="flex w-full items-center gap-3 rounded-xl border bg-card p-3 text-left hover:bg-accent/30">
@@ -82,6 +86,7 @@ export function RiskAssessmentsTab({ residentId }: { residentId: string; residen
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {row?.updated_at ? `Updated ${format(new Date(row.updated_at), "d MMM yyyy")}` : def.description}
+                    {plansFedBy(def.key).length > 0 && <span> · feeds care plan: {plansFedBy(def.key).map((d) => domainLabel(d)).join(", ")}</span>}
                     {row?.review_date && <span className={overdue ? "font-medium text-destructive" : ""}>{" · "}review {format(new Date(row.review_date), "d MMM yyyy")}{overdue ? " · overdue" : ""}</span>}
                   </p>
                 </div>
@@ -91,6 +96,33 @@ export function RiskAssessmentsTab({ residentId }: { residentId: string; residen
           })}
         </section>
       ))}
+      <section className="space-y-1.5">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Scored tools</h3>
+        {SCORED_TOOL_KEYS.map((k) => {
+          const row = byType[k];
+          const overdue = !!row?.review_date && row.review_date < new Date().toISOString().slice(0, 10);
+          return (
+            <button key={k} type="button" onClick={() => setTool(k)}
+              className="flex w-full items-center gap-3 rounded-xl border bg-card p-3 text-left hover:bg-accent/30">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium">{SCORED_TOOL_TITLE[k]}</span>
+                  {row?.level && <Badge className={`text-[10px] ${levelClass(row.level)}`}>{row.answers?._band ?? row.level}{row.answers?._score != null ? ` (${row.answers._score})` : ""}</Badge>}
+                  {!row && <Badge variant="outline" className="text-[10px] text-muted-foreground">Not started</Badge>}
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {row?.updated_at ? `Updated ${format(new Date(row.updated_at), "d MMM yyyy")}` : "Calculates a score from weight, height and the chart boxes."}
+                  {" · feeds care plan: "}{plansFedBy(k).map((d) => domainLabel(d)).join(", ")}
+                  {row?.review_date && <span className={overdue ? "font-medium text-destructive" : ""}>{" · "}review {format(new Date(row.review_date), "d MMM yyyy")}{overdue ? " · overdue" : ""}</span>}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </button>
+          );
+        })}
+        <p className="text-[11px] text-muted-foreground">Waterlow and MUST are published tools. Their scoring is pending clinical sign-off before use with real residents.</p>
+      </section>
+      {tool && <RiskToolWizard residentId={residentId} residentName={residentName ?? ""} initialTool={tool} onClose={() => setTool(null)} />}
       {open && <RiskAssessmentForm residentId={residentId} def={open} existing={byType[open.key] ?? null} onClose={() => setOpen(null)} />}
     </div>
   );
@@ -122,6 +154,7 @@ function RiskAssessmentForm({ residentId, def, existing, onClose }: { residentId
       toast.success(status === "complete" ? "Assessment recorded" : "Draft saved");
       qc.invalidateQueries({ queryKey: ["resident-risk-assessments", residentId] });
       qc.invalidateQueries({ queryKey: ["risks", residentId] });
+      qc.invalidateQueries({ queryKey: ["care-plans", residentId] });
       onClose();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't save — check you have permission to edit risk assessments.");
@@ -166,7 +199,7 @@ function RiskAssessmentForm({ residentId, def, existing, onClose }: { residentId
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Review interval</Label>
-              <Select value={interval} onValueChange={setInterval}>
+              <Select value={interval} onValueChange={(v) => { setInterval(v); const d = reviewDateFromInterval(v); if (d) setReviewDate(d); }}>
                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>{INTERVALS.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent>
               </Select>

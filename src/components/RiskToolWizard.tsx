@@ -11,9 +11,11 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import {
   RISK_TOOL_LABEL, type RiskTool, type Group,
-  WATERLOW_GROUPS, computeWaterlow, WATERLOW_ACTION,
+  WATERLOW_GROUPS, computeWaterlow, WATERLOW_ACTION, WATERLOW_AUTO_KEYS, WATERLOW_REQUIRED,
+  WATERLOW_GUIDANCE, waterlowFromMeasurements,
   GULP_GROUPS, computeGULP, GULP_ACTION,
-  computeMUST, MUST_ACTION, bmi, weightLossPct,
+  computeMUST, MUST_ACTION, MUST_ALL_CATEGORIES_NOTE, MUST_OBESITY_NOTE,
+  CARE_SETTING_LABEL, type CareSetting, bmi, bmi1dp, weightLossPct,
   type FallsInputs,
   TOOL_TO_RISK_TYPE, type RiskBandLevel,
   STRUCTURED_TOOLS, isStructured, summariseStructured, type ExtendedTool,
@@ -25,7 +27,9 @@ const LEVEL_CLASS: Record<RiskBandLevel, string> = {
   high: "bg-destructive/15 text-destructive border border-destructive/30",
 };
 
-const TOOLS: ExtendedTool[] = ["waterlow", "must", "gulp", "falls_mfra", "tile_mh", "continence", "bedrails", "mca", "behaviour_abc"];
+// Scored tools only. Falls, continence, bed rails, mental capacity and the rest are the structured
+// assessments in the Risk tab, so they are not duplicated here.
+const TOOLS: ExtendedTool[] = ["waterlow", "must", "gulp"];
 const toolLabel = (t: ExtendedTool) => isStructured(t) ? STRUCTURED_TOOLS[t].label : RISK_TOOL_LABEL[t as RiskTool];
 
 function Big({ active, onClick, children }: { active?: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -75,11 +79,11 @@ function ResultBadge({ level, score, band }: { level: RiskBandLevel; score: numb
   );
 }
 
-export function RiskToolWizard({ residentId, residentName, onClose }: {
-  residentId: string; residentName: string; onClose: () => void;
+export function RiskToolWizard({ residentId, residentName, onClose, initialTool }: {
+  residentId: string; residentName: string; onClose: () => void; initialTool?: ExtendedTool;
 }) {
   const qc = useQueryClient();
-  const [tool, setTool] = useState<ExtendedTool | null>(null);
+  const [tool, setTool] = useState<ExtendedTool | null>(initialTool ?? null);
 
   // Shared
   const [reviewDate, setReviewDate] = useState(format(new Date(Date.now() + 30 * 864e5), "yyyy-MM-dd"));
@@ -87,42 +91,50 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
 
   // Waterlow / GULP selections
   const [sel, setSel] = useState<Record<string, string | string[]>>({});
-  // MUST
+  // Measurements — captured once and shared by MUST and Waterlow (kept when switching tool).
   const [must, setMust] = useState<{ weightKg?: string; heightCm?: string; usualWeightKg?: string; acute?: boolean }>({});
+  // MUST repeat-screening intervals differ between care homes and community care.
+  const [setting, setSetting] = useState<CareSetting>("care_home");
   // Falls
   const [falls, setFalls] = useState<FallsInputs>({ factors: {}, overallConcern: "not_at_risk", plan: "" });
 
-  const reset = () => { setSel({}); setMust({}); setFalls({ factors: {}, overallConcern: "not_at_risk", plan: "" }); setPlan(""); };
+  // Note: measurements are deliberately NOT cleared here, so weight / height / weight loss are entered once.
+  const reset = () => { setSel({}); setFalls({ factors: {}, overallConcern: "not_at_risk", plan: "" }); setPlan(""); };
 
   const mustInputs = useMemo(() => ({
     weightKg: must.weightKg ? parseFloat(must.weightKg) : undefined,
     heightCm: must.heightCm ? parseFloat(must.heightCm) : undefined,
     usualWeightKg: must.usualWeightKg ? parseFloat(must.usualWeightKg) : undefined,
     acuteNoIntake: must.acute ?? false,
-  }), [must]);
+    setting,
+  }), [must, setting]);
+
+  // Waterlow boxes that come from the shared measurements override manual picks.
+  const derived = useMemo(() => waterlowFromMeasurements(mustInputs), [mustInputs]);
+  const waterlowInputs = useMemo(() => ({ ...sel, ...derived }), [sel, derived]);
 
   const result = useMemo(() => {
-    if (tool === "waterlow") return computeWaterlow(sel);
+    if (tool === "waterlow") return computeWaterlow(waterlowInputs);
     if (tool === "gulp") return computeGULP({ fluid: sel.fluid as string, urine: sel.urine as string, signs: sel.signs as string });
     if (tool === "must") return computeMUST(mustInputs);
     if (tool && isStructured(tool)) return summariseStructured(tool, falls);
     return null;
-  }, [tool, sel, mustInputs, falls]);
+  }, [tool, sel, waterlowInputs, mustInputs, falls]);
 
   const action = useMemo(() => {
     if (!result) return "";
     if (tool === "waterlow") return WATERLOW_ACTION[result.level];
     if (tool === "gulp") return GULP_ACTION[result.level];
-    if (tool === "must") return MUST_ACTION[result.level];
+    if (tool === "must") return MUST_ACTION[setting][result.level];
     return tool && isStructured(tool) ? STRUCTURED_TOOLS[tool].guidance : "";
-  }, [tool, result]);
+  }, [tool, result, setting]);
 
-  const bmiValue = bmi(mustInputs.weightKg ?? 0, mustInputs.heightCm ?? 0);
+  const bmiValue = bmi1dp(bmi(mustInputs.weightKg ?? 0, mustInputs.heightCm ?? 0));
   const lossPct = weightLossPct(mustInputs.usualWeightKg ?? 0, mustInputs.weightKg ?? 0);
 
   const canSave = (() => {
     if (!tool || !result) return false;
-    if (tool === "waterlow") return !!sel.build && !!sel.sex && !!sel.age && !!sel.mobility && !!sel.continence;
+    if (tool === "waterlow") return WATERLOW_REQUIRED.every((k) => !!waterlowInputs[k]);
     if (tool === "gulp") return !!sel.fluid && !!sel.urine && !!sel.signs;
     if (tool === "must") return mustInputs.weightKg != null && mustInputs.heightCm != null;
     if (isStructured(tool)) return true;
@@ -136,29 +148,40 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
       const inputs =
         tool === "must" ? mustInputs :
         isStructured(tool) ? falls :
+        tool === "waterlow" ? { ...waterlowInputs, _measurements: mustInputs } :
         sel;
       const factors =
         isStructured(tool)
           ? STRUCTURED_TOOLS[tool].factors.filter((f) => falls.factors[f.key]?.present)
               .map((f) => f.label + (falls.factors[f.key]?.note ? `: ${falls.factors[f.key]!.note}` : "")).join("; ")
           : result.summary;
-      const { error } = await supabase.from("risk_assessments").insert({
+      // Saved to the same table as the other risk assessments, so care plans, reviews and
+      // alerts see it. One current record per resident per tool.
+      const { error } = await (supabase as any).from("resident_risk_assessments").upsert({
         resident_id: residentId,
-        type: isStructured(tool) ? STRUCTURED_TOOLS[tool].type : TOOL_TO_RISK_TYPE[tool as RiskTool],
+        type: tool,
+        title: toolLabel(tool),
+        category: "Scored tools",
         level: result.level,
-        tool,
-        tool_version: result.version,
-        inputs,
-        score: result.score,
-        band: result.band,
-        factors: factors || null,
-        controls: (isStructured(tool) ? falls.plan : plan) || null,
+        answers: {
+          _tool: tool, _version: result.version, _score: result.score, _band: result.band,
+          _summary: factors || result.summary, _inputs: inputs,
+        },
+        outcome: [result.band, result.score != null ? `score ${result.score}` : ""].filter(Boolean).join(" · ") || null,
+        actions: (isStructured(tool) ? falls.plan : plan) || null,
         review_date: reviewDate || null,
+        status: "complete",
+        assessed_by: u.user?.id ?? null,
         updated_by: u.user?.id ?? null,
-      } as any);
+      }, { onConflict: "resident_id,type" });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Risk assessment saved"); qc.invalidateQueries({ queryKey: ["risk", residentId] }); onClose(); },
+    onSuccess: () => {
+      toast.success("Risk assessment saved");
+      qc.invalidateQueries({ queryKey: ["resident-risk-assessments", residentId] });
+      qc.invalidateQueries({ queryKey: ["risks", residentId] });
+      onClose();
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
 
@@ -178,21 +201,34 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
 
         {tool && (
           <div className="space-y-3">
-            {/* MUST */}
-            {tool === "must" && (
+            {/* Shared measurements — used by MUST and Waterlow */}
+            {(tool === "must" || tool === "waterlow") && (
               <div className="space-y-2">
+                <p className="text-[11px] text-muted-foreground">Weight, height and weight loss are entered once and used by both MUST and Waterlow.</p>
                 <div className="grid grid-cols-3 gap-2">
                   <label className="text-xs">Weight (kg)<Input inputMode="decimal" value={must.weightKg ?? ""} onChange={(e) => setMust({ ...must, weightKg: e.target.value })} /></label>
                   <label className="text-xs">Height (cm)<Input inputMode="decimal" value={must.heightCm ?? ""} onChange={(e) => setMust({ ...must, heightCm: e.target.value })} /></label>
-                  <label className="text-xs">Usual weight (kg)<Input inputMode="decimal" value={must.usualWeightKg ?? ""} onChange={(e) => setMust({ ...must, usualWeightKg: e.target.value })} /></label>
+                  <label className="text-xs">Weight 3–6 months ago (kg)<Input inputMode="decimal" value={must.usualWeightKg ?? ""} onChange={(e) => setMust({ ...must, usualWeightKg: e.target.value })} /></label>
                 </div>
                 <div className="rounded-xl border bg-muted/30 p-2 text-sm">
                   BMI: <b>{bmiValue != null ? bmiValue.toFixed(1) : "—"}</b>
                   {lossPct != null && <> · Unplanned weight loss: <b>{lossPct.toFixed(1)}%</b></>}
                 </div>
                 <Big active={!!must.acute} onClick={() => setMust({ ...must, acute: !must.acute })}>
-                  Acutely unwell AND no / likely no intake &gt; 5 days (rare)
+                  Acutely ill and there has been, or is likely to be, no nutritional intake for more than 5 days (unlikely outside hospital)
                 </Big>
+              </div>
+            )}
+
+            {/* MUST */}
+            {tool === "must" && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium">Setting (decides how often to re-screen)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(CARE_SETTING_LABEL) as CareSetting[]).map((k) => (
+                    <Big key={k} active={setting === k} onClick={() => setSetting(k)}>{CARE_SETTING_LABEL[k]}</Big>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -204,10 +240,29 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
             {/* Waterlow */}
             {tool === "waterlow" && (
               <>
-                <p className="rounded-lg border border-warning/40 bg-warning/10 p-2 text-[11px]">Verify point values against your official Waterlow card. Scoring version: {computeWaterlow(sel).version}.</p>
-                {WATERLOW_GROUPS.map((g) => (
-                  <GroupField key={g.key} group={g} value={sel[g.key]} onChange={(v) => setSel({ ...sel, [g.key]: v })} />
-                ))}
+                <p className="rounded-lg border bg-muted/30 p-2 text-[11px]">{WATERLOW_GUIDANCE}</p>
+                {computeWaterlow(waterlowInputs).version.includes("UNVERIFIED") && (
+                  <p className="rounded-lg border border-warning/40 bg-warning/10 p-2 text-[11px]">
+                    Scoring not yet signed off by the clinical lead. Check against your Waterlow chart before clinical use. Scoring version: {computeWaterlow(waterlowInputs).version}.
+                  </p>
+                )}
+                {WATERLOW_GROUPS.map((g) => {
+                  const auto = (WATERLOW_AUTO_KEYS as readonly string[]).includes(g.key) && !!derived[g.key];
+                  if (auto) {
+                    const chosen = g.options.find((o) => o.value === derived[g.key]);
+                    return (
+                      <div key={g.key} className="rounded-xl border bg-muted/30 p-2">
+                        <p className="mb-1 text-sm font-medium">{g.label}</p>
+                        <p className="flex items-center justify-between gap-2 text-sm">
+                          <span>{chosen?.label}</span>
+                          <span className="shrink-0 text-xs tabular-nums opacity-70">{chosen?.points}</span>
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">Worked out from the measurements above.</p>
+                      </div>
+                    );
+                  }
+                  return <GroupField key={g.key} group={g} value={sel[g.key]} onChange={(v) => setSel({ ...sel, [g.key]: v })} />;
+                })}
               </>
             )}
 
@@ -246,6 +301,12 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
                 <p className="text-xs font-semibold uppercase tracking-wide">Result</p>
                 <div className="mt-1"><ResultBadge level={result.level} score={result.score} band={result.band} /></div>
                 {action && <p className="mt-2 text-xs text-muted-foreground">{action}</p>}
+                {tool === "must" && (
+                  <>
+                    {"obese" in result && (result as { obese: boolean }).obese && <p className="mt-2 text-xs text-muted-foreground">{MUST_OBESITY_NOTE}</p>}
+                    <p className="mt-2 text-xs text-muted-foreground">{MUST_ALL_CATEGORIES_NOTE}</p>
+                  </>
+                )}
               </div>
             )}
 
@@ -256,7 +317,7 @@ export function RiskToolWizard({ residentId, residentName, onClose }: {
             <label className="block text-xs">Review date<Input type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} /></label>
 
             <div className="flex gap-2 pt-1">
-              <Button variant="outline" className="h-11 flex-1" onClick={() => setTool(null)}>Back</Button>
+              <Button variant="outline" className="h-11 flex-1" onClick={() => (initialTool ? onClose() : setTool(null))}>{initialTool ? "Cancel" : "Back"}</Button>
               <Button className="h-11 flex-1" disabled={!canSave || save.isPending} onClick={() => save.mutate()}>Save assessment</Button>
             </div>
           </div>

@@ -28,11 +28,11 @@ export function useResidentMedContext(residentId: string) {
       const [res, meds, risks] = await Promise.all([
         supabase.from("residents").select("allergies, medical_history").eq("id", residentId).single(),
         supabase.from("medications").select("*").eq("resident_id", residentId).eq("status", "active"),
-        supabase.from("resident_risk_assessments").select("type, level, factors").eq("resident_id", residentId),
+        supabase.from("resident_risk_assessments").select("type, level, outcome").eq("resident_id", residentId),
       ]);
       const highRisks = (risks.data ?? [])
         .filter((r) => r.level === "high" || r.level === "medium")
-        .map((r) => `${r.type} risk ${r.factors ?? ""}`);
+        .map((r) => `${r.type} risk ${r.outcome ?? ""}`);
       return {
         allergies: res.data?.allergies ?? null,
         history: (res.data as { medical_history?: string | null } | null)?.medical_history ?? null,
