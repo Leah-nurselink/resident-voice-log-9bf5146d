@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarClock, FileText, Shield, FileSignature, Brain, Pill, Bandage } from "lucide-react";
 import { format, differenceInCalendarDays, addDays } from "date-fns";
-import { domainLabel, riskLabel, type CarePlanDomain, type RiskType } from "@/lib/care-domains";
+import { domainLabel, type CarePlanDomain } from "@/lib/care-domains";
+import { raTitle, risksTriggeringPlan, type RARow } from "@/lib/risk-links";
 import { CARE_PLAN_REVIEW_DAYS } from "@/lib/resident-calendar";
 
 export const Route = createFileRoute("/_authenticated/reviews")({
@@ -48,7 +49,7 @@ function ReviewsPage() {
     queryFn: async () => {
       const [plans, risks, consents, mca, meds, wounds] = await Promise.all([
         supabase.from("care_plans").select("id, domain, last_review, resident_id, residents(full_name)"),
-        supabase.from("resident_risk_assessments").select("id, type, review_date, resident_id, residents(full_name)"),
+        (supabase as any).from("resident_risk_assessments").select("id, type, level, status, review_date, updated_at, resident_id, residents(full_name)"),
         supabase.from("consents").select("id, consent_type, review_date, resident_id, residents(full_name)"),
         supabase.from("mca_assessments").select("id, decision, review_date, resident_id, residents(full_name)"),
         supabase.from("medications").select("id, name, review_date, resident_id, residents(full_name)").eq("status", "active"),
@@ -58,8 +59,18 @@ function ReviewsPage() {
       const items: Item[] = [];
       const name = (r: { full_name?: string | null } | null) => r?.full_name ?? "Unknown resident";
 
+      const today = format(new Date(), "yyyy-MM-dd");
       (plans.data ?? []).forEach((p) => {
         if (!p.last_review) return;
+        // Risk assessment -> care plan: a linked assessment was reviewed since, or is overdue.
+        const mine = ((risks.data ?? []) as any[]).filter((r) => r.resident_id === p.resident_id) as RARow[];
+        risksTriggeringPlan(p, p.domain, mine, today).forEach((t) => {
+          items.push({
+            id: `cpr-${p.id}-${t.row.id}`, residentId: p.resident_id, residentName: name(p.residents),
+            type: "Care plan", due: t.reason === "overdue" ? (t.row.review_date as string) : today,
+            label: `${domainLabel(p.domain as CarePlanDomain)} — ${raTitle(t.row.type)} ${t.reason === "overdue" ? "is overdue for review" : "was reviewed; check this plan"}`,
+          });
+        });
         items.push({
           id: `cp-${p.id}`, residentId: p.resident_id, residentName: name(p.residents),
           type: "Care plan", label: domainLabel(p.domain as CarePlanDomain),
@@ -70,7 +81,7 @@ function ReviewsPage() {
         if (!r.review_date) return;
         items.push({
           id: `ra-${r.id}`, residentId: r.resident_id, residentName: name(r.residents),
-          type: "Risk assessment", label: riskLabel(r.type as RiskType), due: r.review_date,
+          type: "Risk assessment", label: raTitle(r.type), due: r.review_date,
         });
       });
       (consents.data ?? []).forEach((c) => {
