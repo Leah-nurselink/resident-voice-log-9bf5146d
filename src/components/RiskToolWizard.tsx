@@ -12,7 +12,7 @@ import { format } from "date-fns";
 import {
   RISK_TOOL_LABEL, type RiskTool, type Group,
   WATERLOW_GROUPS, computeWaterlow, WATERLOW_ACTION, WATERLOW_AUTO_KEYS, WATERLOW_REQUIRED,
-  WATERLOW_GUIDANCE, waterlowFromMeasurements,
+  WATERLOW_GUIDANCE, waterlowFromMeasurements, waterlowBreakdown,
   GULP_GROUPS, computeGULP, GULP_ACTION,
   computeMUST, MUST_ACTION, MUST_ALL_CATEGORIES_NOTE, MUST_OBESITY_NOTE,
   CARE_SETTING_LABEL, type CareSetting, bmi, bmi1dp, weightLossPct,
@@ -129,7 +129,9 @@ export function RiskToolWizard({ residentId, residentName, onClose, initialTool 
     return tool && isStructured(tool) ? STRUCTURED_TOOLS[tool].guidance : "";
   }, [tool, result, setting]);
 
-  const bmiValue = bmi1dp(bmi(mustInputs.weightKg ?? 0, mustInputs.heightCm ?? 0));
+  const bmiExact = bmi(mustInputs.weightKg ?? 0, mustInputs.heightCm ?? 0);
+  const bmiValue = bmi1dp(bmiExact);
+
   const lossPct = weightLossPct(mustInputs.usualWeightKg ?? 0, mustInputs.weightKg ?? 0);
 
   const canSave = (() => {
@@ -212,7 +214,9 @@ export function RiskToolWizard({ residentId, residentName, onClose, initialTool 
                 </div>
                 <div className="rounded-xl border bg-muted/30 p-2 text-sm">
                   BMI: <b>{bmiValue != null ? bmiValue.toFixed(1) : "—"}</b>
-                  {lossPct != null && <> · Unplanned weight loss: <b>{lossPct.toFixed(1)}%</b></>}
+                  {lossPct != null && (lossPct < 0
+                    ? <> · Weight gain: <b>{Math.abs(lossPct).toFixed(1)}%</b> (scores 0)</>
+                    : <> · Unplanned weight loss: <b>{lossPct.toFixed(1)}%</b></>)}
                 </div>
                 <Big active={!!must.acute} onClick={() => setMust({ ...must, acute: !must.acute })}>
                   Acutely ill and there has been, or is likely to be, no nutritional intake for more than 5 days (unlikely outside hospital)
@@ -300,6 +304,17 @@ export function RiskToolWizard({ residentId, residentName, onClose, initialTool 
               <div className="rounded-2xl border bg-muted/30 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide">Result</p>
                 <div className="mt-1"><ResultBadge level={result.level} score={result.score} band={result.band} /></div>
+                {tool === "must" && "bmiScore" in result && (
+                  <p className="mt-2 text-xs">
+                    BMI <b>{(result as any).bmiScore ?? "–"}</b> + weight change <b>{(result as any).lossScore ?? "–"}</b> + acute illness <b>{(result as any).acuteScore}</b> = <b>{result.score}</b>
+                  </p>
+                )}
+                {tool === "waterlow" && (
+                  <p className="mt-2 text-xs">
+                    {waterlowBreakdown(waterlowInputs).filter((b) => b.points > 0).map((b) => `${b.label} ${b.points}`).join(" + ") || "No points"}
+                    {" = "}<b>{result.score}</b>
+                  </p>
+                )}
                 {action && <p className="mt-2 text-xs text-muted-foreground">{action}</p>}
                 {tool === "must" && (
                   <>
