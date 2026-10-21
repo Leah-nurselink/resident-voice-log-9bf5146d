@@ -87,7 +87,11 @@ export function bmi(weightKg: number, heightCm: number): number | null {
   return weightKg / (m * m);
 }
 
-/** BMI rounded to one decimal place — for DISPLAY only. Scoring uses the exact value. */
+/**
+ * BMI to one decimal place, as it is recorded and read on the chart. MUST and Waterlow score THIS value,
+ * so the BMI the assessor sees is the BMI that is scored (56 kg at 174 cm = 18.5, which scores 1).
+ * Decision for the clinical lead to confirm: BAPEN's chart calls its lines "exact cut off points".
+ */
 export const bmi1dp = (b: number | null): number | null => (b == null ? null : Math.round(b * 10) / 10);
 
 /** Unplanned weight-loss percentage over the last 3–6 months. */
@@ -136,7 +140,7 @@ export type MustResult = ToolResult & {
 };
 
 export function computeMUST(i: MustInputs): MustResult {
-  const bmiValue = bmi(i.weightKg ?? 0, i.heightCm ?? 0);
+  const bmiValue = bmi1dp(bmi(i.weightKg ?? 0, i.heightCm ?? 0));
   const bmiScore = i.bmiScoreOverride ?? mustBmiScore(bmiValue);
   const pctLoss = weightLossPct(i.usualWeightKg ?? 0, i.weightKg ?? 0);
   const lossScore = i.weightLossScoreOverride ?? mustWeightLossScore(pctLoss);
@@ -155,7 +159,7 @@ export function computeMUST(i: MustInputs): MustResult {
 
   const summary = `MUST ${total} — ${band}` +
     (shown != null ? ` · BMI ${shown.toFixed(1)}` : "") +
-    (pctLoss != null ? ` · weight loss ${pctLoss.toFixed(1)}%` : "") +
+    (pctLoss != null ? (pctLoss < 0 ? ` · weight gain ${Math.abs(pctLoss).toFixed(1)}%` : ` · weight loss ${pctLoss.toFixed(1)}%`) : "") +
     (obese ? " · Obese (BMI > 30) — record" : "");
 
   return {
@@ -396,7 +400,7 @@ export type WaterlowInputs = Record<string, string | string[] | undefined>;
  */
 export function waterlowFromMeasurements(m: Measurements): WaterlowInputs {
   const out: WaterlowInputs = {};
-  const b = bmi(m.weightKg ?? 0, m.heightCm ?? 0); // exact value, as MUST
+  const b = bmi1dp(bmi(m.weightKg ?? 0, m.heightCm ?? 0)); // same one-decimal BMI as MUST
   if (b != null) {
     out.build = b < 20 ? "below" : b < 25 ? "average" : b <= 30 ? "above" : "obese";
     out.nutBmi = b > 20 ? "gt20" : b >= 18.5 ? "18.5to20" : "lt18.5";
@@ -407,12 +411,27 @@ export function waterlowFromMeasurements(m: Measurements): WaterlowInputs {
   return out;
 }
 
-export function computeWaterlow(inputs: WaterlowInputs): ToolResult {
+function waterlowEffective(inputs: WaterlowInputs): WaterlowInputs {
   // "On table > 6 hours" includes "> 2 hours": never count both.
   const surgery = inputs.surgery;
-  const effective: WaterlowInputs = Array.isArray(surgery) && surgery.includes("ontable6h")
+  return Array.isArray(surgery) && surgery.includes("ontable6h")
     ? { ...inputs, surgery: surgery.filter((v) => v !== "ontable2h") }
     : inputs;
+}
+
+const SHORT: Record<string, string> = {
+  build: "Build", nutLoss: "Weight loss", nutBmi: "BMI (nutrition)", nutAcute: "Acute illness / no intake",
+  tissueMalnutrition: "Tissue malnutrition", neuro: "Neurological", surgery: "Surgery / trauma", medication: "Medication",
+};
+
+/** Points per chart section, so the assessor can check the total against the paper chart. */
+export function waterlowBreakdown(inputs: WaterlowInputs): { key: string; label: string; points: number }[] {
+  const effective = waterlowEffective(inputs);
+  return WATERLOW_GROUPS.map((g) => ({ key: g.key, label: SHORT[g.key] ?? g.label.split(" — ")[0], points: pointsOf(g, effective[g.key]) }));
+}
+
+export function computeWaterlow(inputs: WaterlowInputs): ToolResult {
+  const effective = waterlowEffective(inputs);
   const total = WATERLOW_GROUPS.reduce((sum, g) => sum + pointsOf(g, effective[g.key]), 0);
 
   // Chart: 10–14 at risk; 14–19 high risk (the chart prints 14 in both — CSO to confirm;
