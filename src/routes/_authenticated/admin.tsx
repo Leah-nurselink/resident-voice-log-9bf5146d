@@ -26,6 +26,11 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
+// Family accounts are created from the Family page, not here. Staff roles are
+// every role except "family", so a staff member can never be switched into (or
+// out of) a family account from this screen.
+const STAFF_ROLES = ROLES.filter((r) => r !== "family");
+
 function AdminPage() {
   const list = useServerFn(listStaff);
   const qc = useQueryClient();
@@ -91,9 +96,14 @@ function AdminContent({ listFn, qc }: { listFn: () => Promise<Awaited<ReturnType
   const { data, isLoading } = useQuery({ queryKey: ["staff"], queryFn: () => listFn() });
   const refetch = () => qc.invalidateQueries({ queryKey: ["staff"] });
 
-  const pending = useMemo(() => data?.filter((u) => !u.approved) ?? [], [data]);
-  const active = useMemo(() => data?.filter((u) => u.approved && u.isActive) ?? [], [data]);
-  const inactive = useMemo(() => data?.filter((u) => u.approved && !u.isActive) ?? [], [data]);
+  // Employees and family accounts are kept apart. Family accounts never appear
+  // in the staff tabs, and the counts below only count staff.
+  const staffRows = useMemo(() => data?.filter((u) => u.role !== "family") ?? [], [data]);
+  const family = useMemo(() => data?.filter((u) => u.role === "family") ?? [], [data]);
+  const pending = useMemo(() => staffRows.filter((u) => !u.approved), [staffRows]);
+  const active = useMemo(() => staffRows.filter((u) => u.approved && u.isActive), [staffRows]);
+  const inactive = useMemo(() => staffRows.filter((u) => u.approved && !u.isActive), [staffRows]);
+  const familyPending = family.filter((u) => !u.approved).length;
 
   return (
     <AppShell
@@ -107,6 +117,9 @@ function AdminContent({ listFn, qc }: { listFn: () => Promise<Awaited<ReturnType
           <TabsTrigger value="active">Active staff ({active.length})</TabsTrigger>
           <TabsTrigger value="pending">Pending approval ({pending.length})</TabsTrigger>
           <TabsTrigger value="inactive">Deactivated ({inactive.length})</TabsTrigger>
+          <TabsTrigger value="family">
+            Family ({family.length}{familyPending > 0 ? `, ${familyPending} pending` : ""})
+          </TabsTrigger>
         </TabsList>
         {isLoading ? (
           <div className="grid h-40 place-items-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
@@ -115,6 +128,14 @@ function AdminContent({ listFn, qc }: { listFn: () => Promise<Awaited<ReturnType
             <TabsContent value="active"><StaffList rows={active} onChange={refetch} /></TabsContent>
             <TabsContent value="pending"><StaffList rows={pending} onChange={refetch} /></TabsContent>
             <TabsContent value="inactive"><StaffList rows={inactive} onChange={refetch} /></TabsContent>
+            <TabsContent value="family">
+              <p className="mt-4 text-xs text-muted-foreground">
+                Family and LPA accounts. Create new family access on the{" "}
+                <Link to="/family" className="text-primary hover:underline">Family page</Link>.
+                Family members can only see the care summary for their own relative.
+              </p>
+              <StaffList rows={family} onChange={refetch} />
+            </TabsContent>
           </>
         )}
       </Tabs>
@@ -183,7 +204,7 @@ function StaffCard({ user, onChange }: { user: Row; onChange: () => void }) {
   const setApproved = useServerFn(setStaffApproved);
   const setActive = useServerFn(setStaffActive);
   const remove = useServerFn(removeStaff);
-
+  const isFamily = user.role === "family";
 
   async function changeRole(role: Role) {
     try { await setRole({ data: { userId: user.userId, role } }); toast.success("Role updated"); onChange(); }
@@ -216,12 +237,16 @@ function StaffCard({ user, onChange }: { user: Row; onChange: () => void }) {
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <Select value={user.role} onValueChange={(v) => changeRole(v as Role)}>
-            <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {isFamily ? (
+            <p className="text-xs text-muted-foreground">Family account</p>
+          ) : (
+            <Select value={user.role} onValueChange={(v) => changeRole(v as Role)}>
+              <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {STAFF_ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
           <div className="flex flex-wrap items-center justify-end gap-1">
             <Button size="sm" variant="outline" onClick={toggleApproved}>
               {user.approved ? <ShieldOff className="mr-1 h-3.5 w-3.5" /> : <Shield className="mr-1 h-3.5 w-3.5" />}
@@ -242,7 +267,9 @@ function StaffCard({ user, onChange }: { user: Row; onChange: () => void }) {
       </CardHeader>
       <CardContent>
         <p className="text-xs text-muted-foreground">
-          Access comes from the {ROLE_LABELS[user.role] ?? user.role} role — see "What each role can do" above.
+          {isFamily
+            ? "Family access is limited to a care summary for their own relative and the feedback form."
+            : `Access comes from the ${ROLE_LABELS[user.role] ?? user.role} role — see "What each role can do" above.`}
         </p>
       </CardContent>
     </Card>
@@ -307,9 +334,12 @@ function InviteDialog({ onDone }: { onDone: () => void }) {
             <Select value={role} onValueChange={(v) => setRole(v as Role)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
+                {STAFF_ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Family and LPA access is created from the Family page.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="invite-pw">Backup temporary password</Label>
