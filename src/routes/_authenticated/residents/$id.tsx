@@ -24,7 +24,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   CARE_PLAN_DOMAINS, RISK_LEVEL_COLOR, CONSENT_TYPES,
   domainLabel, riskLabel,
@@ -33,7 +32,7 @@ import {
 import { useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
-import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, Brain, FileSignature, FileText, Phone, Printer, CalendarClock, UserCog } from "lucide-react";
+import { Check, History, Pencil, Sparkles, X, AlertTriangle, Plus, FileSignature, FileText, Phone, Printer, CalendarClock, UserCog } from "lucide-react";
 import { ResidentPhoto } from "@/components/ResidentPhoto";
 import { CallRecorder } from "@/components/CallRecorder";
 import { CommunicationsTab } from "@/components/CommunicationsTab";
@@ -41,6 +40,7 @@ import { ScheduleTab } from "@/components/ScheduleTab";
 import { PreAssessmentTab, PreAssessmentHints, PreAssessmentRiskPrompts } from "@/components/PreAssessmentTab";
 import { exportCarePlansPDF } from "@/lib/resident-export";
 import { ResidentPdfDialog } from "@/components/ResidentPdfDialog";
+import { RAG_CLASS, carePlanDaysLeft, daysUntil, ragForCarePlan, ragForDate, ragText } from "@/lib/rag";
 
 export const Route = createFileRoute("/_authenticated/residents/$id")({
   head: () => ({
@@ -123,16 +123,6 @@ function ResidentDetail() {
     },
   });
 
-  const mca = useQuery({
-    queryKey: ["mca", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("mca_assessments").select("*").eq("resident_id", id)
-        .order("assessment_date", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const [pending, setPending] = useState<StructuredNote | null>(null);
   const [editing, setEditing] = useState("");
 
@@ -179,8 +169,6 @@ function ResidentDetail() {
   const [editConsent, setEditConsent] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState("intel");
   const [newConsent, setNewConsent] = useState(false);
-  const [editMca, setEditMca] = useState<any | null>(null);
-  const [newMca, setNewMca] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
 
   if (!resident.data) return <AppShell title="Loading…"><div /></AppShell>;
@@ -260,7 +248,6 @@ function ResidentDetail() {
           <TabsTrigger value="meds" className="min-h-10 shrink-0 px-3 text-xs">Meds</TabsTrigger>
           <TabsTrigger value="wounds" className="min-h-10 shrink-0 px-3 text-xs">Wounds</TabsTrigger>
           <TabsTrigger value="consent" className="min-h-10 shrink-0 px-3 text-xs">Consent</TabsTrigger>
-          <TabsTrigger value="mca" className="min-h-10 shrink-0 px-3 text-xs">MCA</TabsTrigger>
         </TabsList>
 
         <TabsContent value="intel" className="mt-4">
@@ -408,34 +395,10 @@ function ResidentDetail() {
             </button>
           )) : <p className="px-1 text-sm text-muted-foreground">No consents recorded yet.</p>}
         </TabsContent>
-
-        <TabsContent value="mca" className="mt-4 space-y-2">
-          <Button onClick={() => setNewMca(true)} className="w-full"><Plus className="mr-1 h-4 w-4" />New MCA assessment</Button>
-          {mca.data?.length ? mca.data.map((m) => (
-            <button key={m.id} onClick={() => setEditMca(m)} className="flex w-full items-center justify-between rounded-2xl border bg-card p-4 text-left hover:bg-accent/30">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium line-clamp-1">{m.decision}</span>
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {format(new Date(m.assessment_date), "d MMM yyyy")}
-                  {m.review_date ? ` · review ${format(new Date(m.review_date), "d MMM yyyy")}` : ""}
-                </p>
-              </div>
-              {m.has_capacity === true && <Badge className="bg-success/15 text-success-foreground border-success/30 border">Has capacity</Badge>}
-              {m.has_capacity === false && <Badge className="bg-destructive/15 text-destructive border-destructive/30 border">Lacks capacity</Badge>}
-              {m.has_capacity === null && <Badge variant="outline">Pending</Badge>}
-            </button>
-          )) : <p className="px-1 text-sm text-muted-foreground">No MCA assessments recorded.</p>}
-        </TabsContent>
       </Tabs>
 
       {(newConsent || editConsent) && (
         <ConsentDialog residentId={id} existing={editConsent} onClose={() => { setNewConsent(false); setEditConsent(null); }} />
-      )}
-      {(newMca || editMca) && (
-        <MCADialog residentId={id} existing={editMca} onClose={() => { setNewMca(false); setEditMca(null); }} />
       )}
     </AppShell>
   );
@@ -480,15 +443,29 @@ function CarePlanRow({ residentId, domain, label, hint, existing, linkedRisks = 
             {documented ? <Badge variant="secondary" className="text-[10px]">Documented</Badge> : <Badge variant="outline" className="text-[10px]">Not set</Badge>}
             {existing?.ai_draft && <Badge variant="outline" className="border-warning/40 bg-warning/20 text-[10px] text-warning-foreground">AI draft – awaiting approval</Badge>}
             {existing?.last_review && documented && <span className="text-[10px] text-muted-foreground">· reviewed {format(new Date(existing.last_review), "d MMM")}</span>}
-            {existing?.last_review && documented && Date.now() - new Date(existing.last_review).getTime() > 30 * 864e5 && <Badge className="bg-destructive/15 text-destructive border-destructive/30 border text-[10px]">Review due</Badge>}
+            {documented && (() => {
+              const rag = ragForCarePlan(existing?.last_review);
+              return rag === "none" ? null : (
+                <Badge className={`${RAG_CLASS[rag]} border text-[10px]`}>
+                  Review {ragText(carePlanDaysLeft(existing.last_review)).toLowerCase()}
+                </Badge>
+              );
+            })()}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{existing?.content?.slice(0, 80) || hint}</p>
           {latestRisks.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
               {latestRisks.map((r) => (
-                <Badge key={r.id} className={RISK_LEVEL_COLOR[r.level as "low"|"medium"|"high"] + " text-[10px]"}>
-                  <AlertTriangle className="mr-1 h-3 w-3" />{raTitle(r.type)} · {(r.answers as any)?._band ?? r.level}{(r.answers as any)?._score != null ? ` (${(r.answers as any)._score})` : ""}
-                </Badge>
+                <span key={r.id} className="inline-flex items-center gap-1">
+                  <Badge className={RISK_LEVEL_COLOR[r.level as "low"|"medium"|"high"] + " text-[10px]"}>
+                    <AlertTriangle className="mr-1 h-3 w-3" />{raTitle(r.type)} · {(r.answers as any)?._band ?? r.level}{(r.answers as any)?._score != null ? ` (${(r.answers as any)._score})` : ""}
+                  </Badge>
+                  {r.review_date && r.status !== "draft" && (
+                    <Badge className={`${RAG_CLASS[ragForDate(r.review_date)]} border text-[10px]`}>
+                      {ragText(daysUntil(r.review_date))}
+                    </Badge>
+                  )}
+                </span>
               ))}
             </div>
           )}
@@ -875,117 +852,6 @@ function ConsentDialog({ residentId, existing, onClose }: { residentId: string; 
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function MCADialog({ residentId, existing, onClose }: { residentId: string; existing: any | null; onClose: () => void }) {
-  const qc = useQueryClient();
-  const [decision, setDecision] = useState(existing?.decision || "");
-  const [impair, setImpair] = useState<boolean>(existing?.has_impairment ?? false);
-  const [impairDetail, setImpairDetail] = useState(existing?.impairment_detail || "");
-  const [understand, setUnderstand] = useState<boolean>(existing?.can_understand ?? true);
-  const [retain, setRetain] = useState<boolean>(existing?.can_retain ?? true);
-  const [weigh, setWeigh] = useState<boolean>(existing?.can_weigh ?? true);
-  const [communicate, setCommunicate] = useState<boolean>(existing?.can_communicate ?? true);
-  const [bestInterests, setBestInterests] = useState(existing?.best_interests_decision || "");
-  const [decisionMaker, setDecisionMaker] = useState(existing?.decision_maker || "");
-  const [assessmentDate, setAssessmentDate] = useState(existing?.assessment_date || new Date().toISOString().slice(0, 10));
-  const [reviewDate, setReviewDate] = useState(existing?.review_date || "");
-  const [notes, setNotes] = useState(existing?.notes || "");
-
-  const hasCapacity = !impair ? true : (understand && retain && weigh && communicate);
-
-  const save = useMutation({
-    mutationFn: async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!decision.trim()) throw new Error("Decision being assessed is required");
-      const payload = {
-        resident_id: residentId,
-        decision, has_impairment: impair, impairment_detail: impairDetail || null,
-        can_understand: understand, can_retain: retain, can_weigh: weigh, can_communicate: communicate,
-        has_capacity: hasCapacity,
-        best_interests_decision: !hasCapacity ? (bestInterests || null) : null,
-        decision_maker: decisionMaker || null,
-        assessment_date: assessmentDate, review_date: reviewDate || null,
-        notes: notes || null, updated_by: u.user!.id,
-      };
-      const { error } = existing
-        ? await supabase.from("mca_assessments").update(payload).eq("id", existing.id)
-        : await supabase.from("mca_assessments").insert(payload);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success(existing ? "MCA updated" : "MCA saved"); qc.invalidateQueries({ queryKey: ["mca", residentId] }); onClose(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
-  });
-
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{existing ? "Update MCA" : "New MCA assessment"}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <Field label="Decision being assessed" value={decision} onChange={setDecision} placeholder="e.g. Consent to receive personal care" rows={2} />
-
-          <div className="rounded-xl border bg-muted/30 p-3">
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Stage 1 — Diagnostic test</div>
-            <label className="mt-2 flex items-center gap-2 text-sm">
-              <Checkbox checked={impair} onCheckedChange={(v) => setImpair(!!v)} />
-              Impairment of mind or brain present
-            </label>
-            {impair && <div className="mt-2"><Field label="Impairment details" value={impairDetail} onChange={setImpairDetail} rows={2} /></div>}
-          </div>
-
-          {impair && (
-            <div className="rounded-xl border bg-muted/30 p-3 space-y-2">
-              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Stage 2 — Functional test</div>
-              <MCACheck label="Can understand the information relevant to the decision" v={understand} on={setUnderstand} />
-              <MCACheck label="Can retain the information long enough to decide" v={retain} on={setRetain} />
-              <MCACheck label="Can use or weigh up the information" v={weigh} on={setWeigh} />
-              <MCACheck label="Can communicate the decision" v={communicate} on={setCommunicate} />
-            </div>
-          )}
-
-          <div className={`rounded-xl border p-3 text-sm ${hasCapacity ? "bg-success/10 border-success/30" : "bg-destructive/10 border-destructive/30"}`}>
-            <strong>Outcome: </strong>{hasCapacity ? "Has capacity for this decision" : "Lacks capacity for this decision"}
-          </div>
-
-          {!hasCapacity && (
-            <>
-              <Field label="Best interests decision" value={bestInterests} onChange={setBestInterests} rows={3}
-                placeholder="What decision is being made in the resident's best interests?" />
-              <div className="space-y-1.5">
-                <Label>Decision-maker</Label>
-                <Input value={decisionMaker} onChange={(e) => setDecisionMaker(e.target.value)} placeholder="Name & role" />
-              </div>
-            </>
-          )}
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Assessment date</Label>
-              <Input type="date" value={assessmentDate} onChange={(e) => setAssessmentDate(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Review date</Label>
-              <Input type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
-            </div>
-          </div>
-          <Field label="Notes" value={notes} onChange={setNotes} rows={3} />
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>{existing ? "Update" : "Save"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function MCACheck({ label, v, on }: { label: string; v: boolean; on: (b: boolean) => void }) {
-  return (
-    <label className="flex items-start gap-2 text-sm">
-      <Checkbox checked={v} onCheckedChange={(x) => on(!!x)} className="mt-0.5" />
-      <span>{label}</span>
-    </label>
   );
 }
 
