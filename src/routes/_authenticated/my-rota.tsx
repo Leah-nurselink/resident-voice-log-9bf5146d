@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { FEATURES } from "@/lib/feature-flags";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,9 @@ import { DAY_LABELS, STATUS_CLASSES, STATUS_LABELS, hhmm, shiftStatus, type Shif
 import { fmtDate } from "@/lib/rota-rules";
 
 export const Route = createFileRoute("/_authenticated/my-rota")({
+  beforeLoad: () => {
+    if (!FEATURES.rota) throw redirect({ to: "/dashboard" });
+  },
   head: () => ({
     meta: [
       { title: "My rota · CareCore" },
