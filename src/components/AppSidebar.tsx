@@ -39,62 +39,71 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { getAppVersion, getAppBuildTimeLocal } from "@/lib/app-version";
+import { FEATURES } from "@/lib/feature-flags";
 
+type NavItem = {
+  title: string;
+  url: string;
+  icon: typeof Home;
+  exact?: boolean;
+  /** Hidden from the menu when this feature is switched off in src/lib/feature-flags.ts */
+  feature?: keyof typeof FEATURES;
+};
 
-const dashboardItems = [
+const dashboardItems: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: Home, exact: true },
-] as const;
+];
 
-const administrationItems = [
+const administrationItems: NavItem[] = [
   { title: "Devices", url: "/devices", icon: Bluetooth },
   { title: "Beacon Diagnostics", url: "/beacon-diagnostics", icon: Bluetooth },
   { title: "Admin", url: "/admin", icon: ShieldCheck },
   { title: "Downloads", url: "/downloads", icon: Download },
   { title: "Settings", url: "/settings", icon: Settings },
-] as const;
+];
 
-const residentItems = [
+const residentItems: NavItem[] = [
   { title: "Residents", url: "/residents", icon: Users },
   { title: "Care plans", url: "/care-plans", icon: FileText },
   { title: "Family", url: "/family", icon: Heart },
-] as const;
+];
 
-const medicationItems = [
+const medicationItems: NavItem[] = [
   { title: "Medication Round", url: "/medication-round", icon: Pill },
-] as const;
+];
 
-const taskItems = [
+const taskItems: NavItem[] = [
   { title: "Handover", url: "/handover", icon: ClipboardList },
   { title: "Reviews Due", url: "/reviews", icon: Calendar },
   { title: "Tasks", url: "/tasks", icon: ClipboardList },
   { title: "Approvals", url: "/approvals", icon: ClipboardCheck },
   { title: "Alerts", url: "/alerts", icon: AlertTriangle },
-] as const;
+];
 
-const voiceItems = [
+const voiceItems: NavItem[] = [
   { title: "Voice & Interactions", url: "/notes", icon: MessageSquare },
-] as const;
+];
 
-const communicationItems = [
+const communicationItems: NavItem[] = [
   { title: "Communications", url: "/communications", icon: MessageCircle },
   { title: "Professionals", url: "/professionals", icon: Stethoscope },
   { title: "Family", url: "/family", icon: Heart },
-] as const;
+];
 
-const workforceItems = [
-  { title: "Rota", url: "/rota", icon: CalendarRange },
-  { title: "My rota", url: "/my-rota", icon: CalendarCheck },
+const workforceItems: NavItem[] = [
+  { title: "Rota", url: "/rota", icon: CalendarRange, feature: "rota" },
+  { title: "My rota", url: "/my-rota", icon: CalendarCheck, feature: "rota" },
   { title: "Staff", url: "/staff", icon: Users },
   { title: "Calendar", url: "/calendar", icon: Calendar },
-] as const;
+];
 
-const insightsItems = [
+const insightsItems: NavItem[] = [
   { title: "Intelligence", url: "/intelligence", icon: Brain },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Reports", url: "/reports", icon: FileText },
-] as const;
+];
 
-const governanceItems = [
+const governanceItems: NavItem[] = [
   { title: "Clinical Review", url: "/clinical-review", icon: Heart },
   { title: "Audits", url: "/audits", icon: ClipboardCheck },
   { title: "Action Plan", url: "/action-plan", icon: ClipboardList },
@@ -102,9 +111,9 @@ const governanceItems = [
   { title: "Regulatory", url: "/regulatory", icon: Scale },
   { title: "Incident Review", url: "/incident-review", icon: FileSearch },
   { title: "Safeguarding", url: "/safeguarding", icon: Shield },
-] as const;
+];
 
-const navigationGroups = [
+const navigationGroups: { label: string; items: NavItem[] }[] = [
   { label: "Dashboard", items: dashboardItems },
   { label: "Administration", items: administrationItems },
   { label: "Residents", items: residentItems },
@@ -115,7 +124,9 @@ const navigationGroups = [
   { label: "Workforce", items: workforceItems },
   { label: "Governance", items: governanceItems },
   { label: "Insights & Reports", items: insightsItems },
-] as const;
+];
+
+const isVisible = (item: NavItem) => !item.feature || FEATURES[item.feature];
 
 export function AppSidebar() {
   const { state, isMobile, setOpenMobile } = useSidebar();
@@ -125,7 +136,7 @@ export function AppSidebar() {
   const isActive = (url: string, exact?: boolean) =>
     exact ? pathname === url : pathname === url || pathname.startsWith(url + "/");
 
-  const renderItem = (item: { title: string; url: string; icon: typeof Home; exact?: boolean }) => {
+  const renderItem = (item: NavItem) => {
     const active = isActive(item.url, item.exact);
     return (
       <SidebarMenuItem key={item.title}>
@@ -167,18 +178,22 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {navigationGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            {!collapsed && (
-              <SidebarGroupLabel className="text-nav-navy font-semibold">
-                {group.label}
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>{group.items.map(renderItem)}</SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {navigationGroups.map((group) => {
+          const items = group.items.filter(isVisible);
+          if (items.length === 0) return null;
+          return (
+            <SidebarGroup key={group.label}>
+              {!collapsed && (
+                <SidebarGroupLabel className="text-nav-navy font-semibold">
+                  {group.label}
+                </SidebarGroupLabel>
+              )}
+              <SidebarGroupContent>
+                <SidebarMenu>{items.map(renderItem)}</SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-3">
         {!collapsed ? (
@@ -201,4 +216,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
