@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { FEATURES } from "@/lib/feature-flags";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,9 @@ import { assignmentFlags, fmtDate, type LeaveRow } from "@/lib/rota-rules";
 import { useCanWrite } from "@/hooks/useCanWrite";
 
 export const Route = createFileRoute("/_authenticated/rota")({
+  beforeLoad: () => {
+    if (!FEATURES.rota) throw redirect({ to: "/dashboard" });
+  },
   head: () => ({
     meta: [
       { title: "Rota · CareCore" },
