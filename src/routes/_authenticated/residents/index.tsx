@@ -23,6 +23,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { exportResidentsExcel, exportResidentsPDF } from "@/lib/resident-export";
+import { RAG_CLASS, TOTAL_CARE_DOMAINS, carePlanProgress, raProgress, type PlanRow, type RaRow } from "@/lib/rag";
 
 const ARCHIVED_STATUSES = ["Discharged", "Deceased"];
 
@@ -56,6 +57,35 @@ function ResidentsList() {
       return data;
     },
   });
+
+  const plansQ = useQuery({
+    queryKey: ["residents-care-plans"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("care_plans")
+        .select("resident_id, needs, outcome, content, last_review");
+      if (error) throw error;
+      return (data ?? []) as unknown as PlanRow[];
+    },
+  });
+  const rasQ = useQuery({
+    queryKey: ["residents-risk-reviews"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("resident_risk_assessments")
+        .select("resident_id, status, review_date");
+      if (error) throw error;
+      return (data ?? []) as RaRow[];
+    },
+  });
+  const plansByResident = new Map<string, PlanRow[]>();
+  for (const p of plansQ.data ?? []) {
+    plansByResident.set(p.resident_id, [...(plansByResident.get(p.resident_id) ?? []), p]);
+  }
+  const rasByResident = new Map<string, RaRow[]>();
+  for (const x of rasQ.data ?? []) {
+    rasByResident.set(x.resident_id, [...(rasByResident.get(x.resident_id) ?? []), x]);
+  }
 
   const isArchived = (r: any) => ARCHIVED_STATUSES.includes(r.residency_status ?? "");
   const activeResidents = data.filter((r) => !isArchived(r));
@@ -199,6 +229,22 @@ function ResidentsList() {
                       ) : (
                         <p className="text-sm text-muted-foreground">No notes yet.</p>
                       )}
+                      {!isArchived(r) && (() => {
+                        const cp = carePlanProgress(plansByResident.get(r.id) ?? []);
+                        const ra = raProgress(rasByResident.get(r.id) ?? []);
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge variant="outline" className={`text-[11px] ${RAG_CLASS[cp.rag]}`}>
+                              {cp.done}/{TOTAL_CARE_DOMAINS} care plans done
+                              {cp.red > 0 ? ` · ${cp.red} overdue` : cp.amber > 0 ? ` · ${cp.amber} due soon` : ""}
+                            </Badge>
+                            <Badge variant="outline" className={`text-[11px] ${RAG_CLASS[ra.rag]}`}>
+                              Risk assessments:{" "}
+                              {ra.total === 0 ? "none recorded" : ra.red > 0 ? `${ra.red} overdue` : ra.amber > 0 ? `${ra.amber} due within 7 days` : "in date"}
+                            </Badge>
+                          </div>
+                        );
+                      })()}
                       <div className="flex items-center gap-2 pt-1">
                         <Button size="sm" variant="outline" className="flex-1">
                           <FileText className="mr-1 h-3 w-3" /> View
