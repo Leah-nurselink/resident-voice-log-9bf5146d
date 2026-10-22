@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,27 @@ export const Route = createFileRoute("/_authenticated/care-plans")({
   component: CarePlansPage,
 });
 
+// Number of care plan areas every resident should have.
+const TOTAL_DOMAINS = 18;
+const REVIEW_DAYS = 90;
+
+type PlanLike = {
+  needs: string | null;
+  outcome: string | null;
+  content: string | null;
+  last_review: string | null;
+};
+
+// A plan is "complete" when needs, outcome and plan are all written and the
+// review is not overdue. A plan never reviewed is not treated as overdue, to
+// match the existing "Needs review" badge.
+function isOverdue(p: PlanLike) {
+  return !!p.last_review && Date.now() - new Date(p.last_review).getTime() > REVIEW_DAYS * 86400000;
+}
+function isComplete(p: PlanLike) {
+  return !!(p.needs && p.outcome && p.content) && !isOverdue(p);
+}
+
 function CarePlansPage() {
   const { data = [] } = useQuery({
     queryKey: ["care-plans-all"],
@@ -28,9 +50,66 @@ function CarePlansPage() {
     },
   });
 
+  const residents = useQuery({
+    queryKey: ["care-plans-residents"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("residents").select("id, full_name").order("full_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const summary = useMemo(() => {
+    const done = new Map<string, number>();
+    for (const p of data) {
+      if (isComplete(p)) done.set(p.resident_id, (done.get(p.resident_id) ?? 0) + 1);
+    }
+    const rows = (residents.data ?? []).map((r) => ({
+      id: r.id,
+      name: r.full_name as string,
+      done: done.get(r.id) ?? 0,
+    }));
+    const completeResidents = rows.filter((r) => r.done >= TOTAL_DOMAINS).length;
+    return { rows, completeResidents };
+  }, [data, residents.data]);
+
   return (
     <AppShell title="Care Plans" subtitle="Person-centred plans across all residents">
       <div className="space-y-4">
+        {residents.data && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">
+                {summary.completeResidents} of {summary.rows.length} residents have complete care plans
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Complete means all {TOTAL_DOMAINS} areas have needs, outcome and plan written, with no review overdue (over {REVIEW_DAYS} days).
+              </p>
+            </CardHeader>
+            <CardContent className="grid gap-2 md:grid-cols-2">
+              {summary.rows.map((r) => (
+                <Link
+                  key={r.id}
+                  to="/residents/$id"
+                  params={{ id: r.id }}
+                  className="rounded-md border p-2 transition-colors hover:bg-accent/40"
+                >
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{r.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {r.done}/{TOTAL_DOMAINS} care plans done
+                    </span>
+                  </div>
+                  <Progress value={(Math.min(r.done, TOTAL_DOMAINS) / TOTAL_DOMAINS) * 100} className="mt-1.5 h-1.5" />
+                </Link>
+              ))}
+              {summary.rows.length === 0 && (
+                <p className="text-sm text-muted-foreground">No residents yet.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {data.length === 0 && (
           <div className="rounded-2xl border border-dashed bg-card/50 p-10 text-center">
             <p className="text-sm text-muted-foreground">No care plans yet.</p>
@@ -42,9 +121,7 @@ function CarePlansPage() {
         {data.map((plan) => {
           const filled = [plan.needs, plan.outcome, plan.content].filter(Boolean).length;
           const progress = (filled / 3) * 100;
-          const stale =
-            plan.last_review &&
-            Date.now() - new Date(plan.last_review).getTime() > 90 * 86400000;
+          const stale = isOverdue(plan);
 
           return (
             <Card key={plan.id} className="transition hover:shadow-soft">
