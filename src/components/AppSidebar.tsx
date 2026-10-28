@@ -23,6 +23,7 @@ import {
   Stethoscope,
   Users,
   AlertTriangle,
+  Star,
 } from "lucide-react";
 import {
   Sidebar,
