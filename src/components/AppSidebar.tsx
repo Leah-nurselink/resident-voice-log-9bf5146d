@@ -65,6 +65,7 @@ const administrationItems: NavItem[] = [
 const residentItems: NavItem[] = [
   { title: "Residents", url: "/residents", icon: Users },
   { title: "Care plans", url: "/care-plans", icon: FileText },
+  { title: "Resident of the Day", url: "/rotd", icon: Star },
   { title: "Family", url: "/family", icon: Heart },
 ];
 
