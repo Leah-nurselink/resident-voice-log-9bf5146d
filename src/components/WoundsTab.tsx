@@ -9,13 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Activity, Plus, Ruler, ChevronRight, Camera, X, ImageIcon, ScanSearch, Sparkles } from "lucide-react";
+import { Activity, Plus, Ruler, ChevronRight, Camera, X, ImageIcon, Flag } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useEffect, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
-import { useServerFn } from "@tanstack/react-start";
-import { reviewWoundPhoto } from "@/lib/ai.functions";
 
 // In the installed Android app, a plain <input type=file capture> does not open
 // the camera reliably. When running natively, capture through the Capacitor
@@ -37,6 +35,9 @@ async function captureNativePhoto(): Promise<File | null> {
   const fmt = (photo.format || "jpeg").replace("jpg", "jpeg");
   return new File([blob], `wound-${Date.now()}.${fmt}`, { type: blob.type || `image/${fmt}` });
 }
+
+// New clinical-meeting columns are not in the generated types yet.
+const db = supabase as any;
 
 const STATUS_COLOR: Record<string, string> = {
   open: "bg-destructive/15 text-destructive border-destructive/30 border",
@@ -81,6 +82,11 @@ export function WoundsTab({ residentId }: { residentId: string }) {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {w.clinical_flag && !w.discussed_at && (
+              <Badge className="border border-amber-500/40 bg-amber-500/15 text-[10px] text-amber-700">
+                <Flag className="mr-1 h-3 w-3" />For meeting
+              </Badge>
+            )}
             <Badge className={STATUS_COLOR[w.status] || ""}>{w.status}</Badge>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
@@ -115,10 +121,14 @@ function WoundDialog({ residentId, existing, onClose }: { residentId: string; ex
         status, date_healed: status === "healed" ? (dateHealed || new Date().toISOString().slice(0, 10)) : null,
         review_date: reviewDate || null,
         created_by: u.user!.id,
+        // A wound that has just been marked healed is listed for the weekly clinical meeting.
+        ...(status === "healed" && existing?.status !== "healed"
+          ? { clinical_flag: "healed", flag_note: null, flagged_at: new Date().toISOString(), flagged_by: u.user!.id, discussed_at: null, discussed_by: null }
+          : {}),
       };
       const { error } = existing
-        ? await supabase.from("wounds").update(payload).eq("id", existing.id)
-        : await supabase.from("wounds").insert(payload);
+        ? await db.from("wounds").update(payload).eq("id", existing.id)
+        : await db.from("wounds").insert(payload);
       if (error) throw error;
     },
     onSuccess: () => { toast.success(existing ? "Wound updated" : "Wound recorded"); qc.invalidateQueries({ queryKey: ["wounds", residentId] }); onClose(); },
@@ -242,6 +252,8 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
           </div>
         </div>
 
+        <ClinicalMeetingFlag wound={wound} />
+
         {assessments.data && assessments.data.length > 0 && (
           <WoundPhotoHistory entries={assessments.data} woundId={wound.id} />
         )}
@@ -293,17 +305,8 @@ function WoundDetailDialog({ wound, onClose }: { wound: any; onClose: () => void
   );
 }
 
-type WoundReview = {
-  appearance: string; isWound: boolean; skinCondition: string | null; likelyWoundType: string | null; tissueTypes: string[];
-  exudate: string | null; periwoundSkin: string | null; concerns: string[];
-  suggestedObservations: string; confidence: "low" | "moderate" | "high";
-};
-
 function AssessmentDialog({ woundId, woundType, location, onClose }: { woundId: string; woundType?: string | null; location?: string | null; onClose: () => void }) {
   const qc = useQueryClient();
-  const runReview = useServerFn(reviewWoundPhoto);
-  const [review, setReview] = useState<WoundReview | null>(null);
-  const [reviewing, setReviewing] = useState(false);
   const [length, setLength] = useState("");
   const [width, setWidth] = useState("");
   const [depth, setDepth] = useState("");
@@ -359,41 +362,6 @@ function AssessmentDialog({ woundId, woundType, location, onClose }: { woundId: 
   const removePhoto = async (path: string) => {
     await supabase.storage.from("wound-photos").remove([path]);
     setPhotos((prev) => prev.filter((p) => p.path !== path));
-    setReview(null);
-  };
-
-  const runAiReview = async () => {
-    const last = photos[photos.length - 1];
-    if (!last) return;
-    setReviewing(true);
-    setReview(null);
-    try {
-      const { data, error } = await supabase.storage.from("wound-photos").createSignedUrl(last.path, 600);
-      if (error || !data?.signedUrl) throw new Error("Couldn't prepare the photo for review.");
-      const result = await runReview({ data: { imageUrl: data.signedUrl, woundType: woundType ?? undefined, location: location ?? undefined } });
-      setReview(result as WoundReview);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "AI review failed");
-    } finally {
-      setReviewing(false);
-    }
-  };
-
-  const applyReview = () => {
-    if (!review) return;
-    const t = review.tissueTypes.find((x) => TISSUE.includes(x));
-    if (t) setTissue(t);
-    const parts = [
-      review.appearance,
-      review.skinCondition ? `Skin: ${review.skinCondition}.` : "",
-      review.periwoundSkin ? `Surrounding skin: ${review.periwoundSkin}.` : "",
-      review.concerns.length ? `Flagged for review: ${review.concerns.join("; ")}.` : "",
-    ].filter(Boolean);
-    const draft = review.suggestedObservations || parts.join(" ");
-    setObservations((prev) => (prev ? `${prev}\n${draft}` : draft));
-    if (review.periwoundSkin && !surrounding) setSurrounding(review.periwoundSkin);
-    toast.success("Added to the assessment — please review and edit before saving.");
-    setReview(null);
   };
 
   const save = useMutation({
@@ -499,39 +467,7 @@ function AssessmentDialog({ woundId, woundType, location, onClose }: { woundId: 
                 {uploading ? "Uploading…" : "Add photo"}
               </button>
             </div>
-            {photos.length > 0 && (
-              <Button type="button" variant="outline" size="sm" className="mt-1 min-h-10" onClick={runAiReview} disabled={reviewing || uploading}>
-                <ScanSearch className="h-4 w-4" />{reviewing ? "Reviewing photo…" : "AI photo review"}
-              </Button>
-            )}
           </div>
-
-          {review && (
-            <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
-              <div className="flex items-center gap-1.5 font-medium">
-                <Sparkles className="h-4 w-4 text-primary" />AI review — for the nurse to verify
-                <Badge variant="outline" className="ml-auto text-[10px] capitalize">{review.confidence} confidence</Badge>
-              </div>
-              <p>{review.appearance}</p>
-              {review.skinCondition && <p className="text-muted-foreground">Skin condition: {review.skinCondition}</p>}
-              <div className="flex flex-wrap gap-1.5">
-                <Badge variant="secondary" className="text-[10px]">{review.isWound ? "Open wound" : "Intact skin"}</Badge>
-                {review.likelyWoundType && <Badge variant="secondary" className="text-[10px]">Likely: {review.likelyWoundType}</Badge>}
-                {review.tissueTypes.map((t) => <Badge key={t} variant="outline" className="text-[10px]">{t}</Badge>)}
-              </div>
-              {review.exudate && <p className="text-muted-foreground">Exudate: {review.exudate}</p>}
-              {review.periwoundSkin && <p className="text-muted-foreground">Surrounding skin: {review.periwoundSkin}</p>}
-              {review.concerns.length > 0 && (
-                <p className="text-destructive">⚠ {review.concerns.join("; ")}</p>
-              )}
-              <p className="rounded-lg bg-background/60 p-2 text-muted-foreground">{review.suggestedObservations}</p>
-              <p className="text-[11px] text-muted-foreground">Decision support only — not a diagnosis, and no measurements are taken from a photo. A registered nurse must confirm all findings.</p>
-              <div className="flex gap-2">
-                <Button type="button" size="sm" className="min-h-10" onClick={applyReview}>Add to assessment</Button>
-                <Button type="button" size="sm" variant="ghost" className="min-h-10" onClick={() => setReview(null)}>Dismiss</Button>
-              </div>
-            </div>
-          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -780,6 +716,53 @@ function WoundComparison({ entries }: { entries: any[] }) {
             ? <PhotoGallery paths={(latest.photos as unknown[]).filter((x): x is string => typeof x === "string")} />
             : <p className="text-[11px] text-muted-foreground">None</p>}
         </div>
+      </div>
+    </div>
+  );
+}
+// Staff decide and record the flag. Nothing here is automatic or AI-generated:
+// it simply puts the wound on the list for the weekly clinical meeting.
+function ClinicalMeetingFlag({ wound }: { wound: any }) {
+  const qc = useQueryClient();
+  const [flag, setFlag] = useState<string | null>(wound.discussed_at ? null : (wound.clinical_flag ?? null));
+  const [note, setNote] = useState<string>(wound.flag_note ?? "");
+
+  const set = useMutation({
+    mutationFn: async (next: "deteriorated" | "healed" | null) => {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await db.from("wounds").update(
+        next
+          ? { clinical_flag: next, flag_note: note || null, flagged_at: new Date().toISOString(), flagged_by: u.user!.id, discussed_at: null, discussed_by: null }
+          : { clinical_flag: null, flag_note: null, flagged_at: null, flagged_by: null },
+      ).eq("id", wound.id);
+      if (error) throw error;
+      return next;
+    },
+    onSuccess: (next) => {
+      setFlag(next);
+      if (!next) setNote("");
+      toast.success(next ? "Added to the weekly clinical meeting list" : "Removed from the meeting list");
+      qc.invalidateQueries({ queryKey: ["wounds", wound.resident_id] });
+      qc.invalidateQueries({ queryKey: ["clinical-meeting"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not save"),
+  });
+
+  return (
+    <div className="mt-3 rounded-xl border bg-card p-3">
+      <div className="flex items-center gap-2">
+        <Flag className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold">Weekly clinical meeting</h3>
+        {flag && <Badge className="border border-amber-500/40 bg-amber-500/15 text-[10px] capitalize text-amber-700">{flag}</Badge>}
+      </div>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Flag a wound that has deteriorated or healed so it is ready to discuss at the weekly meeting.
+      </p>
+      <Input className="mt-2" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Short note, e.g. larger, more exudate, new odour (optional)" />
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" disabled={set.isPending} onClick={() => set.mutate("deteriorated")}>Flag: deteriorated</Button>
+        <Button size="sm" variant="outline" disabled={set.isPending} onClick={() => set.mutate("healed")}>Flag: healed</Button>
+        {flag && <Button size="sm" variant="ghost" disabled={set.isPending} onClick={() => set.mutate(null)}>Remove flag</Button>}
       </div>
     </div>
   );
