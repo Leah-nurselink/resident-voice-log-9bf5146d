@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Check, ShieldCheck, Star } from "lucide-react";
 import { RAG_CLASS, ragForDate, ragText, daysUntil } from "@/lib/rag";
+import { DictateButton } from "@/components/DictateButton";
+import { RotdConversationRecorder } from "@/components/RotdConversationRecorder";
 
 export const Route = createFileRoute("/_authenticated/rotd")({
   head: () => ({ meta: [{ title: "Resident of the Day · CareCore" }] }),
@@ -55,10 +57,14 @@ type Day = {
   spoke_for_resident: string | null;
   meeting_notes: string | null;
   next_steps: string | null;
+  recording_consent?: boolean | null;
+  consent_basis?: string | null;
+  voice_transcript?: string | null;
   signed_off_by: string | null;
   signed_off_at: string | null;
 };
-type Review = { id: string; day_id: string; department: string; feedback: string | null; improvement: string | null; completed_at: string | null };
+type Review = { id: string; day_id: string; department: string; feedback: string | null; improvement: string | null; transcript?: string | null; completed_at: string | null };
+type DraftAction = { department: string; concern: string; share?: boolean };
 type Action = {
   id: string;
   day_id: string;
@@ -93,6 +99,7 @@ async function currentUserId() {
   const { data } = await supabase.auth.getUser();
   return data.user?.id ?? null;
 }
+const joinText = (cur: string, add: string) => (cur ? `${cur} ${add}` : add);
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong");
 
 // ---------- data hooks ----------
@@ -383,6 +390,10 @@ function DayCard({
   const [spokeFor, setSpokeFor] = useState(day.spoke_for_resident ?? "");
   const [meeting, setMeeting] = useState(day.meeting_notes ?? "");
   const [nextSteps, setNextSteps] = useState(day.next_steps ?? "");
+  const [consent, setConsent] = useState(!!day.recording_consent);
+  const [basis, setBasis] = useState(day.consent_basis ?? "resident");
+  const [voiceTranscript, setVoiceTranscript] = useState(day.voice_transcript ?? "");
+  const [drafts, setDrafts] = useState<DraftAction[]>([]);
 
   const updateDay = useMutation({
     mutationFn: async (patch: Record<string, unknown>) => {
@@ -395,9 +406,17 @@ function DayCard({
 
   const saveNotes = () =>
     updateDay.mutate(
-      { resident_voice: voice || null, spoke_for_resident: spokeFor || null, meeting_notes: meeting || null, next_steps: nextSteps || null },
+      { resident_voice: voice || null, spoke_for_resident: spokeFor || null, meeting_notes: meeting || null, next_steps: nextSteps || null, voice_transcript: voiceTranscript || null },
       { onSuccess: () => toast.success("Saved") },
     );
+
+  const saveConsent = (c: boolean, b: string) => {
+    setConsent(c);
+    setBasis(b);
+    updateDay.mutate({ recording_consent: c, consent_basis: c ? b : null });
+  };
+  const addDrafts = (department: string, list: { concern: string }[]) =>
+    setDrafts((d) => [...d, ...list.map((a) => ({ department, concern: a.concern, share: false }))]);
 
   const reviewedCount = (reviews.data ?? []).filter((r) => r.completed_at).length;
   const name = resident?.preferred_name || resident?.full_name || "Resident";
@@ -424,14 +443,64 @@ function DayCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!locked && (
+          <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox checked={consent} onCheckedChange={(v) => saveConsent(!!v, basis)} className="mt-0.5" />
+              <span>
+                {name} (or their representative) has agreed to this conversation being recorded and written down.
+                <span className="block text-[11px] text-muted-foreground">The sound is not kept. Only the written transcript is saved.</span>
+              </span>
+            </label>
+            {consent && (
+              <Select value={basis} onValueChange={(v) => saveConsent(true, v)}>
+                <SelectTrigger className="h-8 w-full text-xs md:w-80"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="resident">The resident agreed</SelectItem>
+                  <SelectItem value="best_interests">Best-interests decision (resident lacks capacity)</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
+
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <Label className="text-xs">In {name}'s own words</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs">In {name}'s own words</Label>
+              {!locked && <DictateButton onText={(t) => setVoice((v) => joinText(v, t))} />}
+            </div>
             <Textarea rows={3} value={voice} disabled={locked} onChange={(e) => setVoice(e.target.value)}
               placeholder="What did they say about their care, their day, what matters to them?" />
+            {!locked && (
+              <div className="mt-2">
+                <RotdConversationRecorder
+                  residentName={name}
+                  department="resident (general chat)"
+                  label="Record a chat with the resident"
+                  disabled={!consent}
+                  disabledReason="Tick the consent box first"
+                  onResult={(r) => {
+                    setVoice((v) => joinText(v, r.residentWords || r.transcript));
+                    setVoiceTranscript((t) => joinText(t, r.transcript));
+                    addDrafts(settings.departments[0] ?? "care", r.actions);
+                    toast.success("Draft ready — check it, then Save notes");
+                  }}
+                />
+              </div>
+            )}
+            {voiceTranscript && (
+              <details className="mt-1 text-[11px] text-muted-foreground">
+                <summary className="cursor-pointer">View transcript</summary>
+                <p className="mt-1 whitespace-pre-wrap italic">{voiceTranscript}</p>
+              </details>
+            )}
           </div>
           <div>
-            <Label className="text-xs">If they could not give their view, who spoke for them?</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs">If they could not give their view, who spoke for them?</Label>
+              {!locked && <DictateButton onText={(t) => setSpokeFor((v) => joinText(v, t))} />}
+            </div>
             <Textarea rows={3} value={spokeFor} disabled={locked} onChange={(e) => setSpokeFor(e.target.value)}
               placeholder="e.g. daughter, advocate, key worker" />
           </div>
@@ -441,20 +510,26 @@ function DayCard({
           <h4 className="mb-2 text-sm font-semibold">Department conversations</h4>
           <div className="grid gap-3 md:grid-cols-2">
             {settings.departments.map((dept) => (
-              <DeptReview key={dept} day={day} dept={dept} existing={reviews.data?.find((r) => r.department === dept)} locked={locked} />
+              <DeptReview key={dept} day={day} dept={dept} existing={reviews.data?.find((r) => r.department === dept)} locked={locked} consent={consent} residentName={name} onDrafts={addDrafts} />
             ))}
           </div>
         </div>
 
-        <ActionsPanel day={day} settings={settings} actions={actions.data ?? []} locked={locked} staff={staff} />
+        <ActionsPanel day={day} settings={settings} actions={actions.data ?? []} locked={locked} staff={staff} drafts={drafts} onDraftsChange={setDrafts} />
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <Label className="text-xs">Planning meeting notes</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs">Planning meeting notes</Label>
+              {!locked && <DictateButton onText={(t) => setMeeting((v) => joinText(v, t))} />}
+            </div>
             <Textarea rows={3} value={meeting} disabled={locked} onChange={(e) => setMeeting(e.target.value)} />
           </div>
           <div>
-            <Label className="text-xs">Next steps</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs">Next steps</Label>
+              {!locked && <DictateButton onText={(t) => setNextSteps((v) => joinText(v, t))} />}
+            </div>
             <Textarea rows={3} value={nextSteps} disabled={locked} onChange={(e) => setNextSteps(e.target.value)} />
           </div>
         </div>
@@ -494,16 +569,23 @@ function DayCard({
   );
 }
 
-function DeptReview({ day, dept, existing, locked }: { day: Day; dept: string; existing?: Review; locked: boolean }) {
+function DeptReview({
+  day, dept, existing, locked, consent, residentName, onDrafts,
+}: {
+  day: Day; dept: string; existing?: Review; locked: boolean; consent: boolean; residentName: string;
+  onDrafts: (dept: string, list: { concern: string }[]) => void;
+}) {
   const qc = useQueryClient();
   const [feedback, setFeedback] = useState(existing?.feedback ?? "");
   const [improvement, setImprovement] = useState(existing?.improvement ?? "");
+  const [transcript, setTranscript] = useState(existing?.transcript ?? "");
 
   const save = useMutation({
     mutationFn: async () => {
       const { error } = await db.from("rotd_reviews").upsert(
         {
           day_id: day.id, department: dept, feedback: feedback || null, improvement: improvement || null,
+          transcript: transcript || null, source: transcript ? "conversation" : "typed",
           completed_by: await currentUserId(), completed_at: new Date().toISOString(),
         },
         { onConflict: "day_id,department" },
@@ -520,14 +602,41 @@ function DeptReview({ day, dept, existing, locked }: { day: Day; dept: string; e
         <span className="text-sm font-medium">{deptLabel(dept)}</span>
         {existing?.completed_at && <Badge className="border border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700"><Check className="mr-1 h-3 w-3" />Done</Badge>}
       </div>
+      {!locked && (
+        <RotdConversationRecorder
+          residentName={residentName}
+          department={deptLabel(dept)}
+          disabled={!consent}
+          disabledReason="Tick the consent box above first"
+          onResult={(r) => {
+            if (r.feedback) setFeedback((v) => joinText(v, r.feedback));
+            if (r.improvement) setImprovement((v) => joinText(v, r.improvement));
+            setTranscript((t) => joinText(t, r.transcript));
+            if (r.actions.length) onDrafts(dept, r.actions);
+            toast.success("Draft ready — check it, then Save");
+          }}
+        />
+      )}
       <div>
-        <Label className="text-[11px]">How do they feel about the service?</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-[11px]">How do they feel about the service?</Label>
+          {!locked && <DictateButton onText={(t) => setFeedback((v) => joinText(v, t))} />}
+        </div>
         <Textarea rows={2} value={feedback} disabled={locked} onChange={(e) => setFeedback(e.target.value)} />
       </div>
       <div>
-        <Label className="text-[11px]">What could we do to make it even better?</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-[11px]">What could we do to make it even better?</Label>
+          {!locked && <DictateButton onText={(t) => setImprovement((v) => joinText(v, t))} />}
+        </div>
         <Textarea rows={2} value={improvement} disabled={locked} onChange={(e) => setImprovement(e.target.value)} />
       </div>
+      {transcript && (
+        <details className="text-[11px] text-muted-foreground">
+          <summary className="cursor-pointer">View transcript</summary>
+          <p className="mt-1 whitespace-pre-wrap italic">{transcript}</p>
+        </details>
+      )}
       {!locked && (
         <Button size="sm" variant="outline" onClick={() => save.mutate()} disabled={save.isPending}>Save {deptLabel(dept).toLowerCase()}</Button>
       )}
@@ -536,9 +645,10 @@ function DeptReview({ day, dept, existing, locked }: { day: Day; dept: string; e
 }
 
 function ActionsPanel({
-  day, settings, actions, locked, staff,
+  day, settings, actions, locked, staff, drafts, onDraftsChange,
 }: {
   day: Day; settings: Settings; actions: Action[]; locked: boolean; staff: { id: string; full_name: string | null }[];
+  drafts: DraftAction[]; onDraftsChange: (d: DraftAction[]) => void;
 }) {
   const qc = useQueryClient();
   const [concern, setConcern] = useState("");
@@ -561,9 +671,54 @@ function ActionsPanel({
     onError: (e) => toast.error(errMsg(e)),
   });
 
+  // An AI-suggested action only becomes a real action when staff add it.
+  const addDraft = useMutation({
+    mutationFn: async (index: number) => {
+      const d = drafts[index];
+      if (!d || !d.concern.trim()) throw new Error("This suggestion is empty");
+      const { error } = await db.from("rotd_actions").insert({
+        day_id: day.id, resident_id: day.resident_id, department: d.department, concern: d.concern.trim(),
+        status: "open", source: "ai_draft", share_with_family: !!d.share, created_by: await currentUserId(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, index) => {
+      onDraftsChange(drafts.filter((_, j) => j !== index));
+      toast.success("Action added");
+      qc.invalidateQueries({ queryKey: ["rotd"] });
+    },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+
   return (
     <div>
       <h4 className="mb-2 text-sm font-semibold">Actions from today</h4>
+
+      {drafts.length > 0 && !locked && (
+        <div className="mb-3 space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2">
+          <p className="text-xs font-medium">Suggested from the conversation. Check each one, then add or dismiss.</p>
+          {drafts.map((d, i) => (
+            <div key={i} className="flex flex-wrap items-center gap-2">
+              <Input
+                className="min-w-[12rem] flex-1"
+                value={d.concern}
+                onChange={(e) => onDraftsChange(drafts.map((x, j) => (j === i ? { ...x, concern: e.target.value } : x)))}
+              />
+              <Badge variant="secondary" className="text-[10px]">{deptLabel(d.department)}</Badge>
+              <label className="flex items-center gap-1 text-[11px]">
+                <Checkbox
+                  checked={!!d.share}
+                  onCheckedChange={(v) => onDraftsChange(drafts.map((x, j) => (j === i ? { ...x, share: !!v } : x)))}
+                />
+                Family can see when done
+              </label>
+              <Button size="sm" onClick={() => addDraft.mutate(i)} disabled={addDraft.isPending}>Add</Button>
+              <Button size="sm" variant="ghost" onClick={() => onDraftsChange(drafts.filter((_, j) => j !== i))}>Dismiss</Button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {actions.length === 0 && <p className="mb-2 text-xs text-muted-foreground">No actions yet.</p>}
       <ul className="mb-3 space-y-1.5">
         {actions.map((a) => (
@@ -577,7 +732,10 @@ function ActionsPanel({
       {!locked && (
         <div className="grid gap-2 rounded-md border bg-muted/20 p-3 md:grid-cols-2">
           <div className="md:col-span-2">
-            <Label className="text-[11px]">Concern or wish</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-[11px]">Concern or wish</Label>
+              <DictateButton onText={(t) => setConcern((v) => joinText(v, t))} />
+            </div>
             <Input value={concern} onChange={(e) => setConcern(e.target.value)} placeholder='e.g. "Would like my room painted blue"' />
           </div>
           <div>
